@@ -18,53 +18,38 @@ import { TextSummary } from '../TextSummary';
 import { useAudioStore } from '../../stores/audioStore';
 import { useAgentsStore } from '../../stores/agentsStore';
 import { useNotesStore } from '../../stores/notesStore';
+import { useRecordingStore } from '../../stores/recordingStore';
+import { useTranscriptionStore } from '../../stores/transcriptionStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { renderMarkdown, stripMarkdown } from '../../utils/markdownRenderer';
 import { TakeawayCard } from '../ui/TakeawayCard';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
 import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
-import { useTranscriber } from '../../hooks/useTranscriber';
 import { PencilIcon } from '@heroicons/react/24/solid';
 
 interface NoteDetailScreenProps {
   note: Note;
   onBack: () => void;
-  onUpdateNote: (updatedNote: Note) => void;
-  onSaveVersion: (noteId: string, description: string) => void;
-  onRestoreVersion: (noteId: string, version: NoteVersion) => void;
-  onUpdateTags: (noteId: string, tags: string[]) => void;
-  onPlayAudio: (audioUrl: string) => void;
-  currentPlayingAudioUrl: string | null;
-  globalIsPlaying: boolean;
-  globalAudioDuration?: number;
-  globalAudioCurrentTime?: number;
-  onDeleteNote?: (noteId: string) => void;
-  isProcessing?: boolean;
-  processingStatus?: string;
-  activeTab?: 'record' | 'library' | 'agents' | 'settings';
-  onTabChange?: (tab: 'record' | 'library' | 'agents' | 'settings') => void;
-  onSelectNote?: (noteId: string) => void;
+  activeTab: 'record' | 'library' | 'agents' | 'settings';
+  onTabChange: (tab: 'record' | 'library' | 'agents' | 'settings') => void;
 }
 
 export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   note,
   onBack,
-  onUpdateNote,
-  onSaveVersion,
-  onRestoreVersion,
-  onUpdateTags,
-  onPlayAudio,
-  currentPlayingAudioUrl,
-  globalIsPlaying,
-  globalAudioDuration = 0,
-  globalAudioCurrentTime = 0,
-  onDeleteNote,
-  isProcessing = false,
-  processingStatus = '',
-  activeTab = 'library',
+  activeTab,
   onTabChange,
-  onSelectNote,
 }) => {
-  const { setIsUserInteracting } = useAudioStore();
+  // Get everything from stores
+  const { 
+    playAudio, 
+    currentPlayingAudioUrl, 
+    globalIsPlaying, 
+    globalAudioDuration, 
+    globalAudioCurrentTime,
+    setIsUserInteracting 
+  } = useAudioStore();
+  
   const { 
     canRunAnyAgents, 
     getAutoRunAgents, 
@@ -73,8 +58,18 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     processingStatus: agentsStatus
   } = useAgentsStore();
   
-  const { notes, deleteNote } = useNotesStore();
-  const transcriber = useTranscriber();
+  const { 
+    notes, 
+    updateNote, 
+    deleteNote, 
+    saveVersion, 
+    restoreVersion, 
+    updateTags 
+  } = useNotesStore();
+  
+  const { isProcessing, processingStatus } = useRecordingStore();
+  const { progressItems, isModelLoading, startTranscription } = useTranscriptionStore();
+  const { navigateToNote } = useRoutingStore();
   
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(note?.content || '');
@@ -119,14 +114,14 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     const newTitle = e.target.value;
     setTitle(newTitle);
     if (note) {
-      onUpdateNote({ ...note, title: newTitle });
+      updateNote({ ...note, title: newTitle });
     }
   };
 
   const handleEditorChange = (newContent: string) => {
     setContent(newContent);
     if (note) {
-      onUpdateNote({ ...note, content: newContent });
+      updateNote({ ...note, content: newContent });
     }
   };
 
@@ -139,7 +134,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     try {
       // Clear current content
       setContent('');
-      onUpdateNote({ ...note, content: '' });
+      updateNote({ ...note, content: '' });
       
       // Get audio blob and start transcription
       const response = await fetch(note.audioUrl);
@@ -149,8 +144,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       const audioContext = new AudioContext({ sampleRate: 16000 });
       const audioData = await audioContext.decodeAudioData(audioBuffer);
       
-      transcriber.onInputChange();
-      transcriber.start(audioData);
+      startTranscription(audioData, note.id);
       
     } catch (error) {
       console.error('Failed to retranscribe:', error);
@@ -174,7 +168,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       const newTag = tagInput.trim();
       if (!note.tags.includes(newTag)) {
         const newTags = [...note.tags, newTag];
-        onUpdateTags(note.id, newTags);
+        updateTags(note.id, newTags);
         setTagInput('');
       }
     }
@@ -183,7 +177,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const handleRemoveTag = (tagToRemove: string) => {
     if (note) {
       const newTags = note.tags.filter(tag => tag !== tagToRemove);
-      onUpdateTags(note.id, newTags);
+      updateTags(note.id, newTags);
     }
   };
 
@@ -227,7 +221,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       alert('❌ No audio recording available for this note');
       return;
     }
-    onPlayAudio(note.audioUrl);
+    playAudio(note.audioUrl);
   };
 
   const isCurrentlyPlaying = note.audioUrl === currentPlayingAudioUrl && globalIsPlaying;
@@ -260,10 +254,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   };
 
   const handleDeleteNote = () => {
-    if (onDeleteNote) {
-      onDeleteNote(note.id);
-      onBack();
-    }
+    deleteNote(note.id);
+    onBack();
   };
 
   const handleDeleteAudio = () => {
@@ -275,7 +267,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const handleConfirmDeleteAudio = () => {
     if (note.audioUrl) {
       const updatedNote = { ...note, audioUrl: undefined, duration: undefined };
-      onUpdateNote(updatedNote);
+      updateNote(updatedNote);
     }
     setShowDeleteAudioConfirm(false);
   };
@@ -321,7 +313,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           {/* Show source note link for agent notes */}
           {isAgentNote && sourceNote && (
             <button
-              onClick={() => onSelectNote?.(sourceNote.id)}
+              onClick={() => navigateToNote(sourceNote.id)}
               className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
             >
               <span className="text-sm text-gray-300">Source:</span>
@@ -452,8 +444,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
           {/* Model Loading Progress */}
           <ModelLoadingProgress
-            progressItems={transcriber.progressItems || []}
-            isVisible={isProcessing && transcriber.isModelLoading}
+            progressItems={progressItems}
+            isVisible={isProcessing && isModelLoading}
           />
           {/* Tags */}
           <div className="space-y-3">
@@ -526,7 +518,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                     <TakeawayCard
                       key={takeaway.id}
                       takeaway={takeaway}
-                      onSelect={(id) => onSelectNote?.(id)}
+                      onSelect={(id) => navigateToNote(id)}
                       onDelete={(id) => deleteNote(id)}
                     />
                 ))}

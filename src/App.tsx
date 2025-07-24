@@ -10,11 +10,10 @@ import { RecordButton } from './components/ui/RecordButton';
 import { GlobalAudioPlayer } from './components/ui/GlobalAudioPlayer';
 import Modal from './components/modal/Modal';
 import { UrlInput } from './components/modal/UrlInput';
-import { useRoutingStore } from './stores/routingStore';
 
 // Zustand stores
 import { useAppStore } from './stores/appStore';
-import { useRecordingStore } from './stores/recordingStore';
+import { useRoutingStore } from './stores/routingStore';
 import { useNotesStore } from './stores/notesStore';
 import { useAudioStore } from './stores/audioStore';
 import { useTranscriptionStore } from './stores/transcriptionStore';
@@ -24,126 +23,30 @@ import { useLLMProvidersStore } from './stores/llmProvidersStore';
 import './styles/globals.css';
 
 function App() {
-  // Zustand stores
-  const { 
-    isLoaded,
-    setIsLoaded
-  } = useAppStore();
-  
-  const {
-    currentRoute,
-    navigateTo,
-    navigateBack,
-    navigateToNote,
-    navigateToMain,
-    setTab,
-    canGoBack,
-    syncWithBrowserHistory
-  } = useRoutingStore();
-  
-  const {
-    startRecordingFlow,
-    pauseRecordingFlow,
-    resumeRecordingFlow,
-    stopRecordingFlow,
-    cancelRecordingFlow,
-    isRecording,
-    isPaused,
-    recordingTime,
-    audioStream,
-    isProcessing,
-    processingStatus
-  } = useRecordingStore();
-  
-  const {
-    notes,
-    addNote,
-    updateNote,
-    deleteNote,
-    createNote,
-    saveVersion,
-    restoreVersion,
-    updateTags,
-    exportNotes,
-    importNotes,
-    clearAllNotes,
-    clearAllRecordings,
-    getNoteById
-  } = useNotesStore();
-  
-  const {
-    playAudio,
-    initializeAudio,
-    handleUserInteraction,
-    togglePlayPause,
-    seekAudio,
-    closePlayer,
-    currentPlayingAudioUrl,
-    globalIsPlaying,
-    globalAudioDuration,
-    globalAudioCurrentTime,
-    showUrlModal,
-    audioDownloadUrl,
-    lastError,
-    showErrorModal,
-    setShowUrlModal,
-    setAudioDownloadUrl,
-    showError,
-    clearError
-  } = useAudioStore();
-  
+  const { isLoaded, setIsLoaded } = useAppStore();
+  const { currentRoute, navigateBack, navigateToMain, setTab, canGoBack } = useRoutingStore();
+  const { getNoteById } = useNotesStore();
+  const { initializeAudio, handleUserInteraction, currentPlayingAudioUrl, showUrlModal, showErrorModal, lastError, setShowUrlModal, audioDownloadUrl, setAudioDownloadUrl, clearError, playAudio } = useAudioStore();
   const { initializeWorker } = useTranscriptionStore();
-  
-  const {
-    initializeBuiltInAgents
-  } = useAgentsStore();
-  
-  const {
-    hasValidProvider,
-    getDefaultModel
-  } = useLLMProvidersStore();
+  const { initializeBuiltInAgents, canRunAnyAgents } = useAgentsStore();
+  const { hasValidProvider, getDefaultModel } = useLLMProvidersStore();
 
   // Initialize app
   useEffect(() => {
     const initializeApp = async () => {
-      // Initialize all services
       initializeAudio();
       initializeWorker();
-      syncWithBrowserHistory();
       setIsLoaded(true);
     };
     initializeApp();
-  }, [setIsLoaded, syncWithBrowserHistory, initializeAudio, initializeWorker]);
+  }, [setIsLoaded, initializeAudio, initializeWorker]);
 
   // Initialize built-in agents when we have valid LLM providers
   useEffect(() => {
-    const initAgents = () => {
-      if (hasValidProvider() && getDefaultModel()) {
-        if (import.meta.env.DEV) {
-          console.log('🤖 APP: Initializing built-in agents');
-        }
-        initializeBuiltInAgents();
-      }
-    };
-    
-    // Try to initialize immediately
-    initAgents();
-    
-    // Also try after a short delay in case providers are still loading
-    const timeout = setTimeout(initAgents, 1000);
-    
-    return () => clearTimeout(timeout);
-  }, [hasValidProvider, getDefaultModel, initializeBuiltInAgents]);
-  
-  // Debug logging for agent state
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('🤖 APP: Initializing built-in agents');
-      console.log('🤖 APP: hasValidProvider:', hasValidProvider());
-      console.log('🤖 APP: getDefaultModel:', getDefaultModel());
-      console.log('🤖 APP: canRunAnyAgents:', canRunAnyAgents());
+    if (hasValidProvider() && getDefaultModel()) {
+      initializeBuiltInAgents();
     }
-  }, [hasValidProvider, getDefaultModel, canRunAnyAgents]);
+  }, [hasValidProvider, getDefaultModel, initializeBuiltInAgents]);
 
   // Handle user interaction for mobile
   useEffect(() => {
@@ -170,7 +73,7 @@ function App() {
     );
   }
 
-  // Show note detail screen (only on library tab)
+  // Show note detail screen
   if (currentRoute.screen === 'note-detail' && currentRoute.noteId && currentRoute.tab === 'library') {
     const selectedNote = getNoteById(currentRoute.noteId);
     if (selectedNote) {
@@ -180,36 +83,10 @@ function App() {
             key={selectedNote.id}
             note={selectedNote}
             onBack={() => canGoBack() ? navigateBack() : navigateToMain('library')}
-            onUpdateNote={updateNote}
-            onSaveVersion={saveVersion}
-            onRestoreVersion={restoreVersion}
-            onUpdateTags={updateTags}
-            onPlayAudio={handleGlobalPlayAudio}
-            currentPlayingAudioUrl={currentPlayingAudioUrl}
-            globalIsPlaying={globalIsPlaying}
-            globalAudioDuration={globalAudioDuration}
-            globalAudioCurrentTime={globalAudioCurrentTime}
-            onDeleteNote={deleteNote}
-            isProcessing={isProcessing}
-            processingStatus={processingStatus}
             activeTab={currentRoute.tab}
             onTabChange={setTab}
-            onSelectNote={navigateToNote}
           />
-
-          {currentPlayingAudioUrl && (
-            <GlobalAudioPlayer
-              currentPlayingAudioUrl={currentPlayingAudioUrl}
-              globalIsPlaying={globalIsPlaying}
-              globalAudioDuration={globalAudioDuration}
-              globalAudioCurrentTime={globalAudioCurrentTime}
-              onPlayPause={togglePlayPause}
-              onSeek={seekAudio}
-              onClose={closePlayer}
-              notes={notes}
-              onSelectNote={navigateToNote}
-            />
-          )}
+          {currentPlayingAudioUrl && <GlobalAudioPlayer />}
         </div>
       );
     }
@@ -226,13 +103,7 @@ function App() {
             exit={{ opacity: 0, x: 20 }}
             className="flex-1"
           >
-            <RecordScreen
-              isRecording={isRecording}
-              isProcessing={isProcessing}
-              processingStatus={processingStatus}
-              onStartRecording={startRecordingFlow}
-              showBigRecordButton={currentPlayingAudioUrl !== null}
-            />
+            <RecordScreen />
           </motion.div>
         )}
 
@@ -244,18 +115,7 @@ function App() {
             exit={{ opacity: 0, x: 20 }}
             className="flex-1"
           >
-            <LibraryScreen
-              notes={notes}
-              onSelectNote={navigateToNote}
-              onDeleteNote={deleteNote}
-              onCreateNote={createNote}
-              onStartRecording={startRecordingFlow}
-              onUploadFile={() => {}} // TODO: Move to store
-              onFromUrl={() => setShowUrlModal(true)}
-              onPlayAudio={playAudio}
-              currentPlayingAudioUrl={currentPlayingAudioUrl}
-              globalIsPlaying={globalIsPlaying}
-            />
+            <LibraryScreen />
           </motion.div>
         )}
 
@@ -267,12 +127,7 @@ function App() {
             exit={{ opacity: 0, x: 20 }}
             className="flex-1"
           >
-            <SettingsScreen
-              onExportNotes={exportNotes}
-              onImportNotes={() => {}} // TODO: Move to store
-              onClearAllNotes={clearAllNotes}
-              onClearAllRecordings={clearAllRecordings}
-            />
+            <SettingsScreen />
           </motion.div>
         )}
 
@@ -289,37 +144,11 @@ function App() {
         )}
       </AnimatePresence>
 
-      {!currentPlayingAudioUrl && (
-        <RecordButton
-          isRecording={isRecording}
-          isPaused={isPaused}
-          onStartRecording={startRecordingFlow}
-          onPauseRecording={isPaused ? resumeRecordingFlow : pauseRecordingFlow}
-          onStopRecording={stopRecordingFlow}
-          onCancelRecording={cancelRecordingFlow}
-          recordingTime={recordingTime}
-          audioStream={audioStream}
-          activeTab={currentRoute.tab}
-          isGloballyPlaying={currentPlayingAudioUrl !== null}
-        />
-      )}
-
-      {currentPlayingAudioUrl && (
-        <GlobalAudioPlayer
-          currentPlayingAudioUrl={currentPlayingAudioUrl}
-          globalIsPlaying={globalIsPlaying}
-          globalAudioDuration={globalAudioDuration}
-          globalAudioCurrentTime={globalAudioCurrentTime}
-          onPlayPause={togglePlayPause}
-          onSeek={seekAudio}
-          onClose={closePlayer}
-          notes={notes}
-          onSelectNote={navigateToNote}
-        />
-      )}
-
+      <RecordButton />
+      {currentPlayingAudioUrl && <GlobalAudioPlayer />}
       <BottomNavigation activeTab={currentRoute.tab} onTabChange={setTab} />
 
+      {/* URL Modal */}
       <Modal
         show={showUrlModal}
         title="Add Audio from URL"
@@ -334,7 +163,9 @@ function App() {
         }
         onClose={() => setShowUrlModal(false)}
         submitText="Load Audio"
-        onSubmit={() => {}} // TODO: Move to store
+        onSubmit={() => {
+          // TODO: Implement URL loading in store
+        }}
       />
       
       {/* Audio Error Modal */}

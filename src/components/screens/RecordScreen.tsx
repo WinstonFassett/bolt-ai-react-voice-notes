@@ -1,25 +1,18 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MicrophoneIcon } from '@heroicons/react/24/solid';
-import { useTranscriber } from '../../hooks/useTranscriber';
+import { useRecordingStore } from '../../stores/recordingStore';
+import { useTranscriptionStore } from '../../stores/transcriptionStore';
+import { useAudioStore } from '../../stores/audioStore';
 import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 
-interface RecordScreenProps {
-  isRecording?: boolean;
-  isProcessing?: boolean;
-  processingStatus?: string;
-  onStartRecording?: () => void;
-  showBigRecordButton?: boolean;
-}
+export const RecordScreen: React.FC = () => {
+  // Get everything from stores
+  const { isRecording, isProcessing, processingStatus, startRecordingFlow } = useRecordingStore();
+  const { progressItems, isModelLoading } = useTranscriptionStore();
+  const { currentPlayingAudioUrl } = useAudioStore();
 
-export const RecordScreen: React.FC<RecordScreenProps> = ({
-  isRecording = false,
-  isProcessing = false,
-  processingStatus = '',
-  onStartRecording,
-  showBigRecordButton = false
-}) => {
-  const transcriber = useTranscriber();
+  const showBigRecordButton = currentPlayingAudioUrl !== null;
   
   return (
     <div className="flex flex-col h-full">
@@ -70,7 +63,7 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
                 </div>
                 <h2 className="text-3xl font-bold text-white">Processing...</h2>
                 <p className="text-gray-400">
-                  {processingStatus || (transcriber.isBusy ? 'Transcribing your recording' : 'Processing audio')}
+                  {processingStatus || 'Processing audio'}
                 </p>
               </motion.div>
             ) : !isRecording ? (
@@ -90,9 +83,9 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
                 </p>
                 
                 {/* Big Record Button for Record Screen - Only show when global button is hidden */}
-                {onStartRecording && showBigRecordButton && (
+                {showBigRecordButton && (
                   <motion.button
-                    onClick={onStartRecording}
+                    onClick={startRecordingFlow}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="w-24 h-24 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 shadow-xl mx-auto"
@@ -122,8 +115,8 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
 
           {/* Model Loading Progress */}
           <ModelLoadingProgress
-            progressItems={transcriber.progressItems || []}
-            isVisible={isProcessing && transcriber.isModelLoading}
+            progressItems={progressItems}
+            isVisible={isProcessing && isModelLoading}
           />
         </div>
         </div>

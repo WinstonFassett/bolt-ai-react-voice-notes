@@ -7,34 +7,25 @@ import {
   BackwardIcon,
   ForwardIcon
 } from '@heroicons/react/24/solid';
-import { isStorageUrl, getStorageId } from '../../utils/audioStorage';
 import { useAudioStore } from '../../stores/audioStore';
+import { useNotesStore } from '../../stores/notesStore';
+import { useRoutingStore } from '../../stores/routingStore';
 
-interface GlobalAudioPlayerProps {
-  currentPlayingAudioUrl: string | null;
-  globalIsPlaying: boolean;
-  globalAudioDuration: number;
-  globalAudioCurrentTime: number;
-  onPlayPause: () => void;
-  onSeek: (time: number) => void;
-  onClose: () => void;
-  notes: Array<{id: string; title: string; audioUrl?: string; duration?: number}>;
-  onSelectNote?: (noteId: string) => void;
-}
+export const GlobalAudioPlayer: React.FC = () => {
+  // Get everything from stores
+  const { 
+    currentPlayingAudioUrl,
+    globalIsPlaying,
+    globalAudioDuration,
+    globalAudioCurrentTime,
+    togglePlayPause,
+    seekAudio,
+    closePlayer,
+    setIsUserInteracting 
+  } = useAudioStore();
+  const { notes } = useNotesStore();
+  const { navigateToNote } = useRoutingStore();
 
-export const GlobalAudioPlayer: React.FC<GlobalAudioPlayerProps> = ({
-  currentPlayingAudioUrl,
-  globalIsPlaying,
-  globalAudioDuration,
-  globalAudioCurrentTime,
-  onPlayPause,
-  onSeek,
-  onClose,
-  notes,
-  onSelectNote
-}) => {
-  const { setIsUserInteracting } = useAudioStore();
-  
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -54,8 +45,8 @@ export const GlobalAudioPlayer: React.FC<GlobalAudioPlayerProps> = ({
   const progressDuration = effectiveDuration > 0 ? effectiveDuration : globalAudioDuration;
 
   const handleTitleClick = () => {
-    if (currentNote && onSelectNote) {
-      onSelectNote(currentNote.id);
+    if (currentNote) {
+      navigateToNote(currentNote.id);
     }
   };
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -71,31 +62,31 @@ export const GlobalAudioPlayer: React.FC<GlobalAudioPlayerProps> = ({
     const newTime = percentage * progressDuration;
     console.log('Progress clicked, seeking to:', newTime);
     if (isFinite(newTime) && newTime >= 0) {
-      onSeek(newTime);
+      seekAudio(newTime);
     }
   };
 
   const handleSkipBackward = () => {
     setIsUserInteracting(true);
     const newTime = Math.max(0, globalAudioCurrentTime - 10);
-    onSeek(newTime);
+    seekAudio(newTime);
   };
 
   const handleSkipForward = () => {
     setIsUserInteracting(true);
     const newTime = Math.min(progressDuration, globalAudioCurrentTime + 10);
-    onSeek(newTime);
+    seekAudio(newTime);
   };
   
   const handlePlayPause = () => {
     setIsUserInteracting(true);
     console.log('GlobalAudioPlayer: Play/pause button clicked');
-    onPlayPause();
+    togglePlayPause();
   };
   
   const handleClose = () => {
     setIsUserInteracting(true);
-    onClose();
+    closePlayer();
   };
 
   const progressPercentage = progressDuration > 0 
@@ -127,12 +118,12 @@ export const GlobalAudioPlayer: React.FC<GlobalAudioPlayerProps> = ({
                 <button
                   onClick={handleTitleClick}
                   className="text-sm text-white font-medium hover:text-indigo-400 transition-colors text-left flex-1 truncate cursor-pointer"
-                  disabled={!currentNote || !onSelectNote}
+                  disabled={!currentNote}
                 >
                   {displayTitle}
                 </button>
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="w-6 h-6 rounded-full hover:bg-gray-700 flex items-center justify-center transition-colors"
                 >
                   <XMarkIcon className="w-4 h-4 text-gray-400" />
