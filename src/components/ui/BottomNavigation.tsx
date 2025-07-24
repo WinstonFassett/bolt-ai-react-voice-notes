@@ -67,18 +67,9 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               <motion.button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className="flex flex-col items-center justify-center p-3 min-w-[60px] relative"
+                className="flex flex-col items-center justify-center p-3 min-w-[60px]"
                 whileTap={{ scale: 0.95 }}
               >
-                {/* Active indicator background */}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTabBg"
-                    className="absolute inset-0 bg-indigo-600/20 rounded-lg"
-                    transition={{ duration: 0.2 }}
-                  />
-                )}
-                
                 <motion.div
                   animate={{
                     scale: isActive ? 1.1 : 1,
