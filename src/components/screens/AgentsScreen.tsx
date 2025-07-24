@@ -226,30 +226,25 @@ export const AgentsScreen: React.FC = () => {
     <div className="flex flex-col h-full">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="safe-area-top py-4 px-4"
-          >
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-white">AI Agents</h1>
-              <button
-                onClick={handleCreateAgent}
-                disabled={!canRun}
-                className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                  canRun
-                    ? 'bg-indigo-600 hover:bg-indigo-700'
-                    : 'bg-gray-600 cursor-not-allowed'
-                }`}
-                title="Create new agent"
-              >
-                <PlusIcon className="w-6 h-6 text-white" />
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      </header>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="safe-area-top py-4 px-4"
+        >
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white">AI Agents</h1>
+            <button
+              onClick={handleCreateAgent}
+              disabled={!canRun}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                canRun
+                  ? 'bg-indigo-600 hover:bg-indigo-700'
+                  : 'bg-gray-600 cursor-not-allowed'
+              }`}
+              title="Create new agent"
+            >
+              <PlusIcon className="w-6 h-6 text-white" />
+            </button>
           </div>
         </motion.div>
       </header>

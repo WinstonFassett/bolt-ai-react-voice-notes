@@ -57,42 +57,50 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       className="fixed bottom-0 left-0 right-0 z-30"
     >
       <div className="bg-gray-900/60 backdrop-blur-xl border-t border-gray-700/50 h-20 safe-area-bottom">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-around px-4 py-2">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const Icon = isActive ? tab.iconSolid : tab.icon;
+        <div className="flex items-center justify-around px-4 py-2">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = isActive ? tab.iconSolid : tab.icon;
 
-              return (
-                <motion.button
-                  key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className="flex flex-col items-center justify-center p-3 min-w-[60px] relative"
-                  whileTap={{ scale: 0.95 }}
+            return (
+              <motion.button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className="flex flex-col items-center justify-center p-3 min-w-[60px] relative"
+                whileTap={{ scale: 0.95 }}
+              >
+                <motion.div
+                  animate={{
+                    scale: isActive ? 1.1 : 1,
+                    color: isActive ? '#6366f1' : '#9ca3af',
+                  }}
+                  transition={{ duration: 0.2 }}
                 >
-                  <motion.div
-                    animate={{
-                      scale: isActive ? 1.1 : 1,
-                      color: isActive ? '#6366f1' : '#9ca3af',
-                    }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Icon className="w-6 h-6" />
-                  </motion.div>
+                  {/* Active indicator */}
+                  {/* {isActive && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute -top-1 left-1/2 w-1 h-1 bg-indigo-500 rounded-full"
+                      style={{ x: '-50%' }}
+                    />
+                  )} */}
+                  <Icon className="w-6 h-6" />
                   
-                  <motion.span
-                    animate={{
-                      color: isActive ? '#6366f1' : '#9ca3af',
-                      fontWeight: isActive ? 600 : 400,
-                    }}
-                    className="text-xs mt-1"
-                  >
-                    {tab.label}
-                  </motion.span>
-                </motion.button>
-              );
-            })}
-          </div>
+                 
+                </motion.div>
+                
+                <motion.span
+                  animate={{
+                    color: isActive ? '#6366f1' : '#9ca3af',
+                    fontWeight: isActive ? 600 : 400,
+                  }}
+                  className="text-xs mt-1"
+                >
+                  {tab.label}
+                </motion.span>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
     </motion.nav>

@@ -307,54 +307,50 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="border-b border-gray-800"
+        className="safe-area-top py-4 px-4 border-b border-gray-800"
       >
-        <div className="max-w-4xl mx-auto">
-          <div className="safe-area-top py-4 px-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={onBack}
-                className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                <ArrowLeftIcon className="w-6 h-6 text-white" />
-              </button>
-              
-              {/* Show source note link for agent notes */}
-              {isAgentNote && sourceNote && (
-                <button
-                  onClick={() => onSelectNote?.(sourceNote.id)}
-                  className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <span className="text-sm text-gray-300">Source:</span>
-                  <span className="text-sm text-white truncate max-w-32">{sourceNote.title}</span>
-                </button>
-              )}
-              
-              {/* Edit toggle for agent notes */}
-              {isAgentNote && (
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isEditing 
-                      ? 'bg-indigo-600 text-white' 
-                      : 'hover:bg-gray-800 text-gray-400'
-                  }`}
-                  title={isEditing ? 'Stop editing' : 'Edit note'}
-                >
-                  <PencilIcon className="w-5 h-5" />
-                </button>
-              )}
-              
-              {/* Simple delete button */}
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="p-2 rounded-lg hover:bg-red-600/20 transition-colors"
-                title="Delete note"
-              >
-                <TrashIcon className="w-5 h-5 text-red-400" />
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onBack}
+            className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            <ArrowLeftIcon className="w-6 h-6 text-white" />
+          </button>
+          
+          {/* Show source note link for agent notes */}
+          {isAgentNote && sourceNote && (
+            <button
+              onClick={() => onSelectNote?.(sourceNote.id)}
+              className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <span className="text-sm text-gray-300">Source:</span>
+              <span className="text-sm text-white truncate max-w-32">{sourceNote.title}</span>
+            </button>
+          )}
+          
+          {/* Edit toggle for agent notes */}
+          {isAgentNote && (
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`p-2 rounded-lg transition-colors ${
+                isEditing 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'hover:bg-gray-800 text-gray-400'
+              }`}
+              title={isEditing ? 'Stop editing' : 'Edit note'}
+            >
+              <PencilIcon className="w-5 h-5" />
+            </button>
+          )}
+          
+          {/* Simple delete button */}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="p-2 rounded-lg hover:bg-red-600/20 transition-colors"
+            title="Delete note"
+          >
+            <TrashIcon className="w-5 h-5 text-red-400" />
+          </button>
         </div>
       </motion.header>
 
