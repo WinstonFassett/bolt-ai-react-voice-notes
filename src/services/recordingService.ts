@@ -4,6 +4,7 @@ import { useRoutingStore } from '../stores/routingStore';
 import { useAgentsStore } from '../stores/agentsStore';
 import { audioStorage } from '../utils/audioStorage';
 import { generateSmartTitle } from '../utils/titleGenerator';
+import { transcriptionService } from '../services/transcriptionService';
 
 class RecordingService {
   private mediaRecorder: MediaRecorder | null = null;
@@ -221,7 +222,6 @@ class RecordingService {
       const audioData = await audioContext.decodeAudioData(audioBuffer);
       
       // Use transcription service
-      const transcriptionService = TranscriptionService.getInstance();
       transcriptionService.startTranscription(audioData, noteId);
       
     } catch (error) {

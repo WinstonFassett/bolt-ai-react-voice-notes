@@ -57,6 +57,10 @@ interface RecordingState {
   resumeRecordingFlow: () => void;
   stopRecordingFlow: () => void;
   cancelRecordingFlow: () => void;
+  cleanup: () => void;
+  handleRecordingStop: () => Promise<void>;
+  createNoteFromRecording: () => Promise<void>;
+  startTranscription: (audioBlob: Blob, noteId: string) => Promise<void>;
 }
 
 export const useRecordingStore = create<RecordingState>((set, get) => ({

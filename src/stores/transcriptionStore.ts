@@ -189,10 +189,16 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     
     if (!state.worker) {
       console.error('❌ TranscriptionStore: Worker not initialized');
-      set({ 
-        isProcessing: false, 
-        processingStatus: 'Failed to initialize transcription worker' 
-      });
+      // Remove invalid set property
+      // set({ processingStatus: 'Failed to initialize transcription worker' });
+      // Instead, update the processingNotes map for the current note
+      const state = get();
+      const noteId = state.currentNoteId;
+      if (noteId) {
+        const notes = new Map(state.processingNotes);
+        notes.set(noteId, { isProcessing: false, status: 'Failed to initialize transcription worker' });
+        set({ processingNotes: notes });
+      }
       return;
     }
 

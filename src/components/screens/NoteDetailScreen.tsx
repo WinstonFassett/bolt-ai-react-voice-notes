@@ -141,7 +141,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     updateNote({ ...note, content: '' });
     
     // Start transcription from URL - this handles storage URLs properly
-    startTranscriptionFromUrl(note.audioUrl, note.id);
+    startTranscriptionFromUrl(note.audioUrl ?? '', note.id);
   };
 
   const handleSummarize = async () => {

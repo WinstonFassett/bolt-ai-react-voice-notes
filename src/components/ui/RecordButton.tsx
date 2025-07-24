@@ -138,7 +138,7 @@ export const RecordButton: React.FC = () => {
                   {/* Recording Controls - SEPARATE HANDLERS */}
                   <div className="flex items-center justify-center gap-3">
                     {/* Cancel Button - GRAY - SEPARATE HANDLER */}
-                    {cancelRecordingFlow && (
+                    {typeof cancelRecordingFlow === 'function' && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}

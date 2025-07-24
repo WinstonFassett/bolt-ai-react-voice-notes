@@ -52,6 +52,7 @@ interface AudioState {
   initializeAudio: () => void;
   cleanupAudio: () => void;
   loadAndPlay: (url: string) => Promise<void>;
+  handleAudioError: () => void;
 }
 
 export const useAudioStore = create<AudioState>((set, get) => ({

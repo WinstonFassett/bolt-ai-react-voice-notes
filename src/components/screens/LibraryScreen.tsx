@@ -9,6 +9,7 @@ import { useRoutingStore } from '../../stores/routingStore';
 import { 
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
+import { Note } from '../../stores/notesStore';
 
 export const LibraryScreen: React.FC = () => {
   // Get everything from stores
