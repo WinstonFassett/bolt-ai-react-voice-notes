@@ -530,6 +530,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </div>
           ) : (
             <TiptapEditor
+              ref={editorRef}
               content={editorContent}
               onChange={handleEditorChange}
               placeholder="Start writing your note..."
