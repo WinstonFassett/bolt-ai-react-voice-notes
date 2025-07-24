@@ -3,7 +3,6 @@ import { TiptapEditor } from './ui/TiptapEditor';
 import { IoCopyOutline } from 'react-icons/io5';
 import { AiOutlineRobot } from 'react-icons/ai';
 import Transcript from "./Transcript";
-import { Transcriber } from "../hooks/useTranscriber";
 import { useSummarizer } from '../hooks/useSummarizer';
 import { TextSummary } from './TextSummary';
 
@@ -29,7 +28,7 @@ interface NoteEditorProps {
   onSaveVersion: (noteId: string, description: string) => void;
   onRestoreVersion: (noteId: string, version: NoteVersion) => void;
   onUpdateTags: (noteId: string, tags: string[]) => void;
-  transcriber: Transcriber;
+  transcriber: any;
   hasMicrophonePermission: boolean;
 }
 

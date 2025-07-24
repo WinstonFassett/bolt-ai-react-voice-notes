@@ -2,39 +2,25 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TranscriptCard } from '../ui/TranscriptCard';
 import { AddButton } from '../ui/AddButton';
-import { Note } from '../../stores/notesStore';
+import { useNotesStore } from '../../stores/notesStore';
+import { useRecordingStore } from '../../stores/recordingStore';
+import { useAudioStore } from '../../stores/audioStore';
+import { useRoutingStore } from '../../stores/routingStore';
 import { 
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
+import { Note } from '../../stores/notesStore';
 
-interface LibraryScreenProps {
-  notes: Note[];
-  onSelectNote: (id: string) => void;
-  onDeleteNote: (id: string) => void;
-  onCreateNote: () => void;
-  onStartRecording: () => void;
-  onUploadFile: () => void;
-  onFromUrl: () => void;
-  onPlayAudio: (audioUrl: string) => void;
-  currentPlayingAudioUrl: string | null;
-  globalIsPlaying: boolean;
-}
+export const LibraryScreen: React.FC = () => {
+  // Get everything from stores
+  const { notes, deleteNote, createNote } = useNotesStore();
+  const { startRecordingFlow } = useRecordingStore();
+  const { playAudio, currentPlayingAudioUrl, globalIsPlaying, setShowUrlModal } = useAudioStore();
+  const { navigateToNote } = useRoutingStore();
 
-export const LibraryScreen: React.FC<LibraryScreenProps> = ({
-  notes,
-  onSelectNote,
-  onDeleteNote,
-  onCreateNote,
-  onStartRecording,
-  onUploadFile,
-  onFromUrl,
-  onPlayAudio,
-  currentPlayingAudioUrl,
-  globalIsPlaying
-}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  const [noteToDelete, setNoteToDelete] = useState<any>(null);
 
   const filteredNotes = useMemo(() => {
     const searchLower = searchQuery.toLowerCase();
@@ -84,7 +70,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
 
   const handleConfirmDelete = () => {
     if (noteToDelete) {
-      onDeleteNote(noteToDelete.id);
+      deleteNote(noteToDelete.id);
       setNoteToDelete(null);
       setShowDeleteConfirm(false);
     }
@@ -108,10 +94,10 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
           <h1 className="text-2xl font-bold text-white">Library</h1>
           <div>
             <AddButton
-              onStartRecording={onStartRecording}
-              onUploadFile={onUploadFile}
-              onFromUrl={onFromUrl}
-              onCreateNote={onCreateNote}
+              onStartRecording={startRecordingFlow}
+              onUploadFile={() => {}} // TODO: Implement
+              onFromUrl={() => setShowUrlModal(true)}
+              onCreateNote={createNote}
             />
           </div>
         </div>
@@ -177,9 +163,9 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                       audioUrl={note.audioUrl}
                       duration={note.duration}
                       takeaways={note.takeaways}
-                      onClick={() => onSelectNote(note.id)}
+                     onClick={() => navigateToNote(note.id)}
                       onDeleteClick={() => handleDeleteClick(note)}
-                    onPlayAudio={onPlayAudio}
+                    onPlayAudio={playAudio}
                     currentPlayingAudioUrl={currentPlayingAudioUrl}
                     globalIsPlaying={globalIsPlaying}
                     />

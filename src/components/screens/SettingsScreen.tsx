@@ -2,34 +2,26 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModelSelector } from '../ModelSelector';
 import { LLMProviderSettings } from '../ui/LLMProviderSettings';
+import { useNotesStore } from '../../stores/notesStore';
 import { 
   CpuChipIcon,
   DocumentArrowDownIcon,
   InformationCircleIcon,
   CpuChipIcon as RobotIcon
 } from '@heroicons/react/24/outline';
-import { Transcriber } from '../../hooks/useTranscriber';
 import { useDebugStore } from '../../stores/debugStore';
 
-interface SettingsScreenProps {
-  transcriber: Transcriber;
-  onExportNotes: () => void;
-  onImportNotes: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onClearAllNotes?: () => void;
-  onClearAllRecordings?: () => void;
-}
-
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({
-  transcriber,
-  onExportNotes,
-  onImportNotes,
-  onClearAllNotes,
-  onClearAllRecordings
-}) => {
+export const SettingsScreen: React.FC = () => {
+  // Get everything from stores
+  const { exportNotes, clearAllNotes, clearAllRecordings } = useNotesStore();
   const { setDebugVisible } = useDebugStore();
+
   const [showClearNotesConfirm, setShowClearNotesConfirm] = useState(false);
   const [showClearRecordingsConfirm, setShowClearRecordingsConfirm] = useState(false);
 
+  const handleImportNotes = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // TODO: Move to store
+  };
   const settingsGroups = [
     {
       title: 'AI Agents',
@@ -70,7 +62,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           description: 'Download all your transcripts as JSON',
           component: (
             <button
-              onClick={onExportNotes}
+              onClick={exportNotes}
               className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
             >
               Export
@@ -86,13 +78,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               <input
                 type="file"
                 accept=".json"
-                onChange={onImportNotes}
+                onChange={handleImportNotes}
                 className="hidden"
               />
             </label>
           )
         },
-        ...(onClearAllNotes ? [{
+        {
           label: 'Clear All Notes',
           description: 'Delete all transcripts and notes',
           component: (
@@ -103,8 +95,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               Clear Notes
             </button>
           )
-        }] : []),
-        ...(onClearAllRecordings ? [{
+        },
+        {
           label: 'Clear All Recordings',
           description: 'Delete all audio recordings (keeps text)',
           component: (
@@ -115,7 +107,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               Clear Audio
             </button>
           )
-        }] : [])
+        }
       ]
     },
     ...(import.meta.env.DEV ? [{
@@ -290,7 +282,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    onClearAllNotes?.();
+                    clearAllNotes();
                     setShowClearNotesConfirm(false);
                   }}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
@@ -331,7 +323,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    onClearAllRecordings?.();
+                    clearAllRecordings();
                     setShowClearRecordingsConfirm(false);
                   }}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"

@@ -1,26 +1,18 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MicrophoneIcon } from '@heroicons/react/24/solid';
-import { Transcriber } from '../../hooks/useTranscriber';
-import { Progress } from '../Progress';
+import { useRecordingStore } from '../../stores/recordingStore';
+import { useTranscriptionStore } from '../../stores/transcriptionStore';
+import { useAudioStore } from '../../stores/audioStore';
+import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 
-interface RecordScreenProps {
-  transcriber: Transcriber;
-  isRecording?: boolean;
-  isProcessing?: boolean;
-  processingStatus?: string;
-  onStartRecording?: () => void;
-  showBigRecordButton?: boolean;
-}
+export const RecordScreen: React.FC = () => {
+  // Get everything from stores
+  const { isRecording, startRecordingFlow } = useRecordingStore();
+  const { currentPlayingAudioUrl } = useAudioStore();
 
-export const RecordScreen: React.FC<RecordScreenProps> = ({
-  transcriber,
-  isRecording = false,
-  isProcessing = false,
-  processingStatus = '',
-  onStartRecording,
-  showBigRecordButton = false
-}) => {
+  const showBigRecordButton = currentPlayingAudioUrl !== null;
+  
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -53,27 +45,7 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
         <div className="w-full max-w-2xl">
         <div className="w-full max-w-md space-y-8 text-center">
           <AnimatePresence mode="wait">
-            {isProcessing ? (
-              <motion.div
-                key="processing"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-4"
-              >
-                <div className="w-16 h-16 mx-auto rounded-full bg-indigo-600/20 flex items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full"
-                  />
-                </div>
-                <h2 className="text-3xl font-bold text-white">Processing...</h2>
-                <p className="text-gray-400">
-                  {processingStatus || (transcriber.isBusy ? 'Transcribing your recording' : 'Processing audio')}
-                </p>
-              </motion.div>
-            ) : !isRecording ? (
+            {!isRecording ? (
               <motion.div
                 key="ready"
                 initial={{ opacity: 0, y: 20 }}
@@ -90,9 +62,9 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
                 </p>
                 
                 {/* Big Record Button for Record Screen - Only show when global button is hidden */}
-                {onStartRecording && showBigRecordButton && (
+                {showBigRecordButton && (
                   <motion.button
-                    onClick={onStartRecording}
+                    onClick={startRecordingFlow}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="w-24 h-24 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 shadow-xl mx-auto"
@@ -120,32 +92,6 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
             )}
           </AnimatePresence>
 
-          {/* Model Loading Progress */}
-          <AnimatePresence>
-            {transcriber.progressItems && transcriber.progressItems.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="card"
-              >
-                <h3 className="text-sm font-medium text-gray-400 mb-3">
-                  Loading AI Model...
-                </h3>
-                <div className="space-y-2">
-                  {transcriber.progressItems.map((item) => (
-                    <div key={item.file} className="space-y-1">
-                      <div className="flex justify-between text-xs text-gray-400">
-                        <span>{item.file}</span>
-                        <span>{Math.round(item.progress)}%</span>
-                      </div>
-                      <Progress percentage={item.progress} />
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
         </div>
       </main>

@@ -3,33 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MicrophoneIcon, StopIcon, PauseIcon, PlayIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { WaveformVisualizer } from './WaveformVisualizer';
 import { useAudioStore } from '../../stores/audioStore';
+import { useRecordingStore } from '../../stores/recordingStore';
+import { useRoutingStore } from '../../stores/routingStore';
 
-interface RecordButtonProps {
-  isRecording: boolean;
-  isPaused: boolean;
-  onStartRecording: () => void;
-  onPauseRecording: () => void;
-  onStopRecording: () => void;
-  onCancelRecording?: () => void;
-  recordingTime?: number;
-  audioStream?: MediaStream | null;
-  activeTab: 'record' | 'library' | 'agents' | 'settings';
-  isGloballyPlaying: boolean;
-}
+export const RecordButton: React.FC = () => {
+  // Get everything from stores
+  const { setIsUserInteracting, currentPlayingAudioUrl } = useAudioStore();
+  const { 
+    isRecording, 
+    isPaused, 
+    recordingTime, 
+    audioStream,
+    startRecordingFlow,
+    pauseRecordingFlow,
+    resumeRecordingFlow,
+    stopRecordingFlow,
+    cancelRecordingFlow
+  } = useRecordingStore();
+  const { currentRoute } = useRoutingStore();
 
-export const RecordButton: React.FC<RecordButtonProps> = ({
-  isRecording,
-  isPaused,
-  onStartRecording,
-  onPauseRecording,
-  onStopRecording,
-  onCancelRecording,
-  recordingTime = 0,
-  audioStream,
-  activeTab,
-  isGloballyPlaying
-}) => {
-  const { setIsUserInteracting } = useAudioStore();
+  const isGloballyPlaying = currentPlayingAudioUrl !== null;
+  const activeTab = currentRoute.tab;
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -41,25 +35,29 @@ export const RecordButton: React.FC<RecordButtonProps> = ({
   const handleStartRecord = () => {
     setIsUserInteracting(true);
     console.log('Starting recording');
-    onStartRecording();
+    startRecordingFlow();
   };
 
   const handlePauseResume = () => {
     setIsUserInteracting(true);
     console.log('Pause/Resume clicked, isPaused:', isPaused);
-    onPauseRecording();
+    if (isPaused) {
+      resumeRecordingFlow();
+    } else {
+      pauseRecordingFlow();
+    }
   };
 
   const handleStop = () => {
     setIsUserInteracting(true);
     console.log('Stop clicked');
-    onStopRecording();
+    stopRecordingFlow();
   };
 
   const handleCancel = () => {
     setIsUserInteracting(true);
     console.log('Cancel clicked');
-    onCancelRecording?.();
+    cancelRecordingFlow();
   };
 
   // Global Record Button Logic:
@@ -140,7 +138,7 @@ export const RecordButton: React.FC<RecordButtonProps> = ({
                   {/* Recording Controls - SEPARATE HANDLERS */}
                   <div className="flex items-center justify-center gap-3">
                     {/* Cancel Button - GRAY - SEPARATE HANDLER */}
-                    {onCancelRecording && (
+                    {typeof cancelRecordingFlow === 'function' && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
