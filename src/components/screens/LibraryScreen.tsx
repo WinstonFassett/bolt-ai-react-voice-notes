@@ -11,7 +11,12 @@ import {
 } from '@heroicons/react/24/outline';
 import { Note } from '../../stores/notesStore';
 
-export const LibraryScreen: React.FC = () => {
+interface LibraryScreenProps {
+  onUploadFile: () => void;
+  onFromUrl: () => void;
+}
+
+export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFromUrl }) => {
   // Get everything from stores
   const { notes, deleteNote, createNote } = useNotesStore();
   const { startRecordingFlow } = useRecordingStore();
@@ -95,8 +100,8 @@ export const LibraryScreen: React.FC = () => {
           <div>
             <AddButton
               onStartRecording={startRecordingFlow}
-              onUploadFile={() => {}} // TODO: Implement
-              onFromUrl={() => setShowUrlModal(true)}
+              onUploadFile={onUploadFile}
+              onFromUrl={onFromUrl}
               onCreateNote={createNote}
             />
           </div>

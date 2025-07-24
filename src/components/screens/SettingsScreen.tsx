@@ -13,14 +13,46 @@ import { useDebugStore } from '../../stores/debugStore';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
-  const { exportNotes, clearAllNotes, clearAllRecordings } = useNotesStore();
+  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes } = useNotesStore();
   const { setDebugVisible } = useDebugStore();
 
   const [showClearNotesConfirm, setShowClearNotesConfirm] = useState(false);
   const [showClearRecordingsConfirm, setShowClearRecordingsConfirm] = useState(false);
 
+  // Import status state for feedback
+  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
+  const [importMessage, setImportMessage] = useState<string>('');
+
+  // Import handler
   const handleImportNotes = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // TODO: Move to store
+    setImportStatus('loading');
+    setImportMessage('Importing notes...');
+    const file = event.target.files?.[0];
+    if (!file) {
+      setImportStatus('error');
+      setImportMessage('No file selected');
+      setTimeout(() => { setImportStatus('idle'); setImportMessage(''); }, 4000);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedNotesData = JSON.parse(e.target?.result as string);
+        if (Array.isArray(importedNotesData) && importedNotesData.every(note => typeof note === 'object' && 'id' in note && 'title' in note && 'content' in note)) {
+          importNotes(importedNotesData);
+          setImportStatus('success');
+          setImportMessage('Notes imported successfully!');
+        } else {
+          setImportStatus('error');
+          setImportMessage('Invalid notes format');
+        }
+      } catch (error: any) {
+        setImportStatus('error');
+        setImportMessage('Error importing notes: ' + (error?.message || 'Unknown error'));
+      }
+      setTimeout(() => { setImportStatus('idle'); setImportMessage(''); }, 4000);
+    };
+    reader.readAsText(file);
   };
   const settingsGroups = [
     {
@@ -335,6 +367,15 @@ export const SettingsScreen: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Import status feedback */}
+      {importStatus !== 'idle' && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-semibold transition-all
+          ${importStatus === 'success' ? 'bg-green-600' : importStatus === 'error' ? 'bg-red-600' : 'bg-indigo-600'}`}
+        >
+          {importMessage}
+        </div>
+      )}
     </div>
   );
 };

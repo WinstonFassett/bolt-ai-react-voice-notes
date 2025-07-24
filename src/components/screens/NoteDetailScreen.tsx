@@ -82,6 +82,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const editorRef = useRef<any>(null);
 
+  // Import status state
+  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
+  const [importMessage, setImportMessage] = useState<string>('');
+
   // Check if this is an agent-generated note
   const isAgentNote = note?.type === 'agent';
   const sourceNote = isAgentNote && note.sourceNoteIds?.[0] 
@@ -280,12 +284,38 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Import notes handler
+  const handleImportNotes = async (importFn: () => Promise<any>) => {
+    setImportStatus('loading');
+    setImportMessage('Importing notes...');
+    try {
+      await importFn();
+      setImportStatus('success');
+      setImportMessage('Notes imported successfully!');
+    } catch (err: any) {
+      setImportStatus('error');
+      setImportMessage('Failed to import notes: ' + (err?.message || 'Unknown error'));
+    }
+    setTimeout(() => {
+      setImportStatus('idle');
+      setImportMessage('');
+    }, 4000);
+  };
+
   if (!note) {
     return null;
   }
 
   return (
     <div className="flex flex-col h-full bg-gray-900 relative">
+      {/* Import status feedback */}
+      {importStatus !== 'idle' && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-semibold transition-all
+          ${importStatus === 'success' ? 'bg-green-600' : importStatus === 'error' ? 'bg-red-600' : 'bg-indigo-600'}`}
+        >
+          {importMessage}
+        </div>
+      )}
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
