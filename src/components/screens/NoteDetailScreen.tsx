@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'share-api-polyfill'
-import { TiptapEditor } from '../ui/TiptapEditor';
+import { TiptapEditor, TiptapRenderer } from '../ui/TiptapEditor';
 import { Note, NoteVersion } from '../../stores/notesStore';
 import { 
   ArrowLeftIcon,
@@ -21,7 +21,6 @@ import { useNotesStore } from '../../stores/notesStore';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { renderMarkdown, stripMarkdown } from '../../utils/markdownRenderer';
 import { TakeawayCard } from '../ui/TakeawayCard';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
 import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
@@ -473,10 +472,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           {isAgentNote && !isEditing ? (
             /* Read-only view for agent notes with better markdown rendering */
             <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
-              <div 
-                className="prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-              />
+              <TiptapRenderer content={note.content} />
             </div>
           ) : (
             <TiptapEditor
