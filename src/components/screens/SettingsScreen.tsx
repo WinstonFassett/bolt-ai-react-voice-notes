@@ -185,7 +185,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           animate={{ opacity: 1, y: 0 }}
           className="safe-area-top py-4 px-4"
         >
+          <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold text-white">Settings</h1>
+          </div>
         </motion.div>
       </header>
 

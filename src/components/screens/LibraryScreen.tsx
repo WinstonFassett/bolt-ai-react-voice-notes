@@ -103,6 +103,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
         animate={{ opacity: 1, y: 0 }}
         className="safe-area-top py-4 px-4"
       >
+        <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-white">Library</h1>
           <div>
@@ -127,6 +128,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                      text-white placeholder-gray-400 focus:outline-none focus:ring-2 
                      focus:ring-indigo-500 focus:border-transparent"
           />
+        </div>
         </div>
         </motion.div>
       </header>

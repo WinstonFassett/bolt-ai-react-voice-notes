@@ -231,6 +231,7 @@ export const AgentsScreen: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="safe-area-top py-4 px-4"
         >
+          <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">AI Agents</h1>
             <button
@@ -245,6 +246,7 @@ export const AgentsScreen: React.FC = () => {
             >
               <PlusIcon className="w-6 h-6 text-white" />
             </button>
+          </div>
           </div>
         </motion.div>
       </header>

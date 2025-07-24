@@ -309,6 +309,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
         animate={{ opacity: 1, y: 0 }}
         className="safe-area-top py-4 px-4 border-b border-gray-800"
       >
+        <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between">
           <button
             onClick={onBack}
@@ -351,6 +352,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           >
             <TrashIcon className="w-5 h-5 text-red-400" />
           </button>
+        </div>
         </div>
       </motion.header>
 
