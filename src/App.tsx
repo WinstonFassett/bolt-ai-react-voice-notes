@@ -17,6 +17,7 @@ import { AudioDebugPanel } from './components/ui/AudioDebugPanel';
 import { MobileAudioDebugger } from './components/ui/MobileAudioDebugger';
 import Constants from './utils/Constants';
 import axios from 'axios';
+import { useRoutingStore } from './stores/routingStore';
 
 // Zustand stores
 import { useAppStore } from './stores/appStore';
@@ -35,16 +36,20 @@ function App() {
   
   // Zustand stores
   const { 
-    activeTab, 
-    currentScreen, 
-    selectedNoteId, 
     isLoaded,
-    setActiveTab,
-    setSelectedNoteId,
-    setIsLoaded,
-    navigateToNoteDetail,
-    navigateToMain
+    setIsLoaded
   } = useAppStore();
+  
+  const {
+    currentRoute,
+    navigateTo,
+    navigateBack,
+    navigateToNote,
+    navigateToMain,
+    setTab,
+    canGoBack,
+    syncWithBrowserHistory
+  } = useRoutingStore();
   
   const {
     isRecording,
@@ -177,10 +182,12 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       await audioStorage.init();
+      // Sync with browser URL on app load
+      syncWithBrowserHistory();
       setIsLoaded(true);
     };
     initializeApp();
-  }, [setIsLoaded]);
+  }, [setIsLoaded, syncWithBrowserHistory]);
 
   // Initialize built-in agents when we have valid LLM providers
   useEffect(() => {
@@ -594,7 +601,7 @@ function App() {
       
       setMediaRecorder(recorder);
       startRecordingState();
-      setActiveTab('record');
+      setTab('record');
     } catch (err) {
       console.error('Error accessing microphone:', err);
     }
@@ -730,11 +737,10 @@ function App() {
       
       console.log('CREATE NOTE: Adding note to store...');
       addNote(newNote);
-      setSelectedNoteId(noteId);
       
       console.log('CREATE NOTE: Navigating to note detail...');
       // Navigate to note detail FIRST
-      navigateToNoteDetail(noteId);
+      navigateToNote(noteId);
       
       // THEN start transcription process
       console.log('CREATE NOTE: Starting transcription process...');
@@ -776,7 +782,7 @@ function App() {
       lastTranscriptionRef.current = text;
       const smartTitle = generateSmartTitle(text);
       
-      const noteIdToUpdate = pendingNoteIdRef.current || selectedNoteId;
+      const noteIdToUpdate = pendingNoteIdRef.current || currentRoute.noteId;
       if (noteIdToUpdate) {
         const existingNote = getNoteById(noteIdToUpdate);
         if (existingNote) {
@@ -811,7 +817,7 @@ function App() {
       pendingNoteIdRef.current = null;
       console.log('TRANSCRIPTION: Processing complete');
     }
-  }, [selectedNoteId, getNoteById, updateNote, setIsProcessing, setProcessingStatus, canRunAnyAgents, processNoteWithAllAutoAgents]);
+  }, [currentRoute.noteId, getNoteById, updateNote, setIsProcessing, setProcessingStatus, canRunAnyAgents, processNoteWithAllAutoAgents]);
 
   // Watch for transcription completion
   useEffect(() => {
@@ -917,16 +923,16 @@ function App() {
     );
   }
 
-  // Show note detail screen
-  if (currentScreen === 'note-detail' && selectedNoteId) {
-    const selectedNote = getNoteById(selectedNoteId);
+  // Show note detail screen (only on library tab)
+  if (currentRoute.screen === 'note-detail' && currentRoute.noteId && currentRoute.tab === 'library') {
+    const selectedNote = getNoteById(currentRoute.noteId);
     if (selectedNote) {
       return (
         <div className="flex flex-col min-h-screen bg-gray-900 text-white">
           <NoteDetailScreen
             key={selectedNote.id}
             note={selectedNote}
-            onBack={navigateToMain}
+            onBack={() => canGoBack() ? navigateBack() : navigateToMain('library')}
             onUpdateNote={updateNote}
             onSaveVersion={saveVersion}
             onRestoreVersion={restoreVersion}
@@ -939,9 +945,9 @@ function App() {
             onDeleteNote={deleteNote}
             isProcessing={isProcessing}
             processingStatus={processingStatus}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onSelectNote={navigateToNoteDetail}
+            activeTab={currentRoute.tab}
+            onTabChange={setTab}
+            onSelectNote={navigateToNote}
           />
 
           {currentPlayingAudioUrl && (
@@ -954,7 +960,7 @@ function App() {
               onSeek={seekAudio}
               onClose={closePlayer}
               notes={notes}
-              onSelectNote={navigateToNoteDetail}
+              onSelectNote={navigateToNote}
             />
           )}
         </div>
@@ -965,7 +971,7 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-white">
       <AnimatePresence mode="wait">
-        {activeTab === 'record' && (
+        {currentRoute.tab === 'record' && (
           <motion.div
             key="record"
             initial={{ opacity: 0, x: -20 }}
@@ -984,7 +990,7 @@ function App() {
           </motion.div>
         )}
 
-        {activeTab === 'library' && (
+        {currentRoute.tab === 'library' && (
           <motion.div
             key="library"
             initial={{ opacity: 0, x: -20 }}
@@ -994,7 +1000,7 @@ function App() {
           >
             <LibraryScreen
               notes={notes}
-              onSelectNote={navigateToNoteDetail}
+              onSelectNote={navigateToNote}
               onDeleteNote={deleteNote}
               onCreateNote={createNote}
               onStartRecording={startRecording}
@@ -1007,7 +1013,7 @@ function App() {
           </motion.div>
         )}
 
-        {activeTab === 'settings' && (
+        {currentRoute.tab === 'settings' && (
           <motion.div
             key="settings"
             initial={{ opacity: 0, x: -20 }}
@@ -1025,7 +1031,7 @@ function App() {
           </motion.div>
         )}
 
-        {activeTab === 'agents' && (
+        {currentRoute.tab === 'agents' && (
           <motion.div
             key="agents"
             initial={{ opacity: 0, x: -20 }}
@@ -1048,7 +1054,7 @@ function App() {
           onCancelRecording={handleCancel}
           recordingTime={recordingTime}
           audioStream={audioStream}
-          activeTab={activeTab}
+          activeTab={currentRoute.tab}
           isGloballyPlaying={currentPlayingAudioUrl !== null}
         />
       )}
@@ -1063,11 +1069,11 @@ function App() {
           onSeek={seekAudio}
           onClose={closePlayer}
           notes={notes}
-          onSelectNote={navigateToNoteDetail}
+          onSelectNote={navigateToNote}
         />
       )}
 
-      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNavigation activeTab={currentRoute.tab} onTabChange={setTab} />
 
       <Modal
         show={showUrlModal}

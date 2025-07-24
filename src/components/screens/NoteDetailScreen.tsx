@@ -23,6 +23,7 @@ import { TakeawayCard } from '../ui/TakeawayCard';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
 import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 import { useTranscriber } from '../../hooks/useTranscriber';
+import { PencilIcon } from '@heroicons/react/24/solid';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -80,6 +81,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const [tagInput, setTagInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRunAgentsDialog, setShowRunAgentsDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const editorRef = useRef<any>(null);
 
   // Check if this is an agent-generated note
@@ -125,6 +127,34 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     setContent(newContent);
     if (note) {
       onUpdateNote({ ...note, content: newContent });
+    }
+  };
+
+  const handleRetranscribe = async () => {
+    if (!note.audioUrl) return;
+    
+    const confirmed = window.confirm('This will replace the current content with a new transcription. Continue?');
+    if (!confirmed) return;
+    
+    try {
+      // Clear current content
+      setContent('');
+      onUpdateNote({ ...note, content: '' });
+      
+      // Get audio blob and start transcription
+      const response = await fetch(note.audioUrl);
+      const audioBlob = await response.blob();
+      
+      const audioBuffer = await audioBlob.arrayBuffer();
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      const audioData = await audioContext.decodeAudioData(audioBuffer);
+      
+      transcriber.onInputChange();
+      transcriber.start(audioData);
+      
+    } catch (error) {
+      console.error('Failed to retranscribe:', error);
+      alert('Failed to start retranscription. Please try again.');
     }
   };
 
@@ -279,6 +309,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
         animate={{ opacity: 1, y: 0 }}
         className="safe-area-top py-4 px-4 border-b border-gray-800"
       >
+        <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between">
           <button
             onClick={onBack}
@@ -298,6 +329,21 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </button>
           )}
           
+          {/* Edit toggle for agent notes */}
+          {isAgentNote && (
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`p-2 rounded-lg transition-colors ${
+                isEditing 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'hover:bg-gray-800 text-gray-400'
+              }`}
+              title={isEditing ? 'Stop editing' : 'Edit note'}
+            >
+              <PencilIcon className="w-5 h-5" />
+            </button>
+          )}
+          
           {/* Simple delete button */}
           <button
             onClick={() => setShowDeleteConfirm(true)}
@@ -307,10 +353,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             <TrashIcon className="w-5 h-5 text-red-400" />
           </button>
         </div>
+        </div>
       </motion.header>
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24">
+        <div className="max-w-4xl mx-auto">
         <div className="space-y-6 py-4">
           {/* Title and Stats */}
           <div className="space-y-4">
@@ -321,6 +369,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               className="w-full text-2xl font-bold bg-transparent text-white placeholder-gray-400 
                        border-none outline-none focus:ring-0"
               placeholder="Note Title"
+              disabled={isAgentNote && !isEditing}
             />
             
             <div className="flex items-center justify-between text-sm text-gray-400">
@@ -363,15 +412,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 <div className="flex-1"></div>
                 {/* Audio Controls */}
                 <div className="flex items-center gap-1">
-                  {/* Show transcribe button if no content and not processing */}
-                  {!content.trim() && !isProcessing && (
+                  {/* Retranscribe button */}
+                  {!isProcessing && (
                     <button
-                      onClick={() => {
-                        // Trigger transcription manually if needed
-                        console.log('Manual transcription requested');
-                      }}
+                      onClick={handleRetranscribe}
                       className="p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors"
-                      title="Transcribe audio"
+                      title="Re-transcribe audio"
                     >
                       <SparklesIcon className="w-4 h-4 text-indigo-400" />
                     </button>
@@ -419,15 +465,18 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                            rounded-full text-sm border border-indigo-600/30"
                 >
                   {tag}
+                  {(!isAgentNote || isEditing) && (
                   <button
                     onClick={() => handleRemoveTag(tag)}
                     className="ml-1 text-indigo-400 hover:text-indigo-200"
                   >
                     ×
                   </button>
+                  )}
                 </span>
               ))}
             </div>
+            {(!isAgentNote || isEditing) && (
             <input
               type="text"
               value={tagInput}
@@ -438,10 +487,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                        text-white placeholder-gray-400 focus:outline-none focus:ring-2 
                        focus:ring-indigo-500 focus:border-transparent"
             />
+            )}
           </div>
 
           {/* Editor */}
-          {isAgentNote ? (
+          {isAgentNote && !isEditing ? (
             /* Read-only view for agent notes with better markdown rendering */
             <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
               <div 
@@ -485,7 +535,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           )}
           
           {/* AI Summary */}
-          {!isAgentNote && (
+          {(!isAgentNote || isEditing) && (
             <TextSummary
               summary={summary}
               isLoading={isLoading}
@@ -501,7 +551,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             <div className="flex-1"></div>
             
             {/* AI Agents Button */}
-            {!isAgentNote && canRunAnyAgents() && content.trim() && (
+            {canRunAnyAgents() && content.trim() && (
               <button
                 onClick={() => setShowRunAgentsDialog(true)}
                 disabled={agentsProcessing}
@@ -510,6 +560,19 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               >
                 <SparklesIcon className="w-5 h-5" />
                 Run AI Agents
+              </button>
+            )}
+            
+            {/* AI Summary Button - only for non-agent notes or when editing */}
+            {(!isAgentNote || isEditing) && !isLoading && content.trim() && (
+              <button
+                onClick={handleSummarize}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 
+                         disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                <SparklesIcon className="w-5 h-5" />
+                AI Summary
               </button>
             )}
             
@@ -541,6 +604,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </div>
           )}
 
+        </div>
         </div>
       </main>
 

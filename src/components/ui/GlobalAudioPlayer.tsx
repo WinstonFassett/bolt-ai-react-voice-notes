@@ -116,8 +116,9 @@ export const GlobalAudioPlayer: React.FC<GlobalAudioPlayerProps> = ({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
-        className="fixed bottom-24 left-4 right-4 z-30 max-w-md mx-auto"
+        className="fixed bottom-24 left-4 right-4 z-30"
       >
+        <div className="max-w-md mx-auto">
         <div className="bg-gray-900/90 backdrop-blur-xl border border-gray-700 rounded-2xl shadow-2xl overflow-hidden">
           <div className="bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden">
             <div className="p-4">
@@ -194,6 +195,7 @@ export const GlobalAudioPlayer: React.FC<GlobalAudioPlayerProps> = ({
               </div>
             </div>
           </div>
+        </div>
         </div>
       </motion.div>
     </AnimatePresence>

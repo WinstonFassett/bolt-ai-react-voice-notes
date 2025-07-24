@@ -44,9 +44,13 @@ export const TakeawayCard: React.FC<TakeawayCardProps> = ({
   return (
     <>
       <div 
-        className="card bg-indigo-900/10 border-indigo-700/30 hover:bg-indigo-900/20 transition-colors cursor-pointer group"
+        className="card bg-indigo-900/10 border-indigo-700/30 hover:bg-indigo-900/20 transition-colors cursor-pointer group ml-6 relative"
         onClick={() => onSelect(takeaway.id)}
       >
+        {/* Visual nesting indicator */}
+        <div className="absolute -left-6 top-0 bottom-0 w-0.5 bg-indigo-500/30"></div>
+        <div className="absolute -left-4 top-6 w-3 h-0.5 bg-indigo-500/30"></div>
+        
         <div className="flex items-start justify-between mb-2">
           <h4 className="font-medium text-indigo-300 flex-1 pr-2">{takeaway.title}</h4>
           <button

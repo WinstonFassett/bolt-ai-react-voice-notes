@@ -103,6 +103,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
         animate={{ opacity: 1, y: 0 }}
         className="safe-area-top py-4 px-4"
       >
+        <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-white">Library</h1>
           <div>
@@ -128,11 +129,13 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
                      focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
+        </div>
         </motion.div>
       </header>
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full">
+        <div className="max-w-4xl mx-auto">
         {filteredNotes.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -186,6 +189,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
             ))}
           </div>
         )}
+        </div>
       </main>
       {/* Delete Confirmation Modal */}
       <AnimatePresence>

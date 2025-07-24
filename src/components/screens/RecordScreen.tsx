@@ -29,6 +29,7 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
         animate={{ opacity: 1, y: 0 }}
         className="safe-area-top py-4 px-4"
       >
+        <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gradient">AI Voice Recorder</h1>
           <a 
@@ -44,10 +45,12 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
             />
           </a>
         </div>
+        </div>
       </motion.header>
 
       {/* Main Content - Vertically Centered */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-40 min-h-0">
+        <div className="w-full max-w-2xl">
         <div className="w-full max-w-md space-y-8 text-center">
           <AnimatePresence mode="wait">
             {isProcessing ? (
@@ -143,6 +146,7 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
         </div>
       </main>
     </div>

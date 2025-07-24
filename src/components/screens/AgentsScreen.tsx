@@ -74,7 +74,9 @@ export const AgentsScreen: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    setActiveTab('settings');
+    // Use routing store instead of app store
+    const { setTab } = useAppStore();
+    setTab('settings');
   };
   const handleCreateAgent = () => {
     setEditingAgent(null);
@@ -229,6 +231,7 @@ export const AgentsScreen: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="safe-area-top py-4 px-4"
         >
+          <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">AI Agents</h1>
             <button
@@ -244,11 +247,13 @@ export const AgentsScreen: React.FC = () => {
               <PlusIcon className="w-6 h-6 text-white" />
             </button>
           </div>
+          </div>
         </motion.div>
       </header>
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24 pt-20">
+        <div className="max-w-4xl mx-auto">
         <div className="space-y-6 py-4">
           {/* Dependency Status */}
           {renderDependencyStatus()}
@@ -335,6 +340,7 @@ export const AgentsScreen: React.FC = () => {
               </p>
             </motion.div>
           )}
+        </div>
         </div>
       </main>
 

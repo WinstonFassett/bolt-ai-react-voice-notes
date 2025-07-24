@@ -117,6 +117,43 @@ export const TranscriptCard: React.FC<TranscriptCardProps> = ({
   // Only show play button if we have audio
   const showPlayButton = Boolean(audioUrl);
   
+  // Determine icon based on note type and content
+  const getCardIcon = () => {
+    if (showPlayButton) {
+      // Has audio - show play button
+      return (
+        <button
+          onClick={handlePlayAudio}
+          className={`w-16 h-16 rounded-xl text-indigo-400 hover:text-indigo-300 flex items-center justify-center transition-all duration-200 ${
+            takeaways && takeaways.length > 0 
+              ? 'bg-indigo-600/30 hover:bg-indigo-600/40' 
+              : 'bg-indigo-600/20 hover:bg-indigo-600/30'
+          }`}
+        >
+          {isCurrentlyPlaying ? (
+            <PauseIcon className="w-6 h-6" />
+          ) : (
+            <PlayIcon className="w-6 h-6" />
+          )}
+        </button>
+      );
+    } else if (takeaways && takeaways.length > 0) {
+      // AI generated note without audio
+      return (
+        <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+          <span className="text-2xl">🤖</span>
+        </div>
+      );
+    } else {
+      // Manual note without audio
+      return (
+        <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gray-600/20 text-gray-400 flex items-center justify-center">
+          <span className="text-2xl">📝</span>
+        </div>
+      );
+    }
+  };
+  
   return (
     <motion.div
       layout
@@ -134,41 +171,19 @@ export const TranscriptCard: React.FC<TranscriptCardProps> = ({
           <div className="flex-shrink-0 w-1 h-16 bg-indigo-500 rounded-full" title="Has AI takeaways" />
         )}
         
-        {/* Play Button - Only show if we have audio */}
-        {showPlayButton && (
-          <div className="flex-shrink-0">
-            <button
-              onClick={handlePlayAudio}
-              className={`w-16 h-16 rounded-xl text-indigo-400 hover:text-indigo-300 flex items-center justify-center transition-all duration-200 ${
-                takeaways && takeaways.length > 0 
-                  ? 'bg-indigo-600/30 hover:bg-indigo-600/40' 
-                  : 'bg-indigo-600/20 hover:bg-indigo-600/30'
-              }`}
-            >
-              {isCurrentlyPlaying ? (
-                <PauseIcon className="w-6 h-6" />
-              ) : (
-                <PlayIcon className="w-6 h-6" />
-              )}
-            </button>
-          </div>
-        )}
-        
-        {/* Robot icon for notes without audio but with AI content */}
-        {!showPlayButton && takeaways && takeaways.length > 0 && (
-          <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
-            <span className="text-2xl">🤖</span>
-          </div>
-        )}
+        {/* Dynamic Icon */}
+        <div className="flex-shrink-0">
+          {getCardIcon()}
+        </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1 min-w-0">
-              <div className={`flex items-center gap-3 mb-1 ${!audioUrl ? 'ml-0' : ''}`}>
+              <div className="flex items-center gap-3 mb-1">
                 <h3 className="font-semibold text-white text-lg leading-tight flex-1">{title}</h3>
                 
               </div>
-              <div className={`text-xs text-gray-400 mb-2 ${!showPlayButton ? 'ml-0' : ''}`}>
+              <div className="text-xs text-gray-400 mb-2">
                 <div className="flex items-center gap-2">
                   <span className="whitespace-nowrap">{formatDate(createdAt)}</span>
                   {hasDuration && <span>• {formatDuration(duration)}</span>}
@@ -211,7 +226,7 @@ export const TranscriptCard: React.FC<TranscriptCardProps> = ({
       </div>
 
       {/* Content */}
-      <p className={`text-gray-300 text-sm leading-relaxed ${!showPlayButton ? 'ml-0' : 'ml-20'}`}>
+      <p className="text-gray-300 text-sm leading-relaxed ml-20">
         {truncateText(content, 120)}
       </p>
 

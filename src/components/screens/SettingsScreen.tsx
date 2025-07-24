@@ -185,12 +185,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           animate={{ opacity: 1, y: 0 }}
           className="safe-area-top py-4 px-4"
         >
+          <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold text-white">Settings</h1>
+          </div>
         </motion.div>
       </header>
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24 pt-20">
+        <div className="max-w-4xl mx-auto">
         <div className="space-y-6 py-4">
           {settingsGroups.map((group, groupIndex) => (
             <motion.div
@@ -255,6 +258,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               </p>
             </div>
           </motion.div>
+        </div>
         </div>
       </main>
 
