@@ -197,7 +197,7 @@ class AudioStorage {
     return new Blob([wavBuffer], { type: 'audio/wav' });
   }
 
-  private async audioBufferToWAV(audioBuffer: AudioBuffer): Promise<Blob> {
+  async audioBufferToWAV(audioBuffer: AudioBuffer): Promise<Blob> {
     const length = audioBuffer.length;
     const numberOfChannels = audioBuffer.numberOfChannels;
     const sampleRate = audioBuffer.sampleRate;

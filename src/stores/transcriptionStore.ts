@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { useSettingsStore } from './settingsStore';
 import { useNotesStore } from './notesStore';
 import { useAgentsStore } from './agentsStore';
+import { useLLMProvidersStore } from './llmProvidersStore';
 import { generateSmartTitle } from '../utils/titleGenerator';
-import { isStorageUrl, resolveStorageUrl } from '../utils/audioStorage';
+import { audioStorage, isStorageUrl, resolveStorageUrl } from '../utils/audioStorage';
 
 interface TranscriptionState {
   // Worker state
@@ -18,6 +19,7 @@ interface TranscriptionState {
   // Actions
   initializeWorker: () => void;
   startTranscription: (audioData: AudioBuffer, noteId: string) => void;
+  startTranscriptionLocal: (audioData: AudioBuffer, noteId: string) => void;
   startTranscriptionFromUrl: (audioUrl: string, noteId: string) => Promise<void>;
   cleanup: () => void;
   
@@ -29,6 +31,55 @@ interface TranscriptionState {
   handleWorkerMessage: (event: MessageEvent) => void;
   updateTranscription: (text: string) => void;
   completeTranscription: (text: string) => void;
+}
+
+async function transcribeWithOpenAI(audioData: AudioBuffer, noteId: string, set: any, get: any) {
+  set((state: any) => ({
+    processingNotes: new Map(state.processingNotes).set(noteId, {
+      isProcessing: true,
+      status: 'Uploading audio to OpenAI...'
+    }),
+    currentNoteId: noteId
+  }));
+
+  try {
+    // Convert AudioBuffer to WAV Blob using robust utility
+    const wavBlob = await audioStorage.audioBufferToWAV(audioData);
+    // Get OpenAI API key from provider
+    const providers = useLLMProvidersStore.getState().getValidProviders();
+    const openai = providers.find(p => p.name.toLowerCase() === 'openai');
+    if (!openai || !openai.apiKey) throw new Error('No OpenAI API key configured');
+
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('file', wavBlob, 'audio.wav');
+    formData.append('model', 'whisper-1');
+
+    // Call OpenAI Whisper API
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openai.apiKey}`
+      },
+      body: formData
+    });
+    if (!response.ok) throw new Error('OpenAI transcription failed');
+    const result = await response.json();
+    const text = result.text || '';
+
+    // Complete transcription
+    get().completeTranscription(text);
+  } catch (error: any) {
+    set((state: any) => ({
+      processingNotes: new Map(state.processingNotes).set(noteId, {
+        isProcessing: false,
+        status: `OpenAI failed: ${error.message || error}`
+      }),
+      currentNoteId: null
+    }));
+    // Fallback to local model
+    get().startTranscriptionLocal(audioData, noteId);
+  }
 }
 
 export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
@@ -181,6 +232,18 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
   },
   
   startTranscription: (audioData: AudioBuffer, noteId: string) => {
+    const settings = useSettingsStore.getState();
+    const providers = useLLMProvidersStore.getState().getValidProviders();
+    const hasOpenAI = settings.useOpenAIForSTT && providers.some(p => p.name.toLowerCase() === 'openai' && p.apiKey);
+    if (hasOpenAI) {
+      transcribeWithOpenAI(audioData, noteId, set, get);
+      return;
+    }
+    // Fallback to local model
+    get().startTranscriptionLocal(audioData, noteId);
+  },
+  
+  startTranscriptionLocal: (audioData: AudioBuffer, noteId: string) => {
     const state = get();
     
     if (!state.worker) {
@@ -189,9 +252,6 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     
     if (!state.worker) {
       console.error('❌ TranscriptionStore: Worker not initialized');
-      // Remove invalid set property
-      // set({ processingStatus: 'Failed to initialize transcription worker' });
-      // Instead, update the processingNotes map for the current note
       const state = get();
       const noteId = state.currentNoteId;
       if (noteId) {
