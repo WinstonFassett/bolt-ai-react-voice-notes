@@ -191,6 +191,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24 pt-20">
+        <div className="max-w-4xl mx-auto">
         <div className="space-y-6 py-4">
           {settingsGroups.map((group, groupIndex) => (
             <motion.div
@@ -255,6 +256,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               </p>
             </div>
           </motion.div>
+        </div>
         </div>
       </main>
 

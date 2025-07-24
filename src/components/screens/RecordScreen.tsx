@@ -48,6 +48,7 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
 
       {/* Main Content - Vertically Centered */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-40 min-h-0">
+        <div className="w-full max-w-2xl">
         <div className="w-full max-w-md space-y-8 text-center">
           <AnimatePresence mode="wait">
             {isProcessing ? (
@@ -143,6 +144,7 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
         </div>
       </main>
     </div>

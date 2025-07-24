@@ -356,6 +356,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24">
+        <div className="max-w-4xl mx-auto">
         <div className="space-y-6 py-4">
           {/* Title and Stats */}
           <div className="space-y-4">
@@ -366,6 +367,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               className="w-full text-2xl font-bold bg-transparent text-white placeholder-gray-400 
                        border-none outline-none focus:ring-0"
               placeholder="Note Title"
+              disabled={isAgentNote && !isEditing}
             />
             
             <div className="flex items-center justify-between text-sm text-gray-400">
@@ -461,15 +463,18 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                            rounded-full text-sm border border-indigo-600/30"
                 >
                   {tag}
+                  {(!isAgentNote || isEditing) && (
                   <button
                     onClick={() => handleRemoveTag(tag)}
                     className="ml-1 text-indigo-400 hover:text-indigo-200"
                   >
                     ×
                   </button>
+                  )}
                 </span>
               ))}
             </div>
+            {(!isAgentNote || isEditing) && (
             <input
               type="text"
               value={tagInput}
@@ -480,6 +485,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                        text-white placeholder-gray-400 focus:outline-none focus:ring-2 
                        focus:ring-indigo-500 focus:border-transparent"
             />
+            )}
           </div>
 
           {/* Editor */}
@@ -527,7 +533,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           )}
           
           {/* AI Summary */}
-          {!isAgentNote && (
+          {(!isAgentNote || isEditing) && (
             <TextSummary
               summary={summary}
               isLoading={isLoading}
@@ -543,7 +549,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             <div className="flex-1"></div>
             
             {/* AI Agents Button */}
-            {!isAgentNote && canRunAnyAgents() && content.trim() && (
+            {canRunAnyAgents() && content.trim() && (
               <button
                 onClick={() => setShowRunAgentsDialog(true)}
                 disabled={agentsProcessing}
@@ -552,6 +558,19 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               >
                 <SparklesIcon className="w-5 h-5" />
                 Run AI Agents
+              </button>
+            )}
+            
+            {/* AI Summary Button - only for non-agent notes or when editing */}
+            {(!isAgentNote || isEditing) && !isLoading && content.trim() && (
+              <button
+                onClick={handleSummarize}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 
+                         disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                <SparklesIcon className="w-5 h-5" />
+                AI Summary
               </button>
             )}
             
@@ -583,6 +602,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </div>
           )}
 
+        </div>
         </div>
       </main>
 

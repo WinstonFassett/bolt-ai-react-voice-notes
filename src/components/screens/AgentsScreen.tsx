@@ -251,6 +251,7 @@ export const AgentsScreen: React.FC = () => {
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24 pt-20">
+        <div className="max-w-4xl mx-auto">
         <div className="space-y-6 py-4">
           {/* Dependency Status */}
           {renderDependencyStatus()}
@@ -337,6 +338,7 @@ export const AgentsScreen: React.FC = () => {
               </p>
             </motion.div>
           )}
+        </div>
         </div>
       </main>
 

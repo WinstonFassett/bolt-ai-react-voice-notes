@@ -133,6 +133,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full">
+        <div className="max-w-4xl mx-auto">
         {filteredNotes.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -186,6 +187,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
             ))}
           </div>
         )}
+        </div>
       </main>
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
