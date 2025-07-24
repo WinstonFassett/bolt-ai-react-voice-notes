@@ -134,8 +134,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
         </div>
         </div>
       </header>
-          </div>
-        </div>
+    </div>
 
         {/* Search Bar */}
         <div className="relative">
