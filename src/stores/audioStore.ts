@@ -99,10 +99,10 @@ export const useAudioStore = create<AudioState>((set, get) => ({
     if (currentPlayingAudioUrl === audioUrl) {
       // Toggle play/pause for same audio
       console.log('AudioStore: Toggling play/pause for current audio');
-      set({ globalIsPlaying: !globalIsPlaying });
       
       if (globalIsPlaying) {
         get().audioElement?.pause();
+        set({ globalIsPlaying: false });
       } else {
         await get().loadAndPlay(get().resolvedPlayingAudioUrl || '');
       }
@@ -132,10 +132,12 @@ export const useAudioStore = create<AudioState>((set, get) => ({
       set({
         currentPlayingAudioUrl: audioUrl,
         resolvedPlayingAudioUrl: resolvedUrl,
-        globalIsPlaying: true,
         globalAudioCurrentTime: 0,
         pendingPlayRequest: audioUrl
       });
+      
+      // Load and play the new audio
+      await get().loadAndPlay(resolvedUrl);
     }
   },
   
