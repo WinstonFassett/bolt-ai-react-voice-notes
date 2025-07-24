@@ -99,7 +99,6 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
         <div className="max-w-4xl mx-auto">
-        <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 0 }}
             animate={{ opacity: 1, y: 0 }}
@@ -118,7 +117,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
             </div>
 
             {/* Search Bar */}
-            <div className="relative">
+            <div className="relative max-w-md">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
@@ -131,7 +130,6 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
               />
             </div>
           </motion.div>
-        </div>
         </div>
       </header>
           </div>
