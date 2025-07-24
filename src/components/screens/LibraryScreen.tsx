@@ -134,7 +134,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full bg-gray-900">
+      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full">
         <div className="max-w-4xl mx-auto">
         {filteredNotes.length === 0 ? (
           <motion.div
