@@ -57,8 +57,8 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       className="fixed bottom-0 left-0 right-0 z-30 bg-gray-900/95 backdrop-blur-xl border-t border-gray-700/50"
     >
       <div className="safe-area-bottom">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-around px-4 py-3 h-16">
+        <div className="max-w-4xl mx-auto px-4 py-2">
+          <div className="flex items-center justify-around h-16">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             const Icon = isActive ? tab.iconSolid : tab.icon;
@@ -67,7 +67,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
               <motion.button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className="flex flex-col items-center justify-center p-2 min-w-[60px] relative"
+                className="flex flex-col items-center justify-center p-3 min-w-[60px] relative"
                 whileTap={{ scale: 0.95 }}
               >
                 {/* Active indicator background */}

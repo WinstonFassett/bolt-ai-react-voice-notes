@@ -163,7 +163,7 @@ export const TranscriptCard: React.FC<TranscriptCardProps> = ({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="card hover:bg-gray-800/50 transition-all duration-200 cursor-pointer group max-w-full overflow-hidden"
+      className="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:bg-gray-800/50 transition-all duration-200 cursor-pointer group max-w-full overflow-hidden"
     >
       <div className="flex items-start gap-4 mb-3">
         {/* AI Note Indicator */}

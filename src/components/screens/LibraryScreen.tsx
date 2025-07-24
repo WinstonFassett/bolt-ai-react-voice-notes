@@ -95,7 +95,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
     setShowDeleteConfirm(false);
   };
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-gray-900">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
         <motion.div
@@ -134,7 +134,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full">
+      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full bg-gray-900">
         <div className="max-w-4xl mx-auto">
         {filteredNotes.length === 0 ? (
           <motion.div
