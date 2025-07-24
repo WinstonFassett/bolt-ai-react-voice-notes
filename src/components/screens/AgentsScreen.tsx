@@ -249,7 +249,6 @@ export const AgentsScreen: React.FC = () => {
             </div>
           </motion.div>
         </div>
-        </div>
       </header>
 
       {/* Content */}
