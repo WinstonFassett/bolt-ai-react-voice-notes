@@ -276,11 +276,6 @@ export const useAgentsStore = create<AgentsState>()(
       
       getAutoRunAgents: () => {
         const autoAgents = get().getAvailableAgents().filter(agent => agent.autoRun);
-        console.log('🤖 AgentsStore: getAutoRunAgents called', {
-          totalAvailable: get().getAvailableAgents().length,
-          autoRunCount: autoAgents.length,
-          autoAgentNames: autoAgents.map(a => a.name)
-        });
         return autoAgents;
       },
       

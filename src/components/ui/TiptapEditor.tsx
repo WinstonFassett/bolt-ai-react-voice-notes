@@ -43,7 +43,6 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   // Update editor content when prop changes (for transcription updates)
   React.useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      console.log('TiptapEditor: Content prop changed, updating editor');
       editor.commands.setContent(content);
     }
   }, [editor, content]);

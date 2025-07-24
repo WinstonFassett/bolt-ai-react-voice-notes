@@ -129,7 +129,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   // Force editor to update when content changes from transcription
   useEffect(() => {
     if (note?.content && note.content !== content) {
-      console.log('Note content changed, updating editor:', note.content.length, 'chars');
       setContent(note.content);
     }
   }, [note?.content]);
@@ -175,7 +174,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   };
 
   const handleSummarize = async () => {
-    console.log('summarize', editorRef.current)
     if (editorRef.current) {
       const textContent = editorRef.current.getContent({ format: 'text' });
       
