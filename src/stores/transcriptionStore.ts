@@ -174,7 +174,7 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
         processingNotes: new Map(state.processingNotes).set(noteId, {
           isProcessing: false,
           status: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
-        });
+        }),
         currentNoteId: null
       }));
     }
