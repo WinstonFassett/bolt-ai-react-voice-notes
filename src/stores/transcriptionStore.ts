@@ -19,6 +19,7 @@ interface TranscriptionState {
   // Actions
   initializeWorker: () => void;
   startTranscription: (audioData: AudioBuffer, noteId: string) => void;
+  startTranscriptionLocal: (audioData: AudioBuffer, noteId: string) => void;
   startTranscriptionFromUrl: (audioUrl: string, noteId: string) => Promise<void>;
   cleanup: () => void;
   
