@@ -1,11 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MicrophoneIcon } from '@heroicons/react/24/solid';
-import { Transcriber } from '../../hooks/useTranscriber';
-import { Progress } from '../Progress';
+import { useTranscriber } from '../../hooks/useTranscriber';
+import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 
 interface RecordScreenProps {
-  transcriber: Transcriber;
   isRecording?: boolean;
   isProcessing?: boolean;
   processingStatus?: string;
@@ -14,13 +13,14 @@ interface RecordScreenProps {
 }
 
 export const RecordScreen: React.FC<RecordScreenProps> = ({
-  transcriber,
   isRecording = false,
   isProcessing = false,
   processingStatus = '',
   onStartRecording,
   showBigRecordButton = false
 }) => {
+  const transcriber = useTranscriber();
+  
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -121,31 +121,10 @@ export const RecordScreen: React.FC<RecordScreenProps> = ({
           </AnimatePresence>
 
           {/* Model Loading Progress */}
-          <AnimatePresence>
-            {transcriber.progressItems && transcriber.progressItems.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="card"
-              >
-                <h3 className="text-sm font-medium text-gray-400 mb-3">
-                  Loading AI Model...
-                </h3>
-                <div className="space-y-2">
-                  {transcriber.progressItems.map((item) => (
-                    <div key={item.file} className="space-y-1">
-                      <div className="flex justify-between text-xs text-gray-400">
-                        <span>{item.file}</span>
-                        <span>{Math.round(item.progress)}%</span>
-                      </div>
-                      <Progress percentage={item.progress} />
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <ModelLoadingProgress
+            progressItems={transcriber.progressItems || []}
+            isVisible={isProcessing && transcriber.isModelLoading}
+          />
         </div>
         </div>
       </main>

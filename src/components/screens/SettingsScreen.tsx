@@ -8,11 +8,9 @@ import {
   InformationCircleIcon,
   CpuChipIcon as RobotIcon
 } from '@heroicons/react/24/outline';
-import { Transcriber } from '../../hooks/useTranscriber';
 import { useDebugStore } from '../../stores/debugStore';
 
 interface SettingsScreenProps {
-  transcriber: Transcriber;
   onExportNotes: () => void;
   onImportNotes: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onClearAllNotes?: () => void;
@@ -20,7 +18,6 @@ interface SettingsScreenProps {
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
-  transcriber,
   onExportNotes,
   onImportNotes,
   onClearAllNotes,
