@@ -10,6 +10,8 @@ import { RecordButton } from './components/ui/RecordButton';
 import { GlobalAudioPlayer } from './components/ui/GlobalAudioPlayer';
 import Modal from './components/modal/Modal';
 import { UrlInput } from './components/modal/UrlInput';
+import axios from 'axios';
+import Constants from './utils/Constants';
 
 // Zustand stores
 import { useAppStore } from './stores/appStore';
@@ -60,6 +62,43 @@ function App() {
       document.removeEventListener('keydown', handleUserInteraction);
     };
   }, [handleUserInteraction]);
+
+  // Restore: Upload audio file and transcribe
+  const handleUploadFile = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        if (!arrayBuffer) return;
+        const audioCTX = new AudioContext({ sampleRate: 16000 });
+        const decoded = await audioCTX.decodeAudioData(arrayBuffer);
+        // Use the transcription store
+        useTranscriptionStore.getState().startTranscription(decoded, Date.now().toString());
+      };
+      reader.readAsArrayBuffer(file);
+    };
+    input.click();
+  };
+
+  // Restore: Download audio from URL and transcribe
+  const downloadAudioFromUrl = async () => {
+    if (!audioDownloadUrl) return;
+    try {
+      const { data } = await axios.get(audioDownloadUrl, { responseType: 'arraybuffer' });
+      const audioCTX = new AudioContext({ sampleRate: 16000 });
+      const decoded = await audioCTX.decodeAudioData(data);
+      useTranscriptionStore.getState().startTranscription(decoded, Date.now().toString());
+      setShowUrlModal(false);
+      setAudioDownloadUrl('');
+    } catch (error) {
+      console.error('Failed to download audio', error);
+    }
+  };
 
   if (!isLoaded) {
     return (
@@ -115,7 +154,10 @@ function App() {
             exit={{ opacity: 0, x: 20 }}
             className="flex-1"
           >
-            <LibraryScreen />
+            <LibraryScreen
+              onUploadFile={handleUploadFile}
+              onFromUrl={() => setShowUrlModal(true)}
+            />
           </motion.div>
         )}
 
@@ -157,15 +199,13 @@ function App() {
             <p className="mb-4 text-gray-300">Enter the URL of the audio file you want to transcribe.</p>
             <UrlInput
               onChange={(e) => setAudioDownloadUrl(e.target.value)}
-              value={audioDownloadUrl || ''}
+              value={audioDownloadUrl || Constants.DEFAULT_AUDIO_URL}
             />
           </>
         }
         onClose={() => setShowUrlModal(false)}
         submitText="Load Audio"
-        onSubmit={() => {
-          // TODO: Implement URL loading in store
-        }}
+        onSubmit={downloadAudioFromUrl}
       />
       
       {/* Audio Error Modal */}
