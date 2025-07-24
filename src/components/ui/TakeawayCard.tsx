@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrashIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { renderMarkdown } from '../../utils/markdownRenderer';
+import { TrashIcon } from '@heroicons/react/24/outline';
+import { TiptapRenderer } from './TiptapEditor';
+import { markdownToHtml } from '../../utils/markdownToHtml';
 
 interface TakeawayCardProps {
   takeaway: {
@@ -10,6 +11,7 @@ interface TakeawayCardProps {
     content: string;
     createdAt?: number;
     created?: number;
+    type?: string; // Added type field
   };
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
@@ -41,6 +43,9 @@ export const TakeawayCard: React.FC<TakeawayCardProps> = ({
     setShowDeleteConfirm(false);
   };
 
+  // If this is an agent note, convert markdown to HTML for Tiptap
+  const content = takeaway.type === 'agent' ? markdownToHtml(takeaway.content) : takeaway.content;
+
   return (
     <>
       <div 
@@ -62,12 +67,8 @@ export const TakeawayCard: React.FC<TakeawayCardProps> = ({
           </button>
         </div>
         <div className="text-sm text-gray-300 prose prose-invert prose-sm max-w-none max-h-32 overflow-hidden">
-          <div 
-            dangerouslySetInnerHTML={{ 
-              __html: renderMarkdown(takeaway.content.substring(0, 400)) + 
-                     (takeaway.content.length > 400 ? '...' : '')
-            }}
-          />
+          <TiptapRenderer content={content.substring(0, 400)} />
+          {content.length > 400 ? '...' : ''}
         </div>
         <div className="mt-2 text-xs text-gray-500">
           Click to view full • {formatDate(takeaway.createdAt || takeaway.created || 0)}

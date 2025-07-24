@@ -1,3 +1,5 @@
+// Tiptap should be used for all markdown rendering and editing.
+// This file is now deprecated. Remove all usages of renderMarkdown and stripMarkdown in the codebase.
 // Simple markdown renderer for agent content
 export const renderMarkdown = (markdown: string): string => {
   if (!markdown) return '';

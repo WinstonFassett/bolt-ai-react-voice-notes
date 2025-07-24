@@ -106,3 +106,18 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     </div>
   );
 };
+
+interface TiptapRendererProps {
+  content: string;
+  className?: string;
+}
+
+export const TiptapRenderer: React.FC<TiptapRendererProps> = ({ content, className }) => {
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content,
+    editable: false,
+  });
+  if (!editor) return null;
+  return <EditorContent editor={editor} className={className || 'prose prose-invert max-w-none'} />;
+};

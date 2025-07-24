@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'share-api-polyfill'
-import { TiptapEditor } from '../ui/TiptapEditor';
+import { TiptapEditor, TiptapRenderer } from '../ui/TiptapEditor';
 import { Note, NoteVersion } from '../../stores/notesStore';
 import { 
   ArrowLeftIcon,
@@ -21,11 +21,11 @@ import { useNotesStore } from '../../stores/notesStore';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { renderMarkdown, stripMarkdown } from '../../utils/markdownRenderer';
 import { TakeawayCard } from '../ui/TakeawayCard';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
 import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 import { PencilIcon } from '@heroicons/react/24/solid';
+import { markdownToHtml } from '../../utils/markdownToHtml';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -75,13 +75,24 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const { navigateToNote } = useRoutingStore();
   
   const [title, setTitle] = useState(note?.title || '');
-  const [content, setContent] = useState(note?.content || '');
+  const [content, setContent] = useState(() => {
+    if (note?.type === 'agent') {
+      // Convert agent markdown to HTML for Tiptap
+      return markdownToHtml(note.content);
+    }
+    return note?.content || '';
+  });
   const [tagInput, setTagInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRetranscribeConfirm, setShowRetranscribeConfirm] = useState(false);
   const [showRunAgentsDialog, setShowRunAgentsDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editorContent, setEditorContent] = useState(content);
   const editorRef = useRef<any>(null);
+
+  // Import status state
+  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
+  const [importMessage, setImportMessage] = useState<string>('');
 
   // Check if this is an agent-generated note
   const isAgentNote = note?.type === 'agent';
@@ -107,7 +118,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   useEffect(() => {
     if (note) {
       setTitle(note.title);
-      setContent(note.content);
+      if (note.type === 'agent') {
+        setContent(markdownToHtml(note.content));
+      } else {
+        setContent(note.content);
+      }
     }
   }, [note]);
 
@@ -118,6 +133,24 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       setContent(note.content);
     }
   }, [note?.content]);
+
+  // When toggling edit mode ON, always use HTML for the editor
+  useEffect(() => {
+    if (isAgentNote && isEditing) {
+      setEditorContent(markdownToHtml(note.content));
+    } else {
+      setEditorContent(content);
+    }
+  }, [isEditing, note, content, isAgentNote]);
+
+  // Auto-save only when toggling out of edit mode
+  useEffect(() => {
+    if (!isEditing && note && editorContent !== note.content) {
+      updateNote({ ...note, content: editorContent });
+      setContent(editorContent);
+    }
+  }, [isEditing]);
+
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
@@ -127,10 +160,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   };
 
   const handleEditorChange = (newContent: string) => {
-    setContent(newContent);
-    if (note) {
-      updateNote({ ...note, content: newContent });
-    }
+    setEditorContent(newContent);
   };
 
   const handleRetranscribe = async () => {
@@ -281,12 +311,38 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Import notes handler
+  const handleImportNotes = async (importFn: () => Promise<any>) => {
+    setImportStatus('loading');
+    setImportMessage('Importing notes...');
+    try {
+      await importFn();
+      setImportStatus('success');
+      setImportMessage('Notes imported successfully!');
+    } catch (err: any) {
+      setImportStatus('error');
+      setImportMessage('Failed to import notes: ' + (err?.message || 'Unknown error'));
+    }
+    setTimeout(() => {
+      setImportStatus('idle');
+      setImportMessage('');
+    }, 4000);
+  };
+
   if (!note) {
     return null;
   }
 
   return (
     <div className="flex flex-col h-full bg-gray-900 relative">
+      {/* Import status feedback */}
+      {importStatus !== 'idle' && (
+        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-semibold transition-all
+          ${importStatus === 'success' ? 'bg-green-600' : importStatus === 'error' ? 'bg-red-600' : 'bg-indigo-600'}`}
+        >
+          {importMessage}
+        </div>
+      )}
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
@@ -471,16 +527,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
           {/* Editor */}
           {isAgentNote && !isEditing ? (
-            /* Read-only view for agent notes with better markdown rendering */
             <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
-              <div 
-                className="prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-              />
+              <TiptapRenderer content={content} className="prose prose-invert max-w-none" />
             </div>
           ) : (
             <TiptapEditor
-              content={content}
+              content={editorContent}
               onChange={handleEditorChange}
               placeholder="Start writing your note..."
             />
