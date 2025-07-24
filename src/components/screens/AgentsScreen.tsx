@@ -14,6 +14,7 @@ import { useAgentsStore } from '../../stores/agentsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 import { AgentEditor } from '../ui/AgentEditor';
 import { useAppStore } from '../../stores/appStore';
+import { useRoutingStore } from '../../stores/routingStore';
 
 export const AgentsScreen: React.FC = () => {
   const {
@@ -36,7 +37,7 @@ export const AgentsScreen: React.FC = () => {
     validateAllProviders
   } = useLLMProvidersStore();
 
-  const { setActiveTab } = useAppStore();
+  const { setTab } = useRoutingStore();
 
   const [dependencyCheck, setDependencyCheck] = useState<{ valid: boolean; issues: string[] }>({ valid: true, issues: [] });
   const [showAgentEditor, setShowAgentEditor] = useState(false);
@@ -74,8 +75,7 @@ export const AgentsScreen: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    // Use routing store instead of app store
-    const { setTab } = useAppStore();
+    const { setTab } = useRoutingStore();
     setTab('settings');
   };
   const handleCreateAgent = () => {

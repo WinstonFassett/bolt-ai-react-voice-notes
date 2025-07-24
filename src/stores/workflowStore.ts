@@ -85,10 +85,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       
       // Add to store and navigate
       const { useNotesStore } = await import('./notesStore');
-      const { useAppStore } = await import('./appStore');
-      
+      const { useRoutingStore } = await import('./routingStore');
       useNotesStore.getState().addNote(newNote);
-      useAppStore.getState().navigateToNoteDetail(noteId);
+      useRoutingStore.getState().navigateToNote(noteId);
       
       console.log('✅ WORKFLOW: Note created and navigation triggered');
       
@@ -113,9 +112,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       const smartTitle = generateSmartTitle(text);
       
       import('./notesStore').then(({ useNotesStore }) => {
-        import('./appStore').then(({ useAppStore }) => {
+        import('./routingStore').then(({ useRoutingStore }) => {
           import('./agentsStore').then(({ useAgentsStore }) => {
-            const noteIdToUpdate = pendingNoteId || useAppStore.getState().selectedNoteId;
+            const noteIdToUpdate = pendingNoteId || useRoutingStore.getState().currentRoute.noteId;
             
             if (noteIdToUpdate) {
               const notesStore = useNotesStore.getState();
