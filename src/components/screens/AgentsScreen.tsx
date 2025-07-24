@@ -227,6 +227,7 @@ export const AgentsScreen: React.FC = () => {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
         <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -248,6 +249,7 @@ export const AgentsScreen: React.FC = () => {
               </button>
             </div>
           </motion.div>
+        </div>
         </div>
       </header>
           </div>
