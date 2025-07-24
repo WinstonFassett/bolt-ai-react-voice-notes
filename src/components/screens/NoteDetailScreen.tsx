@@ -13,7 +13,6 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { BottomNavigation } from '../ui/BottomNavigation';
-import { useSummarizer } from '../../hooks/useSummarizer';
 import { TextSummary } from '../TextSummary';
 import { useAudioStore } from '../../stores/audioStore';
 import { useAgentsStore } from '../../stores/agentsStore';
@@ -104,16 +103,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const isTranscribing = isNoteProcessing(note.id);
   const transcriptionStatus = getNoteProcessingStatus(note.id);
 
-  const {
-    isLoading,
-    progress,
-    summary,
-    model,
-    summarize,
-    clearSummary,
-    changeModel,
-  } = useSummarizer();
-
   // Update local state when note prop changes (for reactive updates)
   useEffect(() => {
     if (note) {
@@ -171,16 +160,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     
     // Start transcription from URL - this handles storage URLs properly
     startTranscriptionFromUrl(note.audioUrl ?? '', note.id);
-  };
-
-  const handleSummarize = async () => {
-    if (editorRef.current) {
-      const textContent = editorRef.current.getContent({ format: 'text' });
-      
-      if (textContent.trim()) {
-        await summarize(textContent);
-      }
-    }
   };
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -564,18 +543,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </div>
           )}
           
-          {/* AI Summary */}
-          {(!isAgentNote || isEditing) && (
-            <TextSummary
-              summary={summary}
-              isLoading={isLoading}
-              progress={progress}
-              onClose={clearSummary}
-              model={model}
-              onModelChange={changeModel}
-            />
-          )}
-
           {/* Action Buttons */}
           <div className="flex gap-3">
             <div className="flex-1"></div>
@@ -593,20 +560,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               </button>
             )}
             
-            {/* AI Summary Button - only for non-agent notes or when editing */}
-            {(!isAgentNote || isEditing) && !isLoading && content.trim() && (
-              <button
-                onClick={handleSummarize}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 
-                         disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-              >
-                <SparklesIcon className="w-5 h-5" />
-                AI Summary
-              </button>
-            )}
-            
-            {/* Copy Button - moved after AI button */}
             <button
               onClick={handleCopyToClipboard}
               className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 

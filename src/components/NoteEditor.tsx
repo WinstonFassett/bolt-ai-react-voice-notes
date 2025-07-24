@@ -3,7 +3,6 @@ import { TiptapEditor } from './ui/TiptapEditor';
 import { IoCopyOutline } from 'react-icons/io5';
 import { AiOutlineRobot } from 'react-icons/ai';
 import Transcript from "./Transcript";
-import { useSummarizer } from '../hooks/useSummarizer';
 import { TextSummary } from './TextSummary';
 
 interface NoteVersion {
@@ -48,15 +47,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
   const [versionDescription, setVersionDescription] = useState('');
   const lastTranscriptRef = useRef('');
   const editorRef = useRef<any>(null);
-  const {
-    isLoading,
-    progress,
-    summary,
-    model,
-    summarize,
-    clearSummary,
-    changeModel,
-  } = useSummarizer();
 
   useEffect(() => {
     if (note) {
@@ -109,15 +99,6 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
     setContent(newContent);
     if (note) {
       onUpdateNote({ ...note, content: newContent });
-    }
-  };
-
-  const handleSummarize = async () => {
-    if (editorRef.current) {
-      const textContent = editorRef.current.getContent({ format: 'text' });
-      if (textContent.trim()) {
-        await summarize(textContent);
-      }
     }
   };
 
@@ -257,24 +238,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         placeholder="Start writing your note..."
       />
 
-      <TextSummary
-        summary={summary}
-        isLoading={isLoading}
-        progress={progress}
-        onClose={clearSummary}
-        model={model}
-        onModelChange={changeModel}
-      />
-
       <div className="flex gap-2 mt-4 mb-4">
-        <button
-          onClick={handleSummarize}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <AiOutlineRobot className="w-5 h-5" />
-          AI Summary
-        </button>
         <button
           id="copyButton"
           onClick={handleCopyToClipboard}
