@@ -23,6 +23,7 @@ import { TakeawayCard } from '../ui/TakeawayCard';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
 import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 import { useTranscriber } from '../../hooks/useTranscriber';
+import { PencilIcon } from '@heroicons/react/24/solid';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -80,6 +81,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const [tagInput, setTagInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRunAgentsDialog, setShowRunAgentsDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const editorRef = useRef<any>(null);
 
   // Check if this is an agent-generated note
@@ -125,6 +127,34 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     setContent(newContent);
     if (note) {
       onUpdateNote({ ...note, content: newContent });
+    }
+  };
+
+  const handleRetranscribe = async () => {
+    if (!note.audioUrl) return;
+    
+    const confirmed = window.confirm('This will replace the current content with a new transcription. Continue?');
+    if (!confirmed) return;
+    
+    try {
+      // Clear current content
+      setContent('');
+      onUpdateNote({ ...note, content: '' });
+      
+      // Get audio blob and start transcription
+      const response = await fetch(note.audioUrl);
+      const audioBlob = await response.blob();
+      
+      const audioBuffer = await audioBlob.arrayBuffer();
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      const audioData = await audioContext.decodeAudioData(audioBuffer);
+      
+      transcriber.onInputChange();
+      transcriber.start(audioData);
+      
+    } catch (error) {
+      console.error('Failed to retranscribe:', error);
+      alert('Failed to start retranscription. Please try again.');
     }
   };
 
@@ -298,6 +328,21 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </button>
           )}
           
+          {/* Edit toggle for agent notes */}
+          {isAgentNote && (
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`p-2 rounded-lg transition-colors ${
+                isEditing 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'hover:bg-gray-800 text-gray-400'
+              }`}
+              title={isEditing ? 'Stop editing' : 'Edit note'}
+            >
+              <PencilIcon className="w-5 h-5" />
+            </button>
+          )}
+          
           {/* Simple delete button */}
           <button
             onClick={() => setShowDeleteConfirm(true)}
@@ -363,15 +408,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 <div className="flex-1"></div>
                 {/* Audio Controls */}
                 <div className="flex items-center gap-1">
-                  {/* Show transcribe button if no content and not processing */}
-                  {!content.trim() && !isProcessing && (
+                  {/* Retranscribe button */}
+                  {!isProcessing && (
                     <button
-                      onClick={() => {
-                        // Trigger transcription manually if needed
-                        console.log('Manual transcription requested');
-                      }}
+                      onClick={handleRetranscribe}
                       className="p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors"
-                      title="Transcribe audio"
+                      title="Re-transcribe audio"
                     >
                       <SparklesIcon className="w-4 h-4 text-indigo-400" />
                     </button>
@@ -441,7 +483,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           </div>
 
           {/* Editor */}
-          {isAgentNote ? (
+          {isAgentNote && !isEditing ? (
             /* Read-only view for agent notes with better markdown rendering */
             <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
               <div 

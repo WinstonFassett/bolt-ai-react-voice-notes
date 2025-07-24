@@ -78,12 +78,12 @@ export const RecordButton: React.FC<RecordButtonProps> = ({
     return null;
   }
   return (
-    <div className="fixed bottom-24 left-0 right-0 z-40">
+    <div className="fixed bottom-24 left-0 right-0 z-40 pointer-events-none">
       <div className="flex justify-center px-4">
         {/* Single Recording Toolbar */}
         <motion.div
           layout="position"
-          className="bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden"
+          className="bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto"
           animate={{ 
             width: isRecording ? '90%' : 'auto'
           }}

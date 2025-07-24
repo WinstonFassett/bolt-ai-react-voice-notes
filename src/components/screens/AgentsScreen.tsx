@@ -74,7 +74,9 @@ export const AgentsScreen: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    setActiveTab('settings');
+    // Use routing store instead of app store
+    const { setTab } = useAppStore();
+    setTab('settings');
   };
   const handleCreateAgent = () => {
     setEditingAgent(null);
