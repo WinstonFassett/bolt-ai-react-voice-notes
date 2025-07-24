@@ -64,14 +64,15 @@ export const RecordButton: React.FC = () => {
 
   // Show when:
   // 1. Currently recording (any tab)
-  // 2. On library tab and not playing audio (default state)
-  // 3. On record tab and not playing audio (default state)
+  // 2. On record tab and not playing audio (default state)
+  // 3. On agents/settings tab if recording
   // Hide when:
-  // 4. On agents/settings tab (unless recording)
+  // 4. On library tab unless actively recording
   // 5. When audio is playing (replaced by playback controls)
-  const shouldShowButton = isRecording || 
-                          (!isGloballyPlaying && (activeTab === 'library' || activeTab === 'record')) ||
-                          ((activeTab === 'agents' || activeTab === 'settings') && isRecording);
+  const shouldShowButton = 
+    (activeTab === 'library' && isRecording) ||
+    (activeTab === 'record' && !isGloballyPlaying) ||
+    ((activeTab === 'agents' || activeTab === 'settings') && isRecording);
   if (!shouldShowButton) {
     return null;
   }
