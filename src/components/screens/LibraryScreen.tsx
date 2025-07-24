@@ -98,20 +98,40 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({
     <div className="flex flex-col h-full">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
-        <motion.div
-        initial={{ opacity: 0, y: 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="safe-area-top py-4 px-4"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-white">Library</h1>
-          <div>
-            <AddButton
-              onStartRecording={onStartRecording}
-              onUploadFile={onUploadFile}
-              onFromUrl={onFromUrl}
-              onCreateNote={onCreateNote}
-            />
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="safe-area-top py-4 px-4"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-white">Library</h1>
+              <div>
+                <AddButton
+                  onStartRecording={onStartRecording}
+                  onUploadFile={onUploadFile}
+                  onFromUrl={onFromUrl}
+                  onCreateNote={onCreateNote}
+                />
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative max-w-md">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search transcripts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl 
+                         text-white placeholder-gray-400 focus:outline-none focus:ring-2 
+                         focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+          </motion.div>
+        </div>
+      </header>
           </div>
         </div>
 
