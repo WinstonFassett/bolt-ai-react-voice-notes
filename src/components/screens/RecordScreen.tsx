@@ -9,12 +9,6 @@ import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 export const RecordScreen: React.FC = () => {
   // Get everything from stores
   const { isRecording, startRecordingFlow } = useRecordingStore();
-  const { 
-    progressItems, 
-    isModelLoading, 
-    isProcessing, 
-    processingStatus 
-  } = useTranscriptionStore();
   const { currentPlayingAudioUrl } = useAudioStore();
 
   const showBigRecordButton = currentPlayingAudioUrl !== null;
@@ -51,27 +45,7 @@ export const RecordScreen: React.FC = () => {
         <div className="w-full max-w-2xl">
         <div className="w-full max-w-md space-y-8 text-center">
           <AnimatePresence mode="wait">
-            {isProcessing ? (
-              <motion.div
-                key="processing"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-4"
-              >
-                <div className="w-16 h-16 mx-auto rounded-full bg-indigo-600/20 flex items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full"
-                  />
-                </div>
-                <h2 className="text-3xl font-bold text-white">Processing...</h2>
-                <p className="text-gray-400">
-                  {processingStatus || 'Processing audio'}
-                </p>
-              </motion.div>
-            ) : !isRecording ? (
+            {!isRecording ? (
               <motion.div
                 key="ready"
                 initial={{ opacity: 0, y: 20 }}
@@ -118,11 +92,6 @@ export const RecordScreen: React.FC = () => {
             )}
           </AnimatePresence>
 
-          {/* Model Loading Progress */}
-          <ModelLoadingProgress
-            progressItems={progressItems}
-            isVisible={isProcessing && isModelLoading}
-          />
         </div>
         </div>
       </main>

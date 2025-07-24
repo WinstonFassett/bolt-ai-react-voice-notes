@@ -67,13 +67,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     updateTags 
   } = useNotesStore();
   
-  const { isProcessing, processingStatus } = useRecordingStore();
   const { 
-    progressItems, 
-    isModelLoading, 
     startTranscriptionFromUrl,
-    isProcessing: transcriptionProcessing,
-    processingStatus: transcriptionStatus
+    isNoteProcessing,
+    getNoteProcessingStatus
   } = useTranscriptionStore();
   const { navigateToNote } = useRoutingStore();
   
@@ -81,6 +78,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const [content, setContent] = useState(note?.content || '');
   const [tagInput, setTagInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRetranscribeConfirm, setShowRetranscribeConfirm] = useState(false);
   const [showRunAgentsDialog, setShowRunAgentsDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const editorRef = useRef<any>(null);
@@ -90,6 +88,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const sourceNote = isAgentNote && note.sourceNoteIds?.[0] 
     ? notes.find(n => n.id === note.sourceNoteIds![0])
     : null;
+  
+  // Get transcription status for this specific note
+  const isTranscribing = isNoteProcessing(note.id);
+  const transcriptionStatus = getNoteProcessingStatus(note.id);
 
   const {
     isLoading,
@@ -132,10 +134,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   };
 
   const handleRetranscribe = async () => {
-    if (!note.audioUrl) return;
-    
-    const confirmed = window.confirm('This will replace the current content with a new transcription. Continue?');
-    if (!confirmed) return;
+    setShowRetranscribeConfirm(false);
     
     // Clear current content
     setContent('');
@@ -398,9 +397,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 {/* Audio Controls */}
                 <div className="flex items-center gap-1">
                   {/* Retranscribe button */}
-                  {!isProcessing && (
+                  {!isTranscribing && (
                     <button
-                      onClick={handleRetranscribe}
+                      onClick={() => setShowRetranscribeConfirm(true)}
                       className="p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors"
                       title="Re-transcribe audio"
                     >
@@ -420,7 +419,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           )}
 
           {/* Show transcription/model loading status */}
-          {(isProcessing || transcriptionProcessing) && (
+          {isTranscribing && (
             <div className="card">
               <div className="flex items-center gap-3 mb-3">
                 <motion.div
@@ -429,17 +428,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                   className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"
                 />
                 <span className="text-sm text-indigo-300 font-medium">
-                  {transcriptionStatus || processingStatus || 'Processing...'}
+                  {transcriptionStatus || 'Processing...'}
                 </span>
               </div>
             </div>
           )}
 
-          {/* Model Loading Progress */}
-          <ModelLoadingProgress
-            progressItems={progressItems}
-            isVisible={(isProcessing || transcriptionProcessing) && isModelLoading}
-          />
           {/* Tags */}
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
@@ -635,6 +629,45 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Retranscribe Confirmation Modal */}
+      <AnimatePresence>
+        {showRetranscribeConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+            >
+              <h3 className="text-lg font-semibold text-white mb-4">Re-transcribe Audio</h3>
+              <p className="text-gray-300 mb-6">
+                This will replace the current content with a new transcription. This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowRetranscribeConfirm(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRetranscribe}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                >
+                  Re-transcribe
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Run AI Agents Dialog */}
       <AnimatePresence>
         {showRunAgentsDialog && (
