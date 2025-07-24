@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { useSettingsStore } from './settingsStore';
 import { useNotesStore } from './notesStore';
-import { useRecordingStore } from './recordingStore';
 import { useAgentsStore } from './agentsStore';
 import { generateSmartTitle } from '../utils/titleGenerator';
+import { isStorageUrl, resolveStorageUrl } from '../utils/audioStorage';
 
 interface TranscriptionState {
   // Worker state
@@ -13,10 +13,13 @@ interface TranscriptionState {
   // Current transcription
   currentNoteId: string | null;
   lastTranscription: string | null;
+  isProcessing: boolean;
+  processingStatus: string;
   
   // Actions
   initializeWorker: () => void;
   startTranscription: (audioData: AudioBuffer, noteId: string) => void;
+  startTranscriptionFromUrl: (audioUrl: string, noteId: string) => Promise<void>;
   cleanup: () => void;
   
   // Internal handlers
@@ -30,6 +33,8 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
   isInitialized: false,
   currentNoteId: null,
   lastTranscription: null,
+  isProcessing: false,
+  processingStatus: '',
   
   initializeWorker: () => {
     const state = get();
@@ -53,7 +58,20 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     const message = event.data;
 
     switch (message.status) {
+      case "initiate":
+        set({ processingStatus: `Loading ${message.file}...` });
+        break;
+        
+      case "progress":
+        set({ processingStatus: `Loading model... ${Math.round(message.progress)}%` });
+        break;
+        
+      case "ready":
+        set({ processingStatus: 'Model loaded, starting transcription...' });
+        break;
+        
       case "update":
+        set({ processingStatus: 'Transcribing...' });
         if (message.data && message.data[0]) {
           get().updateTranscription(message.data[0]);
         }
@@ -67,9 +85,56 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
 
       case "error":
         console.error('❌ TranscriptionStore: Worker error:', message.data);
-        useRecordingStore.getState().setIsProcessing(false);
-        useRecordingStore.getState().setProcessingStatus('Transcription failed');
+        set({ 
+          isProcessing: false, 
+          processingStatus: 'Transcription failed',
+          currentNoteId: null 
+        });
         break;
+    }
+  },
+  
+  startTranscriptionFromUrl: async (audioUrl: string, noteId: string) => {
+    console.log('🎯 TranscriptionStore: Starting transcription from URL:', audioUrl);
+    
+    set({ 
+      isProcessing: true, 
+      processingStatus: 'Loading audio...',
+      currentNoteId: noteId 
+    });
+    
+    try {
+      // Resolve storage URL if needed
+      let resolvedUrl = audioUrl;
+      if (isStorageUrl(audioUrl)) {
+        const resolved = await resolveStorageUrl(audioUrl);
+        if (!resolved) {
+          throw new Error('Failed to resolve audio URL');
+        }
+        resolvedUrl = resolved.url;
+      }
+      
+      // Fetch and decode audio
+      const response = await fetch(resolvedUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch audio: ${response.statusText}`);
+      }
+      
+      const audioBlob = await response.blob();
+      const audioBuffer = await audioBlob.arrayBuffer();
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      const audioData = await audioContext.decodeAudioData(audioBuffer);
+      
+      // Start transcription
+      get().startTranscription(audioData, noteId);
+      
+    } catch (error) {
+      console.error('❌ TranscriptionStore: Failed to start transcription from URL:', error);
+      set({ 
+        isProcessing: false, 
+        processingStatus: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        currentNoteId: null 
+      });
     }
   },
   
@@ -82,6 +147,10 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     
     if (!state.worker) {
       console.error('❌ TranscriptionStore: Worker not initialized');
+      set({ 
+        isProcessing: false, 
+        processingStatus: 'Failed to initialize transcription worker' 
+      });
       return;
     }
 
@@ -89,7 +158,9 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     
     set({
       currentNoteId: noteId,
-      lastTranscription: null
+      lastTranscription: null,
+      isProcessing: true,
+      processingStatus: 'Preparing transcription...'
     });
 
     // Get settings
@@ -125,7 +196,7 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     const state = get();
     if (!state.currentNoteId || !text) return;
 
-    // Update note content progressively
+    // Update note content progressively - this works regardless of current UI state
     const notesStore = useNotesStore.getState();
     const note = notesStore.getNoteById(state.currentNoteId);
     
@@ -152,6 +223,7 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     const note = notesStore.getNoteById(state.currentNoteId);
 
     if (note) {
+    // Update note - this works regardless of current UI state
       const smartTitle = generateSmartTitle(text);
       const updatedNote = {
         ...note,
@@ -163,7 +235,7 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
 
       notesStore.updateNote(updatedNote);
 
-      // Run auto-agents if available
+      // Run auto-agents if available - this also works regardless of UI state
       const agentsStore = useAgentsStore.getState();
       if (agentsStore.canRunAnyAgents()) {
         console.log('🤖 TranscriptionStore: Running auto-agents');
@@ -171,10 +243,11 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
       }
     }
 
-    // Clear processing state
-    useRecordingStore.getState().setIsProcessing(false);
-    useRecordingStore.getState().setProcessingStatus('');
+    // Clear current note ID
     set({ currentNoteId: null });
+    
+    // TODO: Show toast notification when we have toast system
+    console.log('🎉 Transcription completed for note:', state.currentNoteId);
   },
   
   cleanup: () => {
@@ -187,7 +260,9 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
       worker: null,
       isInitialized: false,
       currentNoteId: null,
-      lastTranscription: null
+      lastTranscription: null,
+      isProcessing: false,
+      processingStatus: ''
     });
   }
 }));

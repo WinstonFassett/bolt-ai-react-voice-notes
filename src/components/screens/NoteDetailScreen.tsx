@@ -68,7 +68,13 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   } = useNotesStore();
   
   const { isProcessing, processingStatus } = useRecordingStore();
-  const { progressItems, isModelLoading, startTranscription } = useTranscriptionStore();
+  const { 
+    progressItems, 
+    isModelLoading, 
+    startTranscriptionFromUrl,
+    isProcessing: transcriptionProcessing,
+    processingStatus: transcriptionStatus
+  } = useTranscriptionStore();
   const { navigateToNote } = useRoutingStore();
   
   const [title, setTitle] = useState(note?.title || '');
@@ -131,25 +137,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     const confirmed = window.confirm('This will replace the current content with a new transcription. Continue?');
     if (!confirmed) return;
     
-    try {
-      // Clear current content
-      setContent('');
-      updateNote({ ...note, content: '' });
-      
-      // Get audio blob and start transcription
-      const response = await fetch(note.audioUrl);
-      const audioBlob = await response.blob();
-      
-      const audioBuffer = await audioBlob.arrayBuffer();
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      const audioData = await audioContext.decodeAudioData(audioBuffer);
-      
-      startTranscription(audioData, note.id);
-      
-    } catch (error) {
-      console.error('Failed to retranscribe:', error);
-      alert('Failed to start retranscription. Please try again.');
-    }
+    // Clear current content
+    setContent('');
+    updateNote({ ...note, content: '' });
+    
+    // Start transcription from URL - this handles storage URLs properly
+    startTranscriptionFromUrl(note.audioUrl, note.id);
   };
 
   const handleSummarize = async () => {
@@ -427,7 +420,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           )}
 
           {/* Show transcription/model loading status */}
-          {isProcessing && (
+          {(isProcessing || transcriptionProcessing) && (
             <div className="card">
               <div className="flex items-center gap-3 mb-3">
                 <motion.div
@@ -436,7 +429,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                   className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"
                 />
                 <span className="text-sm text-indigo-300 font-medium">
-                  {processingStatus || 'Processing...'}
+                  {transcriptionStatus || processingStatus || 'Processing...'}
                 </span>
               </div>
             </div>
@@ -445,7 +438,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           {/* Model Loading Progress */}
           <ModelLoadingProgress
             progressItems={progressItems}
-            isVisible={isProcessing && isModelLoading}
+            isVisible={(isProcessing || transcriptionProcessing) && isModelLoading}
           />
           {/* Tags */}
           <div className="space-y-3">

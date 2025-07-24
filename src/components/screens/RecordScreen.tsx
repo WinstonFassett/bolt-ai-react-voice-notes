@@ -8,8 +8,13 @@ import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 
 export const RecordScreen: React.FC = () => {
   // Get everything from stores
-  const { isRecording, isProcessing, processingStatus, startRecordingFlow } = useRecordingStore();
-  const { progressItems, isModelLoading } = useTranscriptionStore();
+  const { isRecording, startRecordingFlow } = useRecordingStore();
+  const { 
+    progressItems, 
+    isModelLoading, 
+    isProcessing, 
+    processingStatus 
+  } = useTranscriptionStore();
   const { currentPlayingAudioUrl } = useAudioStore();
 
   const showBigRecordButton = currentPlayingAudioUrl !== null;

@@ -434,25 +434,16 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   
   startTranscription: async (audioBlob: Blob, noteId: string) => {
     try {
-      set({
-        isProcessing: true,
-        processingStatus: 'Transcribing audio...'
-      });
-      
       const audioBuffer = await audioBlob.arrayBuffer();
       const audioContext = new AudioContext({ sampleRate: 16000 });
       const audioData = await audioContext.decodeAudioData(audioBuffer);
       
-      // Use the transcription store
+      // Use the transcription store - it handles its own processing state
       const { useTranscriptionStore } = await import('./transcriptionStore');
       useTranscriptionStore.getState().startTranscription(audioData, noteId);
       
     } catch (error) {
       console.error('❌ RecordingStore: Error starting transcription:', error);
-      set({
-        isProcessing: false,
-        processingStatus: 'Error starting transcription'
-      });
     }
   }
 }));
