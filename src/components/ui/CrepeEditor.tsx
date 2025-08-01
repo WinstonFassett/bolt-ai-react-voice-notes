@@ -9,12 +9,15 @@ interface CrepeEditorProps {
   content: string;
   onChange?: (content: string) => void;
   placeholder?: string;
+  readOnly?: boolean;
+  notProse?: boolean;
 }
 
 const CrepeEditor: React.FC<CrepeEditorProps> = ({
   content,
   onChange,
-  placeholder
+  placeholder,
+  readOnly
 }) => {
   const markdownOutRef = useRef(content);
   const { get } = useEditor((root) => {
@@ -36,6 +39,7 @@ const CrepeEditor: React.FC<CrepeEditorProps> = ({
         onChange?.(markdown);
       });
     })
+    crepe.setReadonly(readOnly ?? false);
     return crepe;
   });
 
@@ -56,7 +60,10 @@ const CrepeEditor: React.FC<CrepeEditorProps> = ({
 
 export const CrepeEditorWrapper: React.FC<CrepeEditorProps> = (props) => {
   return (
-    <div className="milkdown-editor prose dark:prose-invert max-w-none p-4 bg-white dark:bg-gray-800">
+    <div className={[
+      "milkdown-editor max-w-none p-4 bg-white dark:bg-gray-800",
+      props.notProse ? '' : 'prose prose-sm dark:prose-invert'
+    ].join(' ')}>
       <MilkdownProvider>
         <CrepeEditor {...props} />
       </MilkdownProvider>

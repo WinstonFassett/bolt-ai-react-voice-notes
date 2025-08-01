@@ -9,7 +9,7 @@ AI Voice Recorder is a modern voice transcription app that transforms your voice
 ### Core Functionality
 - 🎙️ **Browser-based Recording**: Record audio directly in your browser with a clean, intuitive interface
 - 🤖 **ML-Powered Transcription**: Convert speech to text using state-of-the-art machine learning, running entirely in your browser
-- 📝 **Rich Text Editing**: Edit and format your transcribed text using a powerful TipTap editor
+- 📝 **Rich Text Editing**: Edit and format your transcribed text using a powerful Milkdown editor
 - 📊 **Audio Visualization**: See your audio waveforms in real-time while recording
 - 🎵 **Audio Playback**: Replay your recordings with persistent playback controls
 - 💾 **Local Storage**: All your recordings and transcripts are saved locally in your browser
@@ -35,7 +35,7 @@ AI Voice Recorder is a modern voice transcription app that transforms your voice
 - **Frontend**: React 18 with TypeScript
 - **State Management**: Zustand for clean, modular state management
 - **AI/ML**: Transformers.js for local speech recognition
-- **Text Editor**: TipTap for rich text editing with markdown support
+- **Text Editor**: Milkdown for rich text editing with markdown support
 - **Styling**: Tailwind CSS with custom design system
 - **Audio**: Custom audio visualization and playback controls
 - **Build Tool**: Vite for fast development and optimized builds
@@ -110,7 +110,7 @@ This project started as a fork of [Addy Osmani's Say](https://github.com/addyosm
 - **AI Agents System**: Intelligent post-processing of transcribed recordings
 - **Audio Storage & Playback**: Persistent audio recordings with playback controls
 - **Modern Mobile UI**: Complete redesign with dark theme and mobile-first approach
-- **Rich Text Editing**: TipTap editor with markdown support for agent outputs
+- **Rich Text Editing**: Milkdown editor with markdown support for agent outputs
 - **State Management**: Zustand-based architecture for better scalability
 - **Custom Audio Visualization**: Built-in waveform visualization
 - **Persistent Playback Controls**: Audio controls that work across all tabs

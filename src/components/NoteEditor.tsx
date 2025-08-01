@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { TiptapEditor } from './ui/TiptapEditor';
 import { IoCopyOutline } from 'react-icons/io5';
-import { AiOutlineRobot } from 'react-icons/ai';
 import Transcript from "./Transcript";
-import { TextSummary } from './TextSummary';
+import { CrepeEditor } from './ui/CrepeEditor';
 
 interface NoteVersion {
   content: string;
@@ -232,7 +230,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         />
       </div>
       
-      <TiptapEditor
+      <CrepeEditor
         content={content}
         onChange={handleEditorChange}
         placeholder="Start writing your note..."

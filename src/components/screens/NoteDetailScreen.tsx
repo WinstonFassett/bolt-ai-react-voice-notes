@@ -1,31 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import 'share-api-polyfill'
-import { TiptapEditor, TiptapRenderer } from '../ui/TiptapEditor';
-import { MilkdownEditorWrapper } from '../ui/MilkdownEditor';
-import { CrepeEditorWrapper } from '../ui/CrepeEditor';
-import { Note, NoteVersion } from '../../stores/notesStore';
-import { 
+import {
   ArrowLeftIcon,
-  ShareIcon,
-  PlayIcon,
-  PauseIcon,
   DocumentDuplicateIcon,
+  PauseIcon,
+  PlayIcon,
   SparklesIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
-import { BottomNavigation } from '../ui/BottomNavigation';
-import { TextSummary } from '../TextSummary';
-import { useAudioStore } from '../../stores/audioStore';
+import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import 'share-api-polyfill';
 import { useAgentsStore } from '../../stores/agentsStore';
-import { useNotesStore } from '../../stores/notesStore';
-import { useRecordingStore } from '../../stores/recordingStore';
-import { useTranscriptionStore } from '../../stores/transcriptionStore';
+import { useAudioStore } from '../../stores/audioStore';
+import { Note, useNotesStore } from '../../stores/notesStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { TakeawayCard } from '../ui/TakeawayCard';
+import { useTranscriptionStore } from '../../stores/transcriptionStore';
+import { BottomNavigation } from '../ui/BottomNavigation';
+import { CrepeEditorWrapper } from '../ui/CrepeEditor';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
-import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
-import { PencilIcon } from '@heroicons/react/24/solid';
+import { TakeawayCard } from '../ui/TakeawayCard';
 
 interface NoteDetailScreenProps {
   note: Note;

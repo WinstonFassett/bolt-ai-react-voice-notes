@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { TrashIcon } from '@heroicons/react/24/outline';
-import { TiptapRenderer } from './TiptapEditor';
-import { markdownToHtml } from '../../utils/markdownToHtml';
+import { AnimatePresence, motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { CrepeEditorWrapper } from './CrepeEditor';
 
 interface TakeawayCardProps {
   takeaway: {
@@ -44,7 +43,7 @@ export const TakeawayCard: React.FC<TakeawayCardProps> = ({
   };
 
   // If this is an agent note, convert markdown to HTML for Tiptap
-  const content = takeaway.type === 'agent' ? markdownToHtml(takeaway.content) : takeaway.content;
+  const content = takeaway.content;
 
   return (
     <>
@@ -66,8 +65,12 @@ export const TakeawayCard: React.FC<TakeawayCardProps> = ({
             <TrashIcon className="w-4 h-4 text-red-400" />
           </button>
         </div>
-        <div className="text-sm text-gray-300 prose prose-invert prose-sm max-w-none max-h-32 overflow-hidden">
-          <TiptapRenderer content={content.substring(0, 400)} />
+        <div className="text-sm text-gray-300 max-w-none max-h-32 overflow-hidden">
+          {/* <TiptapRenderer content={content.substring(0, 400)} /> */}
+          {/* {content.substring(0, 400)} */}
+          <div className="not-content">
+            <CrepeEditorWrapper content={content.substring(0, 400)} readOnly notProse />
+          </div>
           {content.length > 400 ? '...' : ''}
         </div>
         <div className="mt-2 text-xs text-gray-500">
