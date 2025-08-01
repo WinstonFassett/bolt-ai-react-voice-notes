@@ -486,6 +486,14 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               />
             )}
           </div>
+
+
+            <div>
+              {isAgentNote ? 'Agent Note' : 'User Note'}
+            </div>
+          <pre>
+            {content}
+          </pre>
           
           {/* AI Takeaways */}
           {!isAgentNote && takeawayNotes.length > 0 && (
