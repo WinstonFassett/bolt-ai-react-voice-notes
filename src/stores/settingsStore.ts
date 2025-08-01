@@ -10,12 +10,18 @@ interface SettingsState {
   subtask: string;
   language: string;
   
+  // OpenAI STT settings
+  useOpenAIForSTT: boolean;
+  openAIModel: string;
+  
   // Actions
   setModel: (model: string) => void;
   setMultilingual: (multilingual: boolean) => void;
   setQuantized: (quantized: boolean) => void;
   setSubtask: (subtask: string) => void;
   setLanguage: (language: string) => void;
+  setUseOpenAIForSTT: (useOpenAI: boolean) => void;
+  setOpenAIModel: (model: string) => void;
   
   // Complex actions
   updateModelSettings: (settings: Partial<SettingsState>) => void;
@@ -30,6 +36,8 @@ export const useSettingsStore = create<SettingsState>()(
       quantized: Constants.DEFAULT_QUANTIZED,
       subtask: Constants.DEFAULT_SUBTASK,
       language: Constants.DEFAULT_LANGUAGE,
+      useOpenAIForSTT: true, // default to true
+      openAIModel: 'whisper-1', // default OpenAI STT model
       
       // Simple setters
       setModel: (model) => {
@@ -43,6 +51,8 @@ export const useSettingsStore = create<SettingsState>()(
       setQuantized: (quantized) => set({ quantized }),
       setSubtask: (subtask) => set({ subtask }),
       setLanguage: (language) => set({ language }),
+      setUseOpenAIForSTT: (useOpenAIForSTT) => set({ useOpenAIForSTT }),
+      setOpenAIModel: (openAIModel) => set({ openAIModel }),
       
       // Complex actions
       updateModelSettings: (settings) => set((state) => ({

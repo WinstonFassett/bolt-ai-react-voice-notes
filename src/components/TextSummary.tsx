@@ -11,6 +11,7 @@ interface TextSummaryProps {
   onModelChange: (model: 't5-small' | 't5-base') => void;
 }
 
+// This component is now deprecated and not used anywhere.
 export const TextSummary: React.FC<TextSummaryProps> = ({
   summary,
   isLoading,

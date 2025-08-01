@@ -10,11 +10,16 @@ import {
   CpuChipIcon as RobotIcon
 } from '@heroicons/react/24/outline';
 import { useDebugStore } from '../../stores/debugStore';
+import { useSettingsStore } from '../../stores/settingsStore';
+import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
   const { exportNotes, clearAllNotes, clearAllRecordings, importNotes } = useNotesStore();
   const { setDebugVisible } = useDebugStore();
+  const { useOpenAIForSTT, setUseOpenAIForSTT } = useSettingsStore();
+  const { getValidProviders } = useLLMProvidersStore();
+  const hasOpenAIProvider = getValidProviders().some(p => p.name.toLowerCase() === 'openai');
 
   const [showClearNotesConfirm, setShowClearNotesConfirm] = useState(false);
   const [showClearRecordingsConfirm, setShowClearRecordingsConfirm] = useState(false);
@@ -78,7 +83,18 @@ export const SettingsScreen: React.FC = () => {
           label: 'Transcription Settings',
           description: 'Choose the AI model and language settings for speech recognition',
           component: (
-            <div className="w-full">
+            <div className="w-full space-y-6">
+              {hasOpenAIProvider && (
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-300">Use OpenAI for STT whenever possible</label>
+                  <input
+                    type="checkbox"
+                    checked={useOpenAIForSTT}
+                    onChange={e => setUseOpenAIForSTT(e.target.checked)}
+                    className="w-5 h-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                  />
+                </div>
+              )}
               <ModelSelector className="w-full" />
             </div>
           )
