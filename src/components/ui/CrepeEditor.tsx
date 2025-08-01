@@ -1,8 +1,6 @@
-import React from 'react';
-import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react';
+import React, { useEffect, useRef } from 'react';
 import { Crepe } from "@milkdown/crepe";
-import { defaultValueCtx } from '@milkdown/core';
-import '../../styles/milkdown.css';
+import { Milkdown, MilkdownProvider } from '@milkdown/react';
 
 interface CrepeEditorProps {
   content: string;
@@ -15,19 +13,27 @@ export const CrepeEditor: React.FC<CrepeEditorProps> = ({
   onChange,
   placeholder
 }) => {
-  useEditor((root) => {
-    return new Crepe({
-      root,
+  const divRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!divRef.current) return;
+
+    const editor = new Crepe({
+      root: divRef.current,
       defaultValue: content,
     }).create();
-  });
 
-  return <Milkdown />;
+    return () => {
+      editor.then(instance => instance.destroy());
+    };
+  }, [content]);
+
+  return <div ref={divRef} className="min-h-[200px]" />;
 };
 
 export const CrepeEditorWrapper: React.FC<CrepeEditorProps> = (props) => {
   return (
-    <div className="milkdown-theme-wrapper">
+    <div className="milkdown-editor prose dark:prose-invert max-w-none p-4 bg-white dark:bg-gray-800">
       <MilkdownProvider>
         <CrepeEditor {...props} />
       </MilkdownProvider>

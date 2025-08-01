@@ -5,8 +5,6 @@ import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { defaultValueCtx } from '@milkdown/kit/core';
 import { rootCtx } from '@milkdown/kit/core';
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
-import { nord } from "@milkdown/theme-nord";
-import '../../styles/milkdown.css';
 
 interface MilkdownEditorProps {
   content: string;
@@ -21,7 +19,6 @@ export const MilkdownEditor: React.FC<MilkdownEditorProps> = ({
 }) => {
   const { loading, get } = useEditor((root) => {
     const editor = Editor.make()
-      .config(nord)
       .config((ctx) => {
         ctx.set(rootCtx, root);
         ctx.set(defaultValueCtx, content);
@@ -43,7 +40,9 @@ export const MilkdownEditor: React.FC<MilkdownEditorProps> = ({
 
 export const MilkdownEditorWrapper: React.FC<MilkdownEditorProps> = (props) => {
   return (
-    <div className="milkdown-editor">
+    // prose and dark:prose-invert handle all the markdown styling
+    // prose-sm makes it match our app's text size better
+    <div className="milkdown-editor prose prose-sm dark:prose-invert max-w-none p-4 bg-white dark:bg-gray-800">
       <MilkdownProvider>
         <MilkdownEditor {...props} />
       </MilkdownProvider>
