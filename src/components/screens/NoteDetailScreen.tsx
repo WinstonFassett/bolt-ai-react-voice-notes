@@ -135,6 +135,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
   const handleEditorChange = (newContent: string) => {
     setEditorContent(newContent);
+    if (note) {
+      updateNote({ ...note, content: newContent });
+    }
   };
 
   const handleRetranscribe = async () => {
