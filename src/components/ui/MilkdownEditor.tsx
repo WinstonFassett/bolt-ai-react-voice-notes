@@ -40,25 +40,34 @@ export const MilkdownEditor: React.FC<MilkdownEditorProps> = ({
     return editor;
   });
   
-  // Update editor content when prop changes
+  // // Update editor content when prop changes
+  // useEffect(() => {
+  //   // Skip if content hasn't changed or editor isn't ready
+  //   if (content === lastContentRef.current || !get) return;
+    
+  //   // Update our reference
+  //   lastContentRef.current = content;
+    
+  //   // Get the editor instance
+  //   const editor = get();
+  //   if (!editor) return;
+    
+  //   // Use the replaceAll utility to update the content
+  //   // This is a simpler approach that directly replaces all content
+  //   try {
+  //     editor.action(replaceAll(content));
+  //     console.log('Document updated successfully');
+  //   } catch (error) {
+  //     console.error('Error updating editor content:', error);
+  //   }
+  // }, [content, get]);
+
   useEffect(() => {
-    // Skip if content hasn't changed or editor isn't ready
-    if (content === lastContentRef.current || !get) return;
-    
-    // Update our reference
-    lastContentRef.current = content;
-    
-    // Get the editor instance
-    const editor = get();
-    if (!editor) return;
-    
-    // Use the replaceAll utility to update the content
-    // This is a simpler approach that directly replaces all content
-    try {
-      editor.action(replaceAll(content));
-      console.log('Document updated successfully');
-    } catch (error) {
-      console.error('Error updating editor content:', error);
+    if (get) {
+      const editor = get();
+      if (editor) {
+        editor.action(replaceAll(content));
+      }
     }
   }, [content, get]);
 
