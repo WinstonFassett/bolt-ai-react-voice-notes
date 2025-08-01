@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'share-api-polyfill'
-import { TiptapEditor, TiptapRenderer } from '../ui/TiptapEditor';
+import { MilkdownEditorWrapper } from '../ui/MilkdownEditor';
+import { CrepeEditorWrapper } from '../ui/CrepeEditor';
 import { Note, NoteVersion } from '../../stores/notesStore';
 import { 
   ArrowLeftIcon,
@@ -25,7 +26,6 @@ import { TakeawayCard } from '../ui/TakeawayCard';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
 import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 import { PencilIcon } from '@heroicons/react/24/solid';
-import { markdownToHtml } from '../../utils/markdownToHtml';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -75,13 +75,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const { navigateToNote } = useRoutingStore();
   
   const [title, setTitle] = useState(note?.title || '');
-  const [content, setContent] = useState(() => {
-    if (note?.type === 'agent') {
-      // Convert agent markdown to HTML for Tiptap
-      return markdownToHtml(note.content);
-    }
-    return note?.content || '';
-  });
+  const [content, setContent] = useState(note?.content || '');
   const [tagInput, setTagInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRetranscribeConfirm, setShowRetranscribeConfirm] = useState(false);
@@ -118,11 +112,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   useEffect(() => {
     if (note) {
       setTitle(note.title);
-      if (note.type === 'agent') {
-        setContent(markdownToHtml(note.content));
-      } else {
-        setContent(note.content);
-      }
+      setContent(note.content);
     }
   }, [note]);
 
@@ -134,14 +124,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     }
   }, [note?.content]);
 
-  // When toggling edit mode ON, always use HTML for the editor
+  // When toggling edit mode ON, use the original content
   useEffect(() => {
-    if (isAgentNote && isEditing) {
-      setEditorContent(markdownToHtml(note.content));
-    } else {
-      setEditorContent(content);
-    }
-  }, [isEditing, note, content, isAgentNote]);
+    setEditorContent(note?.content || '');
+  }, [isEditing, note]);
 
   // Auto-save only when toggling out of edit mode
   useEffect(() => {
@@ -526,17 +512,21 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           </div>
 
           {/* Editor */}
-          {isAgentNote && !isEditing ? (
+          {isAgentNote ? (
             <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
-              <TiptapRenderer content={content} className="prose prose-invert max-w-none" />
+              FUCKING CREPE:<CrepeEditorWrapper
+                content={note.content}
+                onChange={handleEditorChange}
+                placeholder="Start writing your note..."
+              />
             </div>
-          ) : (
-            <TiptapEditor
+          ) : (<>
+            FUCKING MILKDOWN: <MilkdownEditorWrapper
               content={editorContent}
               onChange={handleEditorChange}
               placeholder="Start writing your note..."
             />
-          )}
+          </>)}
           
           {/* AI Takeaways */}
           {!isAgentNote && takeawayNotes.length > 0 && (
