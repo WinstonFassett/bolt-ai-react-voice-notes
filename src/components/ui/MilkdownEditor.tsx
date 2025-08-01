@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Editor } from "@milkdown/kit/core";
 import { commonmark } from "@milkdown/kit/preset/commonmark";
 import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
@@ -18,18 +18,20 @@ export const MilkdownEditor: React.FC<MilkdownEditorProps> = ({
   onChange,
   placeholder
 }) => {
-  // Track the last content to avoid unnecessary updates
-  const lastContentRef = useRef(content);
-  
-  // Create the editor
+  const markdownOutRef = useRef(content);
+
   const { loading, get } = useEditor((root) => {
     const editor = Editor.make()
       .config((ctx) => {
         ctx.set(rootCtx, root);
         ctx.set(defaultValueCtx, content);
-        
+        // ctx.get(listenerCtx).updated((_, markdown) => {
+        //   console.log('Editor updated:', markdown);
+        // });
         if (onChange) {
           ctx.get(listenerCtx).markdownUpdated((_, markdown) => {
+            // console.log('Markdown changed:', markdown);
+            markdownOutRef.current = markdown;
             onChange(markdown);
           });
         }
@@ -38,42 +40,34 @@ export const MilkdownEditor: React.FC<MilkdownEditorProps> = ({
       .use(listener);
 
     return editor;
-  });
-  
-  // // Update editor content when prop changes
-  // useEffect(() => {
-  //   // Skip if content hasn't changed or editor isn't ready
-  //   if (content === lastContentRef.current || !get) return;
-    
-  //   // Update our reference
-  //   lastContentRef.current = content;
-    
-  //   // Get the editor instance
-  //   const editor = get();
-  //   if (!editor) return;
-    
-  //   // Use the replaceAll utility to update the content
-  //   // This is a simpler approach that directly replaces all content
-  //   try {
-  //     editor.action(replaceAll(content));
-  //     console.log('Document updated successfully');
-  //   } catch (error) {
-  //     console.error('Error updating editor content:', error);
-  //   }
-  // }, [content, get]);
+  }); 
 
   useEffect(() => {
     if (get) {
       const editor = get();
       if (editor) {
+        if (content === markdownOutRef.current) {
+          // console.log('Skipping update, content is the same');
+          return;
+        }
+        // console.log('Updating editor content', content);
         editor.action(replaceAll(content));
       }
     }
-  }, [content, get]);
-
-  return <Milkdown />;
+  }, [content]);
+  
+  return (
+    <Milkdown />
+  );
 };
 
+
+export function useDebouncedEffect(effect: () => void, deps: any[], delay: number) {
+  useEffect(() => {
+    const handler = setTimeout(() => effect(), delay);
+    return () => clearTimeout(handler);
+  }, [...deps, delay]);
+}
 
 export const MilkdownEditorWrapper: React.FC<MilkdownEditorProps> = (props) => {
   return (
