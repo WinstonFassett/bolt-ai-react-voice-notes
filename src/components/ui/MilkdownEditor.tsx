@@ -5,7 +5,7 @@ import { listener, listenerCtx } from "@milkdown/kit/plugin/listener";
 import { defaultValueCtx } from '@milkdown/kit/core';
 import { rootCtx } from '@milkdown/kit/core';
 import { editorViewCtx } from '@milkdown/kit/core';
-import { Milkdown, useEditor } from "@milkdown/react";
+import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 
 interface MilkdownEditorProps {
   content: string;
