@@ -472,29 +472,16 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
           {/* Editor */}
           <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
-            {isAgentNote ? (
-              <CrepeEditorWrapper
-                content={content}
-                onChange={handleEditorChange}
-                placeholder="Start writing your note..."
-              />
-            ) : (
-              <MilkdownEditorWrapper
-                content={content}
-                onChange={handleEditorChange}
-                placeholder="Start writing your note..."
-              />
-            )}
+            <CrepeEditorWrapper
+              content={content}
+              onChange={handleEditorChange}
+              placeholder="Start writing your note..."
+            />
           </div>
-
-
-            <div>
-              {isAgentNote ? 'Agent Note' : 'User Note'}
-            </div>
-          <pre>
-            {content}
-          </pre>
-          
+          <div>
+            {isAgentNote ? 'Agent Note' : 'User Note'}
+          </div>
+         
           {/* AI Takeaways */}
           {!isAgentNote && takeawayNotes.length > 0 && (
             <div className="space-y-3">
