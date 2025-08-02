@@ -285,22 +285,17 @@ export async function optimizeAudioBlob(
       const destination = audioContext.createMediaStreamDestination();
       source.connect(destination);
       
-      // Create media recorder with optimized settings
-      const options = {
-        mimeType: 'audio/webm;codecs=opus', // Opus codec is efficient for speech
-        audioBitsPerSecond: OPTIMAL_BITRATE
-      };
-      
       // Determine the best supported format for cross-device compatibility
       let mimeType = '';
       
       // Try formats in order of preference for cross-platform compatibility
+      // iOS/Safari compatibility is critical
       const formatOptions = [
-        'audio/webm;codecs=opus',  // Best quality/size for Chrome/Firefox/Edge
-        'audio/mp4',               // Safari/iOS
-        'audio/webm',              // Generic fallback
-        'audio/ogg;codecs=opus',   // Another option
-        'audio/wav'                // Last resort
+        'audio/mp4',               // Best for Safari/iOS
+        'audio/webm;codecs=opus', // Good for Chrome/Firefox/Edge
+        'audio/webm',             // Generic fallback
+        'audio/ogg;codecs=opus',  // Another option
+        'audio/wav'               // Last resort but widely compatible
       ];
       
       for (const format of formatOptions) {
@@ -312,14 +307,19 @@ export async function optimizeAudioBlob(
       
       if (!mimeType) {
         // If no supported format found, use default
-        mimeType = 'audio/webm';
+        mimeType = 'audio/wav';
+        console.warn('No supported audio format found, falling back to WAV');
       }
       
       console.log(`Using audio format: ${mimeType} for optimization`);
       
+      // Use a more conservative bitrate to ensure quality
+      // 128kbps is a good balance between quality and size for voice
+      const audioBitsPerSecond = Math.max(OPTIMAL_BITRATE, 128000);
+      
       const mediaRecorder = new MediaRecorder(destination.stream, {
         mimeType,
-        audioBitsPerSecond: OPTIMAL_BITRATE
+        audioBitsPerSecond
       });
       
       // Collect chunks
@@ -330,11 +330,31 @@ export async function optimizeAudioBlob(
         }
       };
       
+      // Request data every second to ensure we get multiple chunks
+      // This helps with compatibility issues
+      const dataInterval = setInterval(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.requestData();
+        }
+      }, 1000);
+      
       // When recording completes
       mediaRecorder.onstop = () => {
+        clearInterval(dataInterval);
+        
         // Create blob from chunks
         const mimeType = mediaRecorder.mimeType;
         const optimizedBlob = new Blob(chunks, { type: mimeType });
+        
+        console.log(`Optimization complete: Original size: ${audioBlob.size}, New size: ${optimizedBlob.size}, Format: ${mimeType}`);
+        
+        // Verify the blob is valid
+        if (optimizedBlob.size === 0) {
+          console.error('Optimization produced an empty blob');
+          // Fall back to the original blob
+          resolve(audioBlob);
+          return;
+        }
         
         // Clean up
         source.disconnect();
@@ -346,11 +366,14 @@ export async function optimizeAudioBlob(
       
       // Handle errors
       mediaRecorder.onerror = (event) => {
-        reject(new Error(`MediaRecorder error: ${event.error}`));
+        clearInterval(dataInterval);
+        console.error('MediaRecorder error:', event);
+        // Fall back to the original blob on error
+        resolve(audioBlob);
       };
       
       // Start recording and playback
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // Capture in 1-second chunks for better reliability
       source.start(0);
       
       // Stop when audio finishes playing
@@ -373,7 +396,9 @@ export async function optimizeAudioBlob(
       }, safeTimeout);
       
     } catch (error) {
-      reject(error);
+      console.error('Error in audio optimization:', error);
+      // Return original blob on error instead of failing
+      resolve(audioBlob);
     }
   });
 }
@@ -452,9 +477,26 @@ export async function optimizeNoteAudio(
       throw new Error('Failed to fetch audio after multiple attempts');
     }
     
+    // Get original audio info for comparison
+    const originalSize = audioBlob.size;
+    const originalType = audioBlob.type;
+    
     // Optimize the audio
     onProgress?.('Optimizing audio...');
     const optimizedBlob = await optimizeAudioBlob(audioBlob, onProgress);
+    
+    // Verify the optimization was successful
+    if (optimizedBlob.size === 0) {
+      console.error('Optimization produced an empty blob, using original');
+      // Use the original blob instead
+      return resolvedAudio.url;
+    }
+    
+    // Verify the optimized blob is actually smaller
+    if (optimizedBlob.size >= originalSize) {
+      console.log('Optimization did not reduce file size, using original');
+      return resolvedAudio.url;
+    }
     
     // Save the optimized audio
     onProgress?.('Saving optimized audio...');
@@ -471,8 +513,36 @@ export async function optimizeNoteAudio(
       lastModified: new Date().getTime()
     });
     
+    // Log the optimization results
+    console.log('Audio optimization results:', {
+      noteId: note.id,
+      originalSize,
+      optimizedSize: optimizedBlob.size,
+      originalType,
+      optimizedType: optimizedBlob.type,
+      savings: originalSize - optimizedBlob.size,
+      savingsPercent: Math.round(((originalSize - optimizedBlob.size) / originalSize) * 100)
+    });
+    
     // Create object URL from the file
     const optimizedUrl = URL.createObjectURL(optimizedFile);
+    
+    // Test that the optimized audio is playable
+    try {
+      const audio = new Audio();
+      audio.src = optimizedUrl;
+      await new Promise<void>((resolve, reject) => {
+        audio.oncanplaythrough = () => resolve();
+        audio.onerror = () => reject(new Error('Optimized audio is not playable'));
+        // Set a timeout in case the audio never loads
+        setTimeout(() => reject(new Error('Timeout testing optimized audio')), 5000);
+      });
+      console.log('Optimized audio verified as playable');
+    } catch (error) {
+      console.error('Optimized audio is not playable, using original:', error);
+      URL.revokeObjectURL(optimizedUrl);
+      return resolvedAudio.url;
+    }
     
     // Return the new URL
     return optimizedUrl;
