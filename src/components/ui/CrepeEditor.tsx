@@ -1,6 +1,7 @@
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame-dark.css";
+import "./crepe.css";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { replaceAll } from '@milkdown/utils';
 import React, { useEffect, useRef } from 'react';
@@ -11,6 +12,7 @@ interface CrepeEditorProps {
   placeholder?: string;
   readOnly?: boolean;
   notProse?: boolean;
+  className?: string;
 }
 
 const CrepeEditor: React.FC<CrepeEditorProps> = ({
@@ -25,7 +27,8 @@ const CrepeEditor: React.FC<CrepeEditorProps> = ({
       root,
       defaultValue: content,
       features: {
-        placeholder: true
+        placeholder: true,
+        "list-item": false
       },
       featureConfigs: {
         placeholder: {
@@ -59,11 +62,9 @@ const CrepeEditor: React.FC<CrepeEditorProps> = ({
 };
 
 export const CrepeEditorWrapper: React.FC<CrepeEditorProps> = (props) => {
+  const className = props.className || "milkdown-editor max-w-none p-4 prose prose-sm dark:prose-invert bg-white dark:bg-gray-800";
   return (
-    <div className={[
-      "milkdown-editor max-w-none p-4 bg-white dark:bg-gray-800",
-      props.notProse ? '' : 'prose prose-sm dark:prose-invert'
-    ].join(' ')}>
+    <div className={className}>
       <MilkdownProvider>
         <CrepeEditor {...props} />
       </MilkdownProvider>

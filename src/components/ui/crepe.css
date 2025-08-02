@@ -1,0 +1,39 @@
+.prose-compact .milkdown .ProseMirror {
+  padding: 0;
+}
+.prose-compact .milkdown .ProseMirror h1,
+.prose-compact .milkdown .ProseMirror h2,
+.prose-compact .milkdown .ProseMirror h3,
+.prose-compact .milkdown .ProseMirror h4,
+.prose-compact .milkdown .ProseMirror h5,
+.prose-compact .milkdown .ProseMirror h6,
+.prose-compact .milkdown .ProseMirror p
+ {
+  margin: 0;
+  padding: 0;
+  font-weight: bold;
+  font-family: sans-serif;
+  font-size: 1rem;
+  line-height: 1;
+}
+.prose-compact .milkdown .ProseMirror p {
+  font-weight: normal;
+  margin-bottom: 0.5rem;
+}
+.prose-compact .milkdown .ProseMirror p {
+  margin: 0; 
+}
+.prose-compact .milkdown .ProseMirror ul,
+.prose-compact .milkdown .ProseMirror ol {
+  margin: 0;
+  padding: 0;
+  padding-left: 1.5rem;
+}
+.prose-compact .milkdown .ProseMirror ul {
+  list-style-type: disc;
+}
+.prose-compact .milkdown .ProseMirror blockquote {
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 4px solid var(--border);
+}

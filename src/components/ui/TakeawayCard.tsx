@@ -66,12 +66,8 @@ export const TakeawayCard: React.FC<TakeawayCardProps> = ({
           </button>
         </div>
         <div className="text-sm text-gray-300 max-w-none max-h-32 overflow-hidden">
-          {/* <TiptapRenderer content={content.substring(0, 400)} /> */}
-          {/* {content.substring(0, 400)} */}
-          <div className="not-content">
-            <CrepeEditorWrapper content={content.substring(0, 400)} readOnly notProse />
-          </div>
-          {content.length > 400 ? '...' : ''}
+          <CrepeEditorWrapper content={content.substring(0, 200)} readOnly className='prose-compact' />
+          {content.length > 200 ? '...' : ''}
         </div>
         <div className="mt-2 text-xs text-gray-500">
           Click to view full • {formatDate(takeaway.createdAt || takeaway.created || 0)}
