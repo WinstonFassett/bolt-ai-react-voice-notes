@@ -1,60 +1,39 @@
-import * as Sentry from '@sentry/browser';
-import { BrowserTracing } from '@sentry/tracing';
+import * as Sentry from '@sentry/react';
 
-/**
- * Initialize Sentry error reporting
- * 
- * @param dsn Your Sentry project DSN (get this from Sentry dashboard)
- */
-export function initErrorReporting(dsn?: string) {
-  // Don't initialize if no DSN is provided
-  if (!dsn) {
-    console.warn('Sentry DSN not provided, error reporting disabled');
-    return;
-  }
-
-  Sentry.init({
-    dsn,
-    integrations: [new BrowserTracing()],
-    
-    // Set tracesSampleRate to 0.5 to capture 50% of transactions for performance monitoring
-    // Adjust based on your traffic volume
-    tracesSampleRate: 0.5,
-    
-    // Only enable in production
-    enabled: process.env.NODE_ENV === 'production',
-    
-    // Capture user info but respect privacy
-    beforeSend(event) {
-      // Don't send personal data
-      if (event.user) {
-        delete event.user.email;
-        delete event.user.ip_address;
-      }
-      return event;
-    }
-  });
-}
+import { useSettingsStore } from '../stores/settingsStore';
 
 /**
  * Report an error to Sentry with context
  * 
- * @param error The error object
+ * @param error Error object or string message
  * @param context Additional context information
  * @returns User-friendly error message
  */
-export function reportError(error: Error, context?: Record<string, any>): string {
-  console.error('Error:', error, context);
+export function reportError(error: Error | string, context?: Record<string, any>): string {
+  // Create an error object if a string was passed
+  const errorObj = typeof error === 'string' ? new Error(error) : error;
   
-  // Send to Sentry if available
-  if (Sentry.getCurrentHub().getClient()) {
-    Sentry.captureException(error, {
-      extra: context
-    });
+  // Always log to console regardless of environment
+  console.error('Error:', errorObj, context);
+  
+  // Only send to Sentry in production AND if user has opted in
+  if (import.meta.env.SENTRY_DSN) {
+    const errorReportingEnabled = useSettingsStore.getState().errorReportingEnabled;
+    
+    if (errorReportingEnabled) {
+      Sentry.withScope((scope) => {
+        if (context) {
+          Object.entries(context).forEach(([key, value]) => {
+            scope.setExtra(key, value);
+          });
+        }
+        Sentry.captureException(errorObj);
+      });
+    }
   }
   
   // Return user-friendly message based on error type
-  return getUserFriendlyMessage(error);
+  return getUserFriendlyMessage(errorObj);
 }
 
 /**

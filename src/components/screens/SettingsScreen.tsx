@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useDebugStore } from '../../stores/debugStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 import AudioOptimizationPanel from '../AudioOptimizationPanel';
 
@@ -31,7 +32,12 @@ export const SettingsScreen: React.FC = () => {
     shallow
   );
   const { setDebugVisible } = useDebugStore();
-  const { useOpenAIForSTT, setUseOpenAIForSTT } = useSettingsStore();
+  const { 
+    useOpenAIForSTT, 
+    setUseOpenAIForSTT,
+    errorReportingEnabled,
+    setErrorReportingEnabled 
+  } = useSettingsStore();
   const { getValidProviders } = useLLMProvidersStore();
   const hasOpenAIProvider = getValidProviders().some(p => p.name.toLowerCase() === 'openai');
 
@@ -86,20 +92,32 @@ export const SettingsScreen: React.FC = () => {
   };
   const settingsGroups = [
     {
-      title: 'Error Reporting',
-      icon: InformationCircleIcon,
+      title: 'Privacy',
+      icon: ShieldCheckIcon,
       items: [
         {
           label: 'Error Reporting',
-          description: 'Test error reporting',
+          description: 'Allow anonymous error reports to help improve the app',
           component: (
-            <div className="w-full">
-              <button onClick={() => {throw new Error("This is your first error!");}}>Break the world</button>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-400 max-w-md">
+                When enabled, technical error information will be sent to help fix bugs.
+                No personal data or note content is ever shared.
+              </div>
+              <div className="flex items-center ml-4">
+                <input
+                  type="checkbox"
+                  checked={errorReportingEnabled}
+                  onChange={e => setErrorReportingEnabled(e.target.checked)}
+                  className="w-5 h-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                />
+              </div>
             </div>
           )
         }
       ]
     },
+    // Error reporting section removed and replaced with Privacy section above
     {
       title: 'AI Agents',
       icon: RobotIcon,

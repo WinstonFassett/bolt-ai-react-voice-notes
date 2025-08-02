@@ -14,6 +14,9 @@ interface SettingsState {
   useOpenAIForSTT: boolean;
   openAIModel: string;
   
+  // Privacy settings
+  errorReportingEnabled: boolean;
+  
   // Actions
   setModel: (model: string) => void;
   setMultilingual: (multilingual: boolean) => void;
@@ -22,6 +25,7 @@ interface SettingsState {
   setLanguage: (language: string) => void;
   setUseOpenAIForSTT: (useOpenAI: boolean) => void;
   setOpenAIModel: (model: string) => void;
+  setErrorReportingEnabled: (enabled: boolean) => void;
   
   // Complex actions
   updateModelSettings: (settings: Partial<SettingsState>) => void;
@@ -38,6 +42,7 @@ export const useSettingsStore = create<SettingsState>()(
       language: Constants.DEFAULT_LANGUAGE,
       useOpenAIForSTT: true, // default to true
       openAIModel: 'whisper-1', // default OpenAI STT model
+      errorReportingEnabled: false, // default to OFF for privacy
       
       // Simple setters
       setModel: (model) => {
@@ -53,6 +58,7 @@ export const useSettingsStore = create<SettingsState>()(
       setLanguage: (language) => set({ language }),
       setUseOpenAIForSTT: (useOpenAIForSTT) => set({ useOpenAIForSTT }),
       setOpenAIModel: (openAIModel) => set({ openAIModel }),
+      setErrorReportingEnabled: (errorReportingEnabled) => set({ errorReportingEnabled }),
       
       // Complex actions
       updateModelSettings: (settings) => set((state) => ({
