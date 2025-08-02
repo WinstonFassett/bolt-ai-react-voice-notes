@@ -162,37 +162,72 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       return;
     }
 
+    // Check if Web Share API is supported at all
+    if (!('share' in navigator)) {
+      alert('Sharing is not supported on this browser');
+      return;
+    }
+
     try {
-      // Resolve the storage URL to get the actual blob URL
-      const resolvedAudio = await resolveStorageUrl(note.audioUrl);
-      if (!resolvedAudio) {
-        alert('Could not access the audio file');
-        return;
-      }
-
-      // Fetch the audio as a blob
-      const response = await fetch(resolvedAudio.url);
-      const blob = await response.blob();
-
-      // Create a file from the blob
-      const fileName = `${note.title.replace(/\s+/g, '_')}_audio.${resolvedAudio.mimeType.split('/')[1] || 'webm'}`;
-      const file = new File([blob], fileName, { type: resolvedAudio.mimeType });
-
-      // Share the file
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: note.title,
-          text: 'Audio recording from Bolt AI Voice Notes',
-          files: [file]
+      // First try simple sharing without the file
+      if ('canShare' in navigator) {
+        // Check if file sharing is supported
+        const supportsFileSharing = await new Promise(resolve => {
+          const testFile = new File([""], "test.txt", { type: "text/plain" });
+          resolve(navigator.canShare({ files: [testFile] }));
         });
-        console.log('Audio shared successfully');
+
+        if (supportsFileSharing) {
+          // Resolve the storage URL to get the actual blob URL
+          const resolvedAudio = await resolveStorageUrl(note.audioUrl);
+          if (!resolvedAudio) {
+            alert('Could not access the audio file');
+            return;
+          }
+
+          // Fetch the audio as a blob
+          const response = await fetch(resolvedAudio.url);
+          const blob = await response.blob();
+
+          // Create a file from the blob
+          const fileName = `${note.title.replace(/\s+/g, '_')}_audio.${resolvedAudio.mimeType.split('/')[1] || 'webm'}`;
+          const file = new File([blob], fileName, { type: resolvedAudio.mimeType });
+
+          // Share the file
+          // Use type assertion to help TypeScript recognize Web Share API
+          const navigatorWithShare = navigator as Navigator & {
+            share: (data: { files?: File[], title?: string, text?: string, url?: string }) => Promise<void>;
+          };
+          
+          await navigatorWithShare.share({
+            title: note.title,
+            text: 'Audio recording from Bolt AI Voice Notes',
+            files: [file]
+          });
+          console.log('Audio shared successfully with file');
+        } else {
+          // Fallback for browsers that don't support file sharing
+          const navigatorWithShare = navigator as Navigator & {
+            share: (data: { files?: File[], title?: string, text?: string, url?: string }) => Promise<void>;
+          };
+          
+          await navigatorWithShare.share({
+            title: note.title,
+            text: 'Audio recording from Bolt AI Voice Notes'
+          });
+          console.log('Shared without file (file sharing not supported)');
+        }
       } else {
-        // Fallback for browsers that don't support file sharing
-        await navigator.share({
+        // Basic share fallback
+        const navigatorWithShare = navigator as Navigator & {
+          share: (data: { files?: File[], title?: string, text?: string, url?: string }) => Promise<void>;
+        };
+        
+        await navigatorWithShare.share({
           title: note.title,
           text: 'Audio recording from Bolt AI Voice Notes'
         });
-        console.log('Shared without file (not supported)');
+        console.log('Shared with basic share API');
       }
     } catch (error) {
       console.error('Error sharing audio:', error);
@@ -489,14 +524,17 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                     <ArrowDownTrayIcon className="h-5 w-5" />
                   </button>
                   
-                  <button 
-                    onClick={handleShareAudio}
-                    className="p-2 text-gray-400 hover:text-indigo-500 transition-colors"
-                    aria-label="Share audio"
-                    title="Share audio"
-                  >
-                    <ShareIcon className="h-5 w-5" />
-                  </button>
+                  {/* Only show share button if Web Share API is supported */}
+                  {typeof navigator !== 'undefined' && 'share' in navigator && (
+                    <button 
+                      onClick={handleShareAudio}
+                      className="p-2 text-gray-400 hover:text-indigo-500 transition-colors"
+                      aria-label="Share audio"
+                      title="Share audio"
+                    >
+                      <ShareIcon className="h-5 w-5" />
+                    </button>
+                  )}
                   
                   <button
                     onClick={handleDeleteAudio}
