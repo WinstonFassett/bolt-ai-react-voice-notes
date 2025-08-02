@@ -495,26 +495,17 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
                 <div className="flex-1"></div>
                 {/* Audio Controls */}
-                <div className="flex items-center gap-2 mt-2">
-                  <button 
-                    onClick={handlePlayAudio}
-                    className="p-2 bg-indigo-600 hover:bg-indigo-700 rounded-full transition-colors"
-                    aria-label={globalIsPlaying && currentPlayingAudioUrl === note.audioUrl ? 'Pause' : 'Play'}
-                  >
-                    {globalIsPlaying && currentPlayingAudioUrl === note.audioUrl ? 
-                      <PauseIcon className="h-5 w-5 text-white" /> : 
-                      <PlayIcon className="h-5 w-5 text-white" />
-                    }
-                  </button>
-                  
-                  <div className="text-sm text-gray-400">
-                    {globalIsPlaying && currentPlayingAudioUrl === note.audioUrl
-                      ? `${formatTime(globalAudioCurrentTime)} / ${formatTime(globalAudioDuration)}`
-                      : note.duration
-                        ? `${formatTime(note.duration)}`
-                        : '00:00'}
-                  </div>
-                  
+                <div className="flex items-center gap-1">
+                  {/* Retranscribe button */}
+                  {!isTranscribing && (
+                    <button
+                      onClick={() => setShowRetranscribeConfirm(true)}
+                      className="p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors"
+                      title="Re-transcribe audio"
+                    >
+                      <SparklesIcon className="w-4 h-4 text-indigo-400" />
+                    </button>
+                  )}
                   <button 
                     onClick={handleDownloadAudio}
                     className="p-2 text-gray-400 hover:text-indigo-500 transition-colors ml-auto"
