@@ -85,6 +85,21 @@ export const SettingsScreen: React.FC = () => {
   };
   const settingsGroups = [
     {
+      title: 'Error Reporting',
+      icon: InformationCircleIcon,
+      items: [
+        {
+          label: 'Error Reporting',
+          description: 'Test error reporting',
+          component: (
+            <div className="w-full">
+              <button onClick={() => {throw new Error("This is your first error!");}}>Break the world</button>
+            </div>
+          )
+        }
+      ]
+    },
+    {
       title: 'AI Agents',
       icon: RobotIcon,
       items: [

@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 import { audioStorage } from '../utils/audioStorage';
 import { exportAudioFiles, exportSingleAudioFile, ExportProgressCallback, ExportStatusCallback } from '../services/audioExportService';
 import { importAudioFiles } from '../services/audioImportService';
+import { optimizeNoteAudio } from '../services/audioOptimizationService';
+import { reportError } from '../services/errorReporting';
 
 export interface NoteVersion {
   content: string;
@@ -26,6 +28,7 @@ export interface Note {
   sourceNoteIds?: string[];
   agentId?: string;
   takeaways?: string[];
+  optimizedAudio?: boolean; // Flag to track if audio has been optimized
   generatedBy?: {
     agentId: string;
     modelUsed: string;
@@ -37,6 +40,8 @@ interface NotesState {
   notes: Note[];
   isExportingAudio: boolean;
   exportProgress: string;
+  isOptimizingAudio: boolean;
+  optimizationProgress: string;
   
   // Actions
   addNote: (note: Note) => void;
@@ -59,6 +64,8 @@ interface NotesState {
   downloadAllAudio: () => Promise<void>;
   downloadSingleAudio: (noteId: string) => Promise<void>;
   importAudio: (file: File) => Promise<void>;
+  optimizeAudio: (noteId: string) => Promise<void>;
+  resetOptimizationState: () => void;
 }
 
 export const useNotesStore = create<NotesState>()(
@@ -67,6 +74,8 @@ export const useNotesStore = create<NotesState>()(
       notes: [],
       isExportingAudio: false,
       exportProgress: '',
+      isOptimizingAudio: false,
+      optimizationProgress: '',
       
       // Simple actions
       addNote: (note) => set((state) => ({
@@ -239,6 +248,11 @@ export const useNotesStore = create<NotesState>()(
         set({ exportProgress: '', isExportingAudio: false });
       },
       
+      // Reset optimization state on app initialization or errors
+      resetOptimizationState: () => {
+        set({ optimizationProgress: '', isOptimizingAudio: false });
+      },
+      
       downloadAllAudio: async (): Promise<void> => {
         const { notes } = get();
         const notesWithAudio = notes.filter(note => note.audioUrl);
@@ -314,25 +328,92 @@ export const useNotesStore = create<NotesState>()(
       importAudio: async (file: File): Promise<void> => {
         const { notes } = get();
         
-        // Use the exported service function
-        await importAudioFiles(
-          file,
-          notes,
-          // Progress callback
-          (message) => set({ exportProgress: message }),
-          // Status callback
-          (isImporting) => set({ isExportingAudio: isImporting }),
-          // Note update callback
-          (noteId, audioUrl) => {
-            set((state) => ({
-              notes: state.notes.map(n => 
-                n.id === noteId 
-                  ? { ...n, audioUrl } 
-                  : n
-              )
-            }));
-          }
-        );
+        try {
+          // Use the imported service function
+          await importAudioFiles(
+            file,
+            notes,
+            // Progress callback
+            (message) => set({ exportProgress: message }),
+            // Status callback
+            (isImporting) => set({ isExportingAudio: isImporting }),
+            // Note update callback
+            (noteId, audioUrl) => {
+              set((state) => ({
+                notes: state.notes.map(n => 
+                  n.id === noteId 
+                    ? { ...n, audioUrl } 
+                    : n
+                )
+              }));
+            }
+          );
+        } catch (error) {
+          console.error('Error importing audio:', error);
+          throw error;
+        }
+      },
+      
+      // Optimize audio for a specific note
+      optimizeAudio: async (noteId: string): Promise<void> => {
+        const { notes } = get();
+        const note = notes.find(n => n.id === noteId);
+        
+        if (!note || !note.audioUrl) {
+          throw new Error('Note not found or has no audio');
+        }
+        
+        // Set optimization in progress
+        set({ optimizationProgress: 'Preparing optimization...', isOptimizingAudio: true });
+        
+        try {
+          // Use the optimization service
+          const optimizedUrl = await optimizeNoteAudio(
+            note,
+            // Progress callback
+            (message) => {
+              console.log('Optimization progress:', message);
+              set({ optimizationProgress: message });
+            }
+          );
+          
+          // Update the note with optimized audio
+          get().updateNote({
+            ...note,
+            audioUrl: optimizedUrl,
+            optimizedAudio: true
+          });
+          
+          // Reset state
+          set({ 
+            optimizationProgress: 'Optimization complete!',
+            isOptimizingAudio: false 
+          });
+          
+          // Clear progress message after delay
+          setTimeout(() => {
+            set({ optimizationProgress: '' });
+          }, 3000);
+          
+        } catch (error) {
+          console.error('Error optimizing audio:', error);
+          reportError(error instanceof Error ? error : new Error('Unknown error'), { 
+            context: 'optimizeAudio', 
+            noteId 
+          });
+          
+          set({ 
+            optimizationProgress: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            isOptimizingAudio: false 
+          });
+          
+          // Reset progress after a delay
+          setTimeout(() => {
+            set({ optimizationProgress: '' });
+          }, 5000);
+          
+          throw error;
+        }
       }
     }),
     {
@@ -343,14 +424,18 @@ export const useNotesStore = create<NotesState>()(
         ...state,
         // Exclude these fields from persistence
         isExportingAudio: false,
-        exportProgress: ''
+        exportProgress: '',
+        isOptimizingAudio: false,
+        optimizationProgress: ''
       }),
       // Reset export state on rehydration for already persisted values
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Force reset export state when loading from storage
+          // Force reset export and optimization states when loading from storage
           state.isExportingAudio = false;
           state.exportProgress = '';
+          state.isOptimizingAudio = false;
+          state.optimizationProgress = '';
         }
       }
     }
