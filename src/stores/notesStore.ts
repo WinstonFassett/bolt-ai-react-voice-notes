@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { audioStorage } from '../utils/audioStorage';
+import { audioStorage, resolveStorageUrl } from '../utils/audioStorage';
+import JSZip from 'jszip';
 
 export interface NoteVersion {
   content: string;
@@ -51,6 +52,7 @@ interface NotesState {
   importNotes: (notesData: any[]) => void;
   clearAllNotes: () => void;
   clearAllRecordings: () => void;
+  downloadAllAudio: () => Promise<void>;
 }
 
 export const useNotesStore = create<NotesState>()(
@@ -222,6 +224,126 @@ export const useNotesStore = create<NotesState>()(
         audioStorage.getAllAudioIds().then(ids => {
           ids.forEach(id => audioStorage.deleteAudio(id));
         });
+      },
+      
+      downloadAllAudio: async () => {
+        const { notes } = get();
+        const notesWithAudio = notes.filter(note => note.audioUrl);
+        
+        if (notesWithAudio.length === 0) {
+          alert('No audio recordings found');
+          return;
+        }
+        
+        // Create a new zip file
+        const zip = new JSZip();
+        let processedCount = 0;
+        let successCount = 0;
+        
+        try {
+          // Add a loading indicator
+          const loadingDiv = document.createElement('div');
+          loadingDiv.textContent = `Preparing audio files (0/${notesWithAudio.length})...`;
+          loadingDiv.style.position = 'fixed';
+          loadingDiv.style.top = '10px';
+          loadingDiv.style.left = '50%';
+          loadingDiv.style.transform = 'translateX(-50%)';
+          loadingDiv.style.padding = '10px';
+          loadingDiv.style.backgroundColor = '#4f46e5';
+          loadingDiv.style.color = 'white';
+          loadingDiv.style.borderRadius = '4px';
+          loadingDiv.style.zIndex = '9999';
+          document.body.appendChild(loadingDiv);
+          
+          // Process each note with audio
+          for (const note of notesWithAudio) {
+            if (!note.audioUrl) continue;
+            
+            try {
+              // Use resolveStorageUrl which properly handles audio-storage:// URLs
+              const resolvedAudio = await resolveStorageUrl(note.audioUrl);
+              if (!resolvedAudio) {
+                console.error(`Failed to resolve audio URL for note: ${note.id}`);
+                processedCount++;
+                loadingDiv.textContent = `Preparing audio files (${successCount}/${notesWithAudio.length})... (${processedCount} processed)`;
+                continue;
+              }
+              
+              // Create a safe filename
+              const safeTitle = note.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+              const extension = resolvedAudio.mimeType.split('/')[1] || 'webm';
+              const fileName = `${safeTitle}_${note.id}.${extension}`;
+              
+              // Add to zip
+              const response = await fetch(resolvedAudio.url);
+              const blob = await response.blob();
+              
+              if (blob.size > 0) {
+                zip.file(fileName, blob);
+                successCount++;
+              } else {
+                console.error(`Empty blob for note: ${note.id}`);
+              }
+              
+              // Update progress
+              processedCount++;
+              loadingDiv.textContent = `Preparing audio files (${successCount}/${notesWithAudio.length})... (${processedCount} processed)`;
+            } catch (err) {
+              console.error(`Error processing audio for note ${note.id}:`, err);
+              processedCount++;
+              loadingDiv.textContent = `Preparing audio files (${successCount}/${notesWithAudio.length})... (${processedCount} processed)`;
+            }
+          }
+          
+          // Check if any audio files were successfully processed
+          if (successCount === 0) {
+            document.body.removeChild(loadingDiv);
+            alert('No audio files could be processed. This may be because the audio files are no longer available.');
+            return;
+          }
+          
+          // Update the loading indicator
+          loadingDiv.textContent = `Creating zip file with ${successCount} audio files...`;
+          
+          // Generate the zip file
+          const zipBlob = await zip.generateAsync({ type: 'blob' });
+          
+          if (zipBlob.size < 100) { // Check if zip is suspiciously small
+            document.body.removeChild(loadingDiv);
+            alert('Error creating zip file: The generated file appears to be empty or corrupted.');
+            return;
+          }
+          
+          const zipUrl = URL.createObjectURL(zipBlob);
+          
+          // Create download link
+          const a = document.createElement('a');
+          a.href = zipUrl;
+          a.download = 'bolt-voice-notes-audio.zip';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          // Clean up
+          URL.revokeObjectURL(zipUrl);
+          document.body.removeChild(loadingDiv);
+          
+          return;
+        } catch (error) {
+          console.error('Error downloading audio files:', error);
+          
+          // Remove loading indicator if it exists
+          try {
+            const loadingElement = document.querySelector('div[style*="position: fixed"][style*="zIndex: 9999"]');
+            if (loadingElement && loadingElement.parentNode) {
+              loadingElement.parentNode.removeChild(loadingElement);
+            }
+          } catch (e) {
+            console.error('Error removing loading indicator:', e);
+          }
+          
+          alert('Error downloading audio files: ' + (error instanceof Error ? error.message : 'Unknown error'));
+        }
       }
     }),
     {

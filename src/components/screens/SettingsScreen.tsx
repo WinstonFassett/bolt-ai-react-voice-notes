@@ -15,7 +15,7 @@ import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
-  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes } = useNotesStore();
+  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio } = useNotesStore();
   const { setDebugVisible } = useDebugStore();
   const { useOpenAIForSTT, setUseOpenAIForSTT } = useSettingsStore();
   const { getValidProviders } = useLLMProvidersStore();
@@ -141,6 +141,18 @@ export const SettingsScreen: React.FC = () => {
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
             >
               Clear Notes
+            </button>
+          )
+        },
+        {
+          label: 'Download All Audio',
+          description: 'Download all audio recordings as a zip file',
+          component: (
+            <button
+              onClick={downloadAllAudio}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+            >
+              Download
             </button>
           )
         },
