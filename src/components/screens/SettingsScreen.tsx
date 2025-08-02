@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModelSelector } from '../ModelSelector';
 import { LLMProviderSettings } from '../ui/LLMProviderSettings';
@@ -12,11 +12,13 @@ import {
 } from '@heroicons/react/24/outline';
 import { useDebugStore } from '../../stores/debugStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
+import AudioOptimizationPanel from '../AudioOptimizationPanel';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
-  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio, importAudio, resetExportState } = useNotesStore();
+  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio, downloadSingleAudio, importAudio, resetExportState, notes } = useNotesStore();
   
   // Reset export state on component mount to fix persisted state issues
   React.useEffect(() => {
@@ -30,7 +32,12 @@ export const SettingsScreen: React.FC = () => {
     shallow
   );
   const { setDebugVisible } = useDebugStore();
-  const { useOpenAIForSTT, setUseOpenAIForSTT } = useSettingsStore();
+  const { 
+    useOpenAIForSTT, 
+    setUseOpenAIForSTT,
+    errorReportingEnabled,
+    setErrorReportingEnabled 
+  } = useSettingsStore();
   const { getValidProviders } = useLLMProvidersStore();
   const hasOpenAIProvider = getValidProviders().some(p => p.name.toLowerCase() === 'openai');
 
@@ -40,6 +47,17 @@ export const SettingsScreen: React.FC = () => {
   // Import status state for feedback
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
   const [importMessage, setImportMessage] = useState<string>('');
+  
+  // State for notes with audio
+  const [notesWithAudio, setNotesWithAudio] = useState<Array<{id: string, title: string}>>([]);
+  
+  // Filter notes with audio on component mount
+  useEffect(() => {
+    const filtered = notes
+      .filter(note => note.audioUrl)
+      .map(note => ({ id: note.id, title: note.title || 'Untitled Note' }));
+    setNotesWithAudio(filtered);
+  }, [notes]);
 
   // Import handler
   const handleImportNotes = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +91,33 @@ export const SettingsScreen: React.FC = () => {
     reader.readAsText(file);
   };
   const settingsGroups = [
+    {
+      title: 'Privacy',
+      icon: ShieldCheckIcon,
+      items: [
+        {
+          label: 'Error Reporting',
+          description: 'Allow anonymous error reports to help improve the app',
+          component: (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-400 max-w-md">
+                When enabled, technical error information will be sent to help fix bugs.
+                No personal data or note content is ever shared.
+              </div>
+              <div className="flex items-center ml-4">
+                <input
+                  type="checkbox"
+                  checked={errorReportingEnabled}
+                  onChange={e => setErrorReportingEnabled(e.target.checked)}
+                  className="w-5 h-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+          )
+        }
+      ]
+    },
+    // Error reporting section removed and replaced with Privacy section above
     {
       title: 'AI Agents',
       icon: RobotIcon,
@@ -118,6 +163,13 @@ export const SettingsScreen: React.FC = () => {
       title: 'Data Management',
       icon: DocumentArrowDownIcon,
       items: [
+        {
+          label: 'Audio Optimization',
+          description: 'Optimize large audio files to save space and improve performance',
+          component: (
+            <AudioOptimizationPanel />
+          )
+        },
         {
           label: 'Export All Notes',
           description: 'Download all your transcripts as JSON',
@@ -182,6 +234,42 @@ export const SettingsScreen: React.FC = () => {
             </div>
           )
         },
+        // {
+        //   label: 'Export Individual Audio Files',
+        //   description: 'Export audio recordings one by one (better for iOS)',
+        //   component: (
+        //     <div className="flex flex-col gap-2 w-full">
+        //       {notesWithAudio.length > 0 ? (
+        //         <div className="max-h-48 overflow-y-auto pr-2 space-y-2 bg-gray-800/50 rounded-lg p-2">
+        //           {notesWithAudio.map(note => (
+        //             <div key={note.id} className="flex justify-between items-center bg-gray-700/50 p-2 rounded">
+        //               <span className="text-sm text-gray-300 truncate mr-2">{note.title}</span>
+        //               <button
+        //                 onClick={() => downloadSingleAudio(note.id)}
+        //                 disabled={isExportingAudio}
+        //                 className={`px-2 py-1 text-xs ${isExportingAudio ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded transition-colors`}
+        //               >
+        //                 Export
+        //               </button>
+        //             </div>
+        //           ))}
+        //         </div>
+        //       ) : (
+        //         <p className="text-sm text-gray-400">No audio recordings found</p>
+        //       )}
+              
+        //       {/* Progress indicator */}
+        //       {isExportingAudio && exportProgress && (
+        //         <div className="mt-2">
+        //           <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+        //             <div className="h-full bg-blue-600 animate-pulse" style={{ width: '100%' }}></div>
+        //           </div>
+        //           <p className="text-sm text-gray-600 mt-1">{exportProgress}</p>
+        //         </div>
+        //       )}
+        //     </div>
+        //   )
+        // },
         {
           label: 'Import Audio',
           description: 'Import audio recordings from a zip file',
