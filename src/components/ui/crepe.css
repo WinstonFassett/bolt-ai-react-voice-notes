@@ -1,4 +1,34 @@
-.prose-compact .milkdown .ProseMirror {
+
+#root .milkdown {
+  /* Use root theme variables for consistency */
+  /* --crepe-color-background: var(--bg-primary); */
+  --crepe-color-background: transparent;
+  --crepe-color-surface: var(--bg-secondary);
+  --crepe-color-surface-low: var(--bg-tertiary);
+
+  --crepe-color-on-background: var(--text-primary);
+  --crepe-color-on-surface: var(--text-primary);
+  --crepe-color-on-surface-variant: var(--text-secondary);
+
+  --crepe-color-primary: var(--accent-primary);
+  --crepe-color-secondary: var(--accent-secondary);
+  --crepe-color-on-secondary: var(--text-primary);
+
+  --crepe-color-outline: var(--text-secondary);
+  --crepe-color-inverse: var(--bg-elevated);
+  --crepe-color-on-inverse: var(--text-primary);
+  --crepe-color-inline-code: var(--accent-error);
+  --crepe-color-error: var(--accent-error);
+
+  --crepe-color-hover: var(--bg-tertiary);
+  --crepe-color-selected: var(--accent-secondary);
+  --crepe-color-inline-area: var(--bg-secondary);
+}
+
+
+.prose-compact .milkdown .ProseMirror,
+.milkdown .ProseMirror
+{
   padding: 0;
 }
 .prose-compact .milkdown .ProseMirror h1,
@@ -37,3 +67,4 @@
   padding-left: 1rem;
   border-left: 4px solid var(--border);
 }
+
