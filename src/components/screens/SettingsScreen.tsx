@@ -234,42 +234,42 @@ export const SettingsScreen: React.FC = () => {
             </div>
           )
         },
-        {
-          label: 'Export Individual Audio Files',
-          description: 'Export audio recordings one by one (better for iOS)',
-          component: (
-            <div className="flex flex-col gap-2 w-full">
-              {notesWithAudio.length > 0 ? (
-                <div className="max-h-48 overflow-y-auto pr-2 space-y-2 bg-gray-800/50 rounded-lg p-2">
-                  {notesWithAudio.map(note => (
-                    <div key={note.id} className="flex justify-between items-center bg-gray-700/50 p-2 rounded">
-                      <span className="text-sm text-gray-300 truncate mr-2">{note.title}</span>
-                      <button
-                        onClick={() => downloadSingleAudio(note.id)}
-                        disabled={isExportingAudio}
-                        className={`px-2 py-1 text-xs ${isExportingAudio ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded transition-colors`}
-                      >
-                        Export
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">No audio recordings found</p>
-              )}
+        // {
+        //   label: 'Export Individual Audio Files',
+        //   description: 'Export audio recordings one by one (better for iOS)',
+        //   component: (
+        //     <div className="flex flex-col gap-2 w-full">
+        //       {notesWithAudio.length > 0 ? (
+        //         <div className="max-h-48 overflow-y-auto pr-2 space-y-2 bg-gray-800/50 rounded-lg p-2">
+        //           {notesWithAudio.map(note => (
+        //             <div key={note.id} className="flex justify-between items-center bg-gray-700/50 p-2 rounded">
+        //               <span className="text-sm text-gray-300 truncate mr-2">{note.title}</span>
+        //               <button
+        //                 onClick={() => downloadSingleAudio(note.id)}
+        //                 disabled={isExportingAudio}
+        //                 className={`px-2 py-1 text-xs ${isExportingAudio ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded transition-colors`}
+        //               >
+        //                 Export
+        //               </button>
+        //             </div>
+        //           ))}
+        //         </div>
+        //       ) : (
+        //         <p className="text-sm text-gray-400">No audio recordings found</p>
+        //       )}
               
-              {/* Progress indicator */}
-              {isExportingAudio && exportProgress && (
-                <div className="mt-2">
-                  <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600 animate-pulse" style={{ width: '100%' }}></div>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">{exportProgress}</p>
-                </div>
-              )}
-            </div>
-          )
-        },
+        //       {/* Progress indicator */}
+        //       {isExportingAudio && exportProgress && (
+        //         <div className="mt-2">
+        //           <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+        //             <div className="h-full bg-blue-600 animate-pulse" style={{ width: '100%' }}></div>
+        //           </div>
+        //           <p className="text-sm text-gray-600 mt-1">{exportProgress}</p>
+        //         </div>
+        //       )}
+        //     </div>
+        //   )
+        // },
         {
           label: 'Import Audio',
           description: 'Import audio recordings from a zip file',
