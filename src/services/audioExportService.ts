@@ -42,10 +42,13 @@ export async function exportAudioFiles(
       `bolt-audio-export-${new Date().toISOString().slice(0, 10)}.zip`
     );
     
-    // Process in small batches to avoid memory issues on iOS
-    const batchSize = 3;
+    // Process in smaller batches to avoid memory issues on iOS
+    const batchSize = 1; // Process one file at a time on iOS to minimize memory usage
     const totalNotes = notesWithAudio.length;
     let processedCount = 0;
+    
+    // Detect iOS for special handling
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
     // Create a web worker for zip creation
     const zipWorker = new Worker(new URL('../workers/zipWorker.js', import.meta.url), { type: 'module' });
@@ -97,54 +100,102 @@ export async function exportAudioFiles(
       batchSize: batchSize
     });
     
-    // Process audio files in batches
-    for (let i = 0; i < notesWithAudio.length; i += batchSize) {
-      const batch = notesWithAudio.slice(i, i + batchSize);
-      onProgress(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(notesWithAudio.length / batchSize)}...`);
+    // Process audio files one by one to minimize memory usage
+    for (let i = 0; i < notesWithAudio.length; i++) {
+      const note = notesWithAudio[i];
+      const currentBatch = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(notesWithAudio.length / batchSize);
       
-      // Process each note in the batch
-      await Promise.all(batch.map(async (note) => {
-        try {
-          if (!note.audioUrl) return;
-          
-          // Get the audio blob from storage
-          const audioUrl = note.audioUrl;
-          
-          // Resolve the storage URL to a blob URL
-          const resolvedAudio = await resolveStorageUrl(audioUrl);
-          if (!resolvedAudio) {
-            throw new Error(`Failed to resolve audio URL: ${audioUrl}`);
+      // More detailed progress updates
+      onProgress(`Processing file ${i + 1} of ${notesWithAudio.length} (batch ${currentBatch}/${totalBatches})`);
+      
+      try {
+        if (!note.audioUrl) continue;
+        
+        // Get the audio blob from storage
+        const audioUrl = note.audioUrl;
+        
+        // Resolve the storage URL to a blob URL
+        onProgress(`Resolving audio URL for file ${i + 1}/${notesWithAudio.length}...`);
+        const resolvedAudio = await resolveStorageUrl(audioUrl);
+        if (!resolvedAudio) {
+          throw new Error(`Failed to resolve audio URL: ${audioUrl}`);
+        }
+        
+        // Fetch the audio using the resolved URL
+        onProgress(`Fetching audio for file ${i + 1}/${notesWithAudio.length}...`);
+        const response = await fetch(resolvedAudio.url);
+        if (!response.ok) throw new Error(`Failed to fetch audio: ${response.statusText}`);
+        
+        // Use streaming approach for blob creation if possible
+        onProgress(`Processing audio data for file ${i + 1}/${notesWithAudio.length}...`);
+        let audioBlob;
+        
+        if (isIOS) {
+          // On iOS, we need to be extra careful with memory
+          // Use smaller chunks when reading the response
+          const reader = response.body?.getReader();
+          if (!reader) {
+            throw new Error('Cannot read response body');
           }
           
-          // Fetch the audio using the resolved URL
-          const response = await fetch(resolvedAudio.url);
-          if (!response.ok) throw new Error(`Failed to fetch audio: ${response.statusText}`);
+          // Read in smaller chunks to avoid memory spikes
+          const chunks = [];
+          let totalSize = 0;
           
-          const audioBlob = await response.blob();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            chunks.push(value);
+            totalSize += value.length;
+            
+            // Update progress more frequently on iOS
+            if (chunks.length % 5 === 0) {
+              onProgress(`Reading audio data: ${totalSize} bytes read...`);
+              // Brief pause to allow UI updates
+              await new Promise(resolve => setTimeout(resolve, 10));
+            }
+          }
           
-          // Create a filename that includes note title and ID for reimporting
-          const titleSnippet = note.title ? note.title.slice(0, 20).replace(/[^a-z0-9]/gi, '_') : 'untitled';
-          // Use the correct extension based on the MIME type
-          const extension = resolvedAudio.mimeType.includes('wav') ? 'wav' : 'webm';
-          const filename = `${titleSnippet}_${note.id}.${extension}`;
+          // Create blob from chunks
+          audioBlob = new Blob(chunks, { type: resolvedAudio.mimeType });
           
-          // Send the file to the worker
-          zipWorker.postMessage({
-            type: 'addFile',
-            filename,
-            data: audioBlob
-          });
-          
-          processedCount++;
-          onProgress(`Added ${processedCount}/${totalNotes} audio files to zip`);
-        } catch (error) {
-          console.error('Error processing audio file:', error);
-          onProgress(`Error processing audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          // Force garbage collection opportunity
+          chunks.length = 0;
+        } else {
+          // On desktop, we can use the simpler approach
+          audioBlob = await response.blob();
         }
-      }));
-      
-      // Yield to the event loop to prevent UI freezing
-      await new Promise(resolve => setTimeout(resolve, 10));
+        
+        // Create a filename that includes note title and ID for reimporting
+        const titleSnippet = note.title ? note.title.slice(0, 20).replace(/[^a-z0-9]/gi, '_') : 'untitled';
+        // Use the correct extension based on the MIME type
+        const extension = resolvedAudio.mimeType.includes('wav') ? 'wav' : 'webm';
+        const filename = `${titleSnippet}_${note.id}.${extension}`;
+        
+        // Send the file to the worker
+        onProgress(`Adding file ${i + 1}/${notesWithAudio.length} to zip...`);
+        zipWorker.postMessage({
+          type: 'addFile',
+          filename,
+          data: audioBlob
+        });
+        
+        processedCount++;
+        onProgress(`Added ${processedCount}/${totalNotes} audio files to zip`);
+        
+        // Clear references to large objects to help garbage collection
+        audioBlob = null;
+        
+        // Longer yield to the event loop on iOS to prevent UI freezing and allow garbage collection
+        await new Promise(resolve => setTimeout(resolve, isIOS ? 300 : 10));
+      } catch (error) {
+        console.error('Error processing audio file:', error);
+        onProgress(`Error processing audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Continue with next file even if this one failed
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
     
     // Finalize the zip file

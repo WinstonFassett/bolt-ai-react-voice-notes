@@ -232,20 +232,37 @@ export const useNotesStore = create<NotesState>()(
         });
       },
       
-      downloadAllAudio: async () => {
+      downloadAllAudio: async (): Promise<void> => {
         const { notes } = get();
-        
-        // Get all notes with audio
         const notesWithAudio = notes.filter(note => note.audioUrl);
         
-        // Use the exported service function
-        await exportAudioFiles(
-          notesWithAudio,
-          // Progress callback
-          (message) => set({ exportProgress: message }),
-          // Status callback
-          (isExporting) => set({ isExportingAudio: isExporting })
-        );
+        // Reset progress state
+        set({ exportProgress: 'Preparing export...', isExportingAudio: true });
+        
+        try {
+          // Use the exported service function
+          await exportAudioFiles(
+            notesWithAudio,
+            // Progress callback with UI update
+            (message) => {
+              console.log('Export progress:', message); // Log for debugging
+              set({ exportProgress: message });
+            },
+            // Status callback
+            (isExporting) => set({ isExportingAudio: isExporting })
+          );
+        } catch (error) {
+          console.error('Error in downloadAllAudio:', error);
+          set({ 
+            exportProgress: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            isExportingAudio: false 
+          });
+          
+          // Reset progress after a delay
+          setTimeout(() => {
+            set({ exportProgress: '' });
+          }, 5000);
+        }
       },
       
       importAudio: async (file: File): Promise<void> => {

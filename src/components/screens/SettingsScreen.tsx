@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ModelSelector } from '../ModelSelector';
 import { LLMProviderSettings } from '../ui/LLMProviderSettings';
 import { useNotesStore } from '../../stores/notesStore';
+import { shallow } from 'zustand/shallow';
 import { 
   CpuChipIcon,
   DocumentArrowDownIcon,
@@ -16,6 +17,13 @@ import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
   const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio, importAudio } = useNotesStore();
+  const { isExportingAudio, exportProgress } = useNotesStore(
+    (state) => ({
+      isExportingAudio: state.isExportingAudio,
+      exportProgress: state.exportProgress
+    }),
+    shallow
+  );
   const { setDebugVisible } = useDebugStore();
   const { useOpenAIForSTT, setUseOpenAIForSTT } = useSettingsStore();
   const { getValidProviders } = useLLMProvidersStore();
@@ -148,12 +156,25 @@ export const SettingsScreen: React.FC = () => {
           label: 'Download All Audio',
           description: 'Download all audio recordings as a zip file',
           component: (
-            <button
-              onClick={() => downloadAllAudio()}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-            >
-              Download All Audio
-            </button>
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => downloadAllAudio()}
+                disabled={isExportingAudio}
+                className={`px-4 py-2 ${isExportingAudio ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded-lg transition-colors`}
+              >
+                {isExportingAudio ? 'Exporting...' : 'Download All Audio'}
+              </button>
+              
+              {/* Progress indicator */}
+              {isExportingAudio && exportProgress && (
+                <div className="mt-2">
+                  <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-600 animate-pulse" style={{ width: '100%' }}></div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">{exportProgress}</p>
+                </div>
+              )}
+            </div>
           )
         },
         {
