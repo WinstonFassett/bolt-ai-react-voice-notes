@@ -19,18 +19,32 @@ export interface ExportStatusCallback {
 export async function exportAudioFiles(
   notesWithAudio: Note[],
   onProgress: ExportProgressCallback,
-  onStatusChange: ExportStatusCallback
+  onStatus: ExportStatusCallback
 ): Promise<void> {
   // Show loading UI
-  onStatusChange(true);
+  onStatus(true);
   onProgress('Preparing to export audio...');
   
   try {
     if (notesWithAudio.length === 0) {
       alert('No audio recordings found to export.');
-      onStatusChange(false);
+      onStatus(false);
       onProgress('');
       return;
+    }
+    
+    // Detect iOS for special handling
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    // Log device information for debugging
+    console.log('Device detection:', { isIOS, isSafari, userAgent: navigator.userAgent });
+    
+    // Set StreamSaver options for iOS if needed
+    if (isIOS) {
+      // For iOS Safari 15.4+, we don't need to force blob fallback
+      // But we'll use smaller chunk sizes and more aggressive memory management
+      console.log('Using iOS-optimized export settings');
     }
     
     // Dynamically import StreamSaver (only load when needed)
@@ -46,9 +60,6 @@ export async function exportAudioFiles(
     const batchSize = 1; // Process one file at a time on iOS to minimize memory usage
     const totalNotes = notesWithAudio.length;
     let processedCount = 0;
-    
-    // Detect iOS for special handling
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     
     // Create a web worker for zip creation
     const zipWorker = new Worker(new URL('../workers/zipWorker.js', import.meta.url), { type: 'module' });
@@ -131,6 +142,12 @@ export async function exportAudioFiles(
         onProgress(`Processing audio data for file ${i + 1}/${notesWithAudio.length}...`);
         let audioBlob;
         
+        // Create a filename that includes note title and ID for reimporting
+        const titleSnippet = note.title ? note.title.slice(0, 20).replace(/[^a-z0-9]/gi, '_') : 'untitled';
+        // Use the correct extension based on the MIME type
+        const extension = resolvedAudio.mimeType.includes('wav') ? 'wav' : 'webm';
+        const filename = `${titleSnippet}_${note.id}.${extension}`;
+        
         if (isIOS) {
           // On iOS, we need to be extra careful with memory
           // Use smaller chunks when reading the response
@@ -140,47 +157,69 @@ export async function exportAudioFiles(
           }
           
           // Read in smaller chunks to avoid memory spikes
-          const chunks = [];
+          // Instead of collecting all chunks in memory, we'll send them directly to the worker
+          // This avoids building up a large array in memory
           let totalSize = 0;
+          let chunkCount = 0;
+          
+          // Create a unique ID for this file to track chunks in the worker
+          const fileId = `${note.id}-${Date.now()}`;
+          
+          // Tell the worker we're starting a new file
+          zipWorker.postMessage({
+            type: 'startFile',
+            fileId,
+            filename,
+            mimeType: resolvedAudio.mimeType
+          });
           
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
             
-            chunks.push(value);
+            if (done) {
+              // Tell the worker we're done with this file
+              zipWorker.postMessage({
+                type: 'endFile',
+                fileId
+              });
+              break;
+            }
+            
+            // Send this chunk directly to the worker
+            zipWorker.postMessage({
+              type: 'addChunk',
+              fileId,
+              chunk: value
+            }, [value.buffer]); // Transfer ownership of the buffer to avoid copying
+            
             totalSize += value.length;
+            chunkCount++;
             
             // Update progress more frequently on iOS
-            if (chunks.length % 5 === 0) {
+            if (chunkCount % 5 === 0) {
               onProgress(`Reading audio data: ${totalSize} bytes read...`);
-              // Brief pause to allow UI updates
-              await new Promise(resolve => setTimeout(resolve, 10));
+              // Brief pause to allow UI updates and garbage collection
+              await new Promise(resolve => setTimeout(resolve, 20));
             }
           }
           
-          // Create blob from chunks
-          audioBlob = new Blob(chunks, { type: resolvedAudio.mimeType });
-          
-          // Force garbage collection opportunity
-          chunks.length = 0;
+          // No need to create a blob here - the worker handles it
+          audioBlob = null;
         } else {
           // On desktop, we can use the simpler approach
           audioBlob = await response.blob();
+          
+          // Send the file to the worker
+          onProgress(`Adding file ${i + 1}/${notesWithAudio.length} to zip...`);
+          zipWorker.postMessage({
+            type: 'addFile',
+            filename,
+            data: audioBlob
+          });
+          
+          // Clear reference to help garbage collection
+          audioBlob = null;
         }
-        
-        // Create a filename that includes note title and ID for reimporting
-        const titleSnippet = note.title ? note.title.slice(0, 20).replace(/[^a-z0-9]/gi, '_') : 'untitled';
-        // Use the correct extension based on the MIME type
-        const extension = resolvedAudio.mimeType.includes('wav') ? 'wav' : 'webm';
-        const filename = `${titleSnippet}_${note.id}.${extension}`;
-        
-        // Send the file to the worker
-        onProgress(`Adding file ${i + 1}/${notesWithAudio.length} to zip...`);
-        zipWorker.postMessage({
-          type: 'addFile',
-          filename,
-          data: audioBlob
-        });
         
         processedCount++;
         onProgress(`Added ${processedCount}/${totalNotes} audio files to zip`);
@@ -206,12 +245,12 @@ export async function exportAudioFiles(
     await workerPromise;
     
     // Show success message
-    onStatusChange(false);
+    onStatus(false);
     onProgress('');
     alert('Audio export complete!');
   } catch (error) {
     console.error('Error exporting audio:', error);
-    onStatusChange(false);
+    onStatus(false);
     onProgress('');
     alert(`Error exporting audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }

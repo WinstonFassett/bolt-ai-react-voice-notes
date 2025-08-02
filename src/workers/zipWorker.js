@@ -7,11 +7,66 @@ let fileCount = 0;
 let totalFiles = 0;
 let batchSize = 3;
 
+// For iOS streaming approach
+const fileChunks = new Map(); // Store chunks by fileId
+
 // Handle messages from main thread
 self.onmessage = async (event) => {
   const msg = event.data;
   
   switch (msg.type) {
+    // iOS streaming handlers
+    case 'startFile':
+      // Start collecting chunks for a file
+      fileChunks.set(msg.fileId, {
+        chunks: [],
+        filename: msg.filename,
+        mimeType: msg.mimeType
+      });
+      break;
+      
+    case 'addChunk':
+      // Add a chunk to a file being built
+      if (fileChunks.has(msg.fileId)) {
+        const fileData = fileChunks.get(msg.fileId);
+        fileData.chunks.push(msg.chunk);
+      } else {
+        self.postMessage({
+          type: 'error',
+          error: `Received chunk for unknown file ID: ${msg.fileId}`
+        });
+      }
+      break;
+      
+    case 'endFile':
+      // Finalize a file from its chunks
+      if (fileChunks.has(msg.fileId)) {
+        try {
+          const fileData = fileChunks.get(msg.fileId);
+          // Create a blob from all chunks
+          const blob = new Blob(fileData.chunks, { type: fileData.mimeType });
+          
+          // Add to zip
+          zip.file(fileData.filename, blob);
+          fileCount++;
+          
+          // Report progress
+          self.postMessage({
+            type: 'progress',
+            message: `Added file ${fileCount}/${totalFiles} to zip`
+          });
+          
+          // Clean up memory
+          fileChunks.delete(msg.fileId);
+        } catch (error) {
+          self.postMessage({
+            type: 'error',
+            error: `Error finalizing file: ${error.toString()}`
+          });
+        }
+      }
+      break;
+      
     case 'init':
       // Initialize the worker with a port for streaming
       const port = msg.port;
