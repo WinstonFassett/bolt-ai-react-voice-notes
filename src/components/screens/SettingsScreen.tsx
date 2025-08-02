@@ -164,10 +164,12 @@ export const SettingsScreen: React.FC = () => {
       icon: DocumentArrowDownIcon,
       items: [
         {
-          label: 'Audio Optimization',
+          label: 'Audio OptimizationPanel',
           description: 'Optimize large audio files to save space and improve performance',
           component: (
-            <AudioOptimizationPanel />
+            <>Panel:
+            [<AudioOptimizationPanel />]
+            </>
           )
         },
         {

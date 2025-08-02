@@ -105,25 +105,28 @@ export async function getAudioFileInfo(note: Note): Promise<AudioFileInfo | null
 }
 
 /**
- * Identify large audio files that could benefit from optimization
+ * List all audio files with their information
+ * This is now on-demand rather than automatically filtering
  */
 export async function identifyLargeAudioFiles(notes: Note[]): Promise<AudioFileInfo[]> {
-  const largeFiles: AudioFileInfo[] = [];
+  const audioFiles: AudioFileInfo[] = [];
   
   for (const note of notes) {
     if (note.audioUrl) {
       try {
         const info = await getAudioFileInfo(note);
-        if (info && needsOptimization(info)) {
-          largeFiles.push(info);
+        if (info) {
+          // Add size classification for UI display
+          audioFiles.push(info);
         }
       } catch (error) {
-        console.error('Error checking file size:', error);
+        console.error('Error checking file info:', error);
       }
     }
   }
   
-  return largeFiles;
+  // Sort by size (largest first)
+  return audioFiles.sort((a, b) => b.size - a.size);
 }
 
 /**
@@ -144,6 +147,29 @@ export function formatBytes(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Get file extension from MIME type
+ */
+export function getFileExtensionFromMimeType(mimeType: string): string {
+  const mimeToExtension: Record<string, string> = {
+    'audio/webm': 'webm',
+    'audio/webm;codecs=opus': 'webm',
+    'audio/mp4': 'm4a',
+    'audio/mpeg': 'mp3',
+    'audio/ogg': 'ogg',
+    'audio/ogg;codecs=opus': 'ogg',
+    'audio/wav': 'wav',
+    'audio/x-wav': 'wav',
+    'audio/x-m4a': 'm4a'
+  };
+  
+  // Extract base MIME type without parameters
+  const baseMimeType = mimeType.split(';')[0].trim();
+  
+  // Return the extension or a default
+  return mimeToExtension[mimeType] || mimeToExtension[baseMimeType] || 'audio';
 }
 
 /**
@@ -185,10 +211,31 @@ export async function optimizeAudioBlob(
         audioBitsPerSecond: OPTIMAL_BITRATE
       };
       
-      // Fall back to AAC if Opus isn't supported (e.g., on Safari)
-      const mimeType = MediaRecorder.isTypeSupported(options.mimeType) 
-        ? options.mimeType 
-        : 'audio/mp4';
+      // Determine the best supported format for cross-device compatibility
+      let mimeType = '';
+      
+      // Try formats in order of preference for cross-platform compatibility
+      const formatOptions = [
+        'audio/webm;codecs=opus',  // Best quality/size for Chrome/Firefox/Edge
+        'audio/mp4',               // Safari/iOS
+        'audio/webm',              // Generic fallback
+        'audio/ogg;codecs=opus',   // Another option
+        'audio/wav'                // Last resort
+      ];
+      
+      for (const format of formatOptions) {
+        if (MediaRecorder.isTypeSupported(format)) {
+          mimeType = format;
+          break;
+        }
+      }
+      
+      if (!mimeType) {
+        // If no supported format found, use default
+        mimeType = 'audio/webm';
+      }
+      
+      console.log(`Using audio format: ${mimeType} for optimization`);
       
       const mediaRecorder = new MediaRecorder(destination.stream, {
         mimeType,
@@ -283,10 +330,20 @@ export async function optimizeNoteAudio(
     // Save the optimized audio
     onProgress?.('Saving optimized audio...');
     
-    // TODO: Replace with your actual storage method
-    // This is a placeholder - you'll need to implement the actual storage
-    // based on your app's storage mechanism
-    const optimizedUrl = URL.createObjectURL(optimizedBlob);
+    // Get the file extension based on mime type
+    const fileExtension = getFileExtensionFromMimeType(optimizedBlob.type);
+    
+    // Create a file name with appropriate extension for better compatibility
+    const fileName = `optimized_${note.id}.${fileExtension}`;
+    
+    // Create a File object with proper name and type for better compatibility
+    const optimizedFile = new File([optimizedBlob], fileName, { 
+      type: optimizedBlob.type,
+      lastModified: new Date().getTime()
+    });
+    
+    // Create object URL from the file
+    const optimizedUrl = URL.createObjectURL(optimizedFile);
     
     // Return the new URL
     return optimizedUrl;

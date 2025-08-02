@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { initSentry } from './sentry-snippet';
+import { initSentry } from './sentry';
 
 // Initialize Sentry based on environment and user preferences
 // This will be called after the app loads and settings are available

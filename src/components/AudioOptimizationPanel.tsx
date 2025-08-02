@@ -9,25 +9,26 @@ import {
 } from '../services/audioOptimizationService';
 
 /**
- * Component that identifies large audio files and offers optimization
+ * Component that lists audio files and offers on-demand optimization
  */
 export default function AudioOptimizationPanel() {
   const { notes, updateNote } = useNotesStore();
-  const [largeFiles, setLargeFiles] = useState<AudioFileInfo[]>([]);
+  const [audioFiles, setAudioFiles] = useState<AudioFileInfo[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizingFile, setOptimizingFile] = useState<string | null>(null);
   const [progress, setProgress] = useState('');
   const [optimizedCount, setOptimizedCount] = useState(0);
+  const [showOptimized, setShowOptimized] = useState(false);
 
-  // Scan for large audio files
-  const scanForLargeFiles = async () => {
+  // Scan for audio files
+  const scanForAudioFiles = async () => {
     setIsScanning(true);
     try {
       const files = await identifyLargeAudioFiles(notes);
-      setLargeFiles(files);
+      setAudioFiles(files);
     } catch (error) {
-      console.error('Error scanning for large files:', error);
+      console.error('Error scanning for audio files:', error);
     } finally {
       setIsScanning(false);
     }
@@ -53,8 +54,12 @@ export default function AudioOptimizationPanel() {
         optimizedAudio: true
       });
       
-      // Remove from large files list
-      setLargeFiles(prev => prev.filter(f => f.noteId !== file.noteId));
+      // Update file in the list to show as optimized
+      setAudioFiles(prev => prev.map(f => 
+        f.noteId === file.noteId 
+          ? { ...f, optimized: true } 
+          : f
+      ));
       
       // Increment optimized count
       setOptimizedCount(prev => prev + 1);
@@ -77,7 +82,7 @@ export default function AudioOptimizationPanel() {
     setIsOptimizing(true);
     setOptimizedCount(0);
     
-    for (const file of largeFiles) {
+    for (const file of audioFiles) {
       setOptimizingFile(file.noteId);
       
       try {
@@ -108,7 +113,7 @@ export default function AudioOptimizationPanel() {
     }
     
     // Rescan to update the list
-    await scanForLargeFiles();
+    await scanForAudioFiles();
     
     setIsOptimizing(false);
     setOptimizingFile(null);
@@ -117,24 +122,24 @@ export default function AudioOptimizationPanel() {
   };
 
   // Calculate total potential savings
-  const totalSavings = calculateTotalSavings(largeFiles);
+  const totalSavings = calculateTotalSavings(audioFiles);
   
   // Format for display
   const formattedSavings = formatBytes(totalSavings);
 
   // Initial scan on mount
   useEffect(() => {
-    scanForLargeFiles();
+    scanForAudioFiles();
   }, [notes.length]); // Re-scan when notes change
 
-  if (largeFiles.length === 0 && !isScanning) {
-    return null; // Don't show anything if no large files found
-  }
+  // if (audioFiles.length === 0 && !isScanning) {
+  //   return null; // Don't show anything if no audio files found
+  // }
 
   return (
     <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
       <h3 className="text-lg font-medium text-orange-800 mb-2">
-        Audio Optimization
+        Audio Optimization!!!
       </h3>
       
       {isScanning ? (
@@ -142,39 +147,39 @@ export default function AudioOptimizationPanel() {
       ) : (
         <>
           <p className="text-sm text-orange-700 mb-3">
-            {largeFiles.length > 0 ? (
+            {audioFiles.length > 0 ? (
               <>
-                Found {largeFiles.length} large audio {largeFiles.length === 1 ? 'file' : 'files'} that could be optimized.
+                Found {audioFiles.length} audio {audioFiles.length === 1 ? 'file' : 'files'} that can be optimized.
                 Potential space savings: <strong>{formattedSavings}</strong>
               </>
             ) : (
-              'No large audio files found.'
+              'No audio files found.'
             )}
           </p>
           
-          {largeFiles.length > 0 && (
+          <div className="flex justify-between items-center">
+            <button
+              onClick={optimizeAllFiles}
+              disabled={isOptimizing}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+            >
+              Optimize All Files
+            </button>
+            
+            <button
+              onClick={scanForAudioFiles}
+              disabled={isOptimizing}
+              className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50"
+            >
+              Rescan
+            </button>
+          </div>
+          {audioFiles.length > 0 && (
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={optimizeAllFiles}
-                  disabled={isOptimizing}
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
-                >
-                  Optimize All Files
-                </button>
-                
-                <button
-                  onClick={scanForLargeFiles}
-                  disabled={isOptimizing}
-                  className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50"
-                >
-                  Rescan
-                </button>
-              </div>
               
               {isOptimizing && (
                 <div className="text-sm text-orange-600">
-                  {progress} {optimizedCount > 0 && `(${optimizedCount}/${largeFiles.length} complete)`}
+                  {progress} {optimizedCount > 0 && `(${optimizedCount}/${audioFiles.length} complete)`}
                 </div>
               )}
               
@@ -189,7 +194,7 @@ export default function AudioOptimizationPanel() {
                     </tr>
                   </thead>
                   <tbody>
-                    {largeFiles.map(file => (
+                    {audioFiles.map(file => (
                       <tr key={file.noteId} className="border-t border-orange-200">
                         <td className="py-2 pr-2 truncate max-w-[150px]">{file.title}</td>
                         <td className="py-2 pr-2">{formatBytes(file.size)}</td>
