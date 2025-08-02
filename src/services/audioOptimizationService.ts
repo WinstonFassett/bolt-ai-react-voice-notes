@@ -290,18 +290,34 @@ export async function optimizeAudioBlob(
       
       // Try formats in order of preference for cross-platform compatibility
       // iOS/Safari compatibility is critical
+      // For iOS Chrome, we need to be especially careful
       const formatOptions = [
-        'audio/mp4',               // Best for Safari/iOS
-        'audio/webm;codecs=opus', // Good for Chrome/Firefox/Edge
+        'audio/wav',               // Most compatible across all browsers
+        'audio/mp4',               // Good for Safari/iOS
         'audio/webm',             // Generic fallback
-        'audio/ogg;codecs=opus',  // Another option
-        'audio/wav'               // Last resort but widely compatible
+        'audio/webm;codecs=opus', // Good for desktop Chrome/Firefox/Edge but can cause issues on iOS
+        'audio/ogg;codecs=opus'   // Another option
       ];
       
-      for (const format of formatOptions) {
-        if (MediaRecorder.isTypeSupported(format)) {
-          mimeType = format;
-          break;
+      // Check if we're on iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      
+      // On iOS, prioritize WAV or MP4 only
+      if (isIOS) {
+        console.log('iOS device detected, using only WAV or MP4 format');
+        for (const format of ['audio/wav', 'audio/mp4']) {
+          if (MediaRecorder.isTypeSupported(format)) {
+            mimeType = format;
+            break;
+          }
+        }
+      } else {
+        // On other platforms, try all formats
+        for (const format of formatOptions) {
+          if (MediaRecorder.isTypeSupported(format)) {
+            mimeType = format;
+            break;
+          }
         }
       }
       
