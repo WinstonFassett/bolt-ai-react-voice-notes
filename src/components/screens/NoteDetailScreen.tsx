@@ -1,30 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import 'share-api-polyfill'
-import { TiptapEditor, TiptapRenderer } from '../ui/TiptapEditor';
-import { Note, NoteVersion } from '../../stores/notesStore';
-import { 
+import {
   ArrowLeftIcon,
-  ShareIcon,
-  PlayIcon,
-  PauseIcon,
   DocumentDuplicateIcon,
+  PauseIcon,
+  PlayIcon,
   SparklesIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
-import { BottomNavigation } from '../ui/BottomNavigation';
-import { TextSummary } from '../TextSummary';
-import { useAudioStore } from '../../stores/audioStore';
+import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import 'share-api-polyfill';
 import { useAgentsStore } from '../../stores/agentsStore';
-import { useNotesStore } from '../../stores/notesStore';
-import { useRecordingStore } from '../../stores/recordingStore';
-import { useTranscriptionStore } from '../../stores/transcriptionStore';
+import { useAudioStore } from '../../stores/audioStore';
+import { Note, useNotesStore } from '../../stores/notesStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { TakeawayCard } from '../ui/TakeawayCard';
+import { useTranscriptionStore } from '../../stores/transcriptionStore';
+import { BottomNavigation } from '../ui/BottomNavigation';
+import { CrepeEditorWrapper } from '../ui/CrepeEditor';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
-import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
-import { PencilIcon } from '@heroicons/react/24/solid';
-import { markdownToHtml } from '../../utils/markdownToHtml';
+import { TakeawayCard } from '../ui/TakeawayCard';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -39,6 +32,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   activeTab,
   onTabChange,
 }) => {
+  // console.log('NoteDetailScreen', note);
   // Get everything from stores
   const { 
     playAudio, 
@@ -73,20 +67,13 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   } = useTranscriptionStore();
   const { navigateToNote } = useRoutingStore();
   
+  // Simplified state management - no separate editing state
   const [title, setTitle] = useState(note?.title || '');
-  const [content, setContent] = useState(() => {
-    if (note?.type === 'agent') {
-      // Convert agent markdown to HTML for Tiptap
-      return markdownToHtml(note.content);
-    }
-    return note?.content || '';
-  });
+  const [content, setContent] = useState(note?.content || '');
   const [tagInput, setTagInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRetranscribeConfirm, setShowRetranscribeConfirm] = useState(false);
   const [showRunAgentsDialog, setShowRunAgentsDialog] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editorContent, setEditorContent] = useState(content);
   const editorRef = useRef<any>(null);
 
   // Import status state
@@ -107,11 +94,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   useEffect(() => {
     if (note) {
       setTitle(note.title);
-      if (note.type === 'agent') {
-        setContent(markdownToHtml(note.content));
-      } else {
-        setContent(note.content);
-      }
+      setContent(note.content || '');
     }
   }, [note]);
 
@@ -122,22 +105,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     }
   }, [note?.content]);
 
-  // When toggling edit mode ON, always use HTML for the editor
-  useEffect(() => {
-    if (isAgentNote && isEditing) {
-      setEditorContent(markdownToHtml(note.content));
-    } else {
-      setEditorContent(content);
-    }
-  }, [isEditing, note, content, isAgentNote]);
 
-  // Auto-save only when toggling out of edit mode
-  useEffect(() => {
-    if (!isEditing && note && editorContent !== note.content) {
-      updateNote({ ...note, content: editorContent });
-      setContent(editorContent);
-    }
-  }, [isEditing]);
+  // No need for edit mode toggle effects - always in edit mode
+  // Content is saved in real-time
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -148,7 +118,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   };
 
   const handleEditorChange = (newContent: string) => {
-    setEditorContent(newContent);
+    setContent(newContent);
+    if (note) {
+      updateNote({ ...note, content: newContent });
+    }
   };
 
   const handleRetranscribe = async () => {
@@ -346,20 +319,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </button>
           )}
           
-          {/* Edit toggle for agent notes */}
-          {isAgentNote && (
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className={`p-2 rounded-lg transition-colors ${
-                isEditing 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'hover:bg-gray-800 text-gray-400'
-              }`}
-              title={isEditing ? 'Stop editing' : 'Edit note'}
-            >
-              <PencilIcon className="w-5 h-5" />
-            </button>
-          )}
+          {/* No edit toggle needed - always in edit mode */}
           
           {/* Simple delete button */}
           <button
@@ -386,7 +346,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               className="w-full text-2xl font-bold bg-transparent text-white placeholder-gray-400 
                        border-none outline-none focus:ring-0"
               placeholder="Note Title"
-              disabled={isAgentNote && !isEditing}
+              disabled={false}
             />
             
             <div className="flex items-center justify-between text-sm text-gray-400">
@@ -477,7 +437,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                            rounded-full text-sm border border-indigo-600/30"
                 >
                   {tag}
-                  {(!isAgentNote || isEditing) && (
+                  {!isAgentNote && (
                   <button
                     onClick={() => handleRemoveTag(tag)}
                     className="ml-1 text-indigo-400 hover:text-indigo-200"
@@ -488,7 +448,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 </span>
               ))}
             </div>
-            {(!isAgentNote || isEditing) && (
+            {!isAgentNote && (
             <input
               type="text"
               value={tagInput}
@@ -503,19 +463,17 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           </div>
 
           {/* Editor */}
-          {isAgentNote && !isEditing ? (
-            <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
-              <TiptapRenderer content={content} className="prose prose-invert max-w-none" />
-            </div>
-          ) : (
-            <TiptapEditor
-              ref={editorRef}
-              content={editorContent}
+          <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
+            <CrepeEditorWrapper
+              content={content}
               onChange={handleEditorChange}
               placeholder="Start writing your note..."
             />
-          )}
-          
+          </div>
+          <div>
+            {isAgentNote ? 'Agent Note' : 'User Note'}
+          </div>
+         
           {/* AI Takeaways */}
           {!isAgentNote && takeawayNotes.length > 0 && (
             <div className="space-y-3">
