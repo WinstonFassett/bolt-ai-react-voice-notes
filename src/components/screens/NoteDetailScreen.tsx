@@ -4,13 +4,16 @@ import {
   PauseIcon,
   PlayIcon,
   SparklesIcon,
-  TrashIcon
+  TrashIcon,
+  ArrowDownTrayIcon,
+  ShareIcon
 } from '@heroicons/react/24/outline';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
 import 'share-api-polyfill';
 import { useAgentsStore } from '../../stores/agentsStore';
 import { useAudioStore } from '../../stores/audioStore';
+import { isStorageUrl, resolveStorageUrl } from '../../utils/audioStorage';
 import { Note, useNotesStore } from '../../stores/notesStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
@@ -153,15 +156,49 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     }
   };
 
-  const handleShareAudio = () => {
-    navigator.share({
-      title: 'Web Share API Polyfill',
-      text: 'A polyfill for the Share API. Use it to share in both desktops and mobile devices.',
-      url: "https://winstonfassett.com"
-    })
-    .then( _ => console.log('Yay, you shared it :)'))
-    .catch( error => console.log('Oh noh! You couldn\'t share it! :\'(\n', error));
-  }
+  const handleShareAudio = async () => {
+    if (!note.audioUrl) {
+      alert('No audio available to share');
+      return;
+    }
+
+    try {
+      // Resolve the storage URL to get the actual blob URL
+      const resolvedAudio = await resolveStorageUrl(note.audioUrl);
+      if (!resolvedAudio) {
+        alert('Could not access the audio file');
+        return;
+      }
+
+      // Fetch the audio as a blob
+      const response = await fetch(resolvedAudio.url);
+      const blob = await response.blob();
+
+      // Create a file from the blob
+      const fileName = `${note.title.replace(/\s+/g, '_')}_audio.${resolvedAudio.mimeType.split('/')[1] || 'webm'}`;
+      const file = new File([blob], fileName, { type: resolvedAudio.mimeType });
+
+      // Share the file
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: note.title,
+          text: 'Audio recording from Bolt AI Voice Notes',
+          files: [file]
+        });
+        console.log('Audio shared successfully');
+      } else {
+        // Fallback for browsers that don't support file sharing
+        await navigator.share({
+          title: note.title,
+          text: 'Audio recording from Bolt AI Voice Notes'
+        });
+        console.log('Shared without file (not supported)');
+      }
+    } catch (error) {
+      console.error('Error sharing audio:', error);
+      alert('Could not share the audio file');
+    }
+  };
 
   const handleCopyToClipboard = () => {
     const textContent = content.replace(/<[^>]*>/g, '');
@@ -232,6 +269,41 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
   const handleDeleteAudio = () => {
     setShowDeleteAudioConfirm(true);
+  };
+
+  const handleDownloadAudio = async () => {
+    if (!note.audioUrl) {
+      alert('No audio available to download');
+      return;
+    }
+
+    try {
+      // Resolve the storage URL to get the actual blob URL
+      const resolvedAudio = await resolveStorageUrl(note.audioUrl);
+      if (!resolvedAudio) {
+        alert('Could not access the audio file');
+        return;
+      }
+
+      // Create a download link
+      const downloadLink = document.createElement('a');
+      downloadLink.href = resolvedAudio.url;
+      
+      // Set a filename based on the note title
+      const fileExtension = resolvedAudio.mimeType.split('/')[1] || 'webm';
+      const fileName = `${note.title.replace(/\s+/g, '_')}_audio.${fileExtension}`;
+      downloadLink.download = fileName;
+      
+      // Trigger the download
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      console.log('Audio download initiated');
+    } catch (error) {
+      console.error('Error downloading audio:', error);
+      alert('Could not download the audio file');
+    }
   };
 
   const [showDeleteAudioConfirm, setShowDeleteAudioConfirm] = useState(false);
@@ -388,23 +460,51 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
                 <div className="flex-1"></div>
                 {/* Audio Controls */}
-                <div className="flex items-center gap-1">
-                  {/* Retranscribe button */}
-                  {!isTranscribing && (
-                    <button
-                      onClick={() => setShowRetranscribeConfirm(true)}
-                      className="p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors"
-                      title="Re-transcribe audio"
-                    >
-                      <SparklesIcon className="w-4 h-4 text-indigo-400" />
-                    </button>
-                  )}
+                <div className="flex items-center gap-2 mt-2">
+                  <button 
+                    onClick={handlePlayAudio}
+                    className="p-2 bg-indigo-600 hover:bg-indigo-700 rounded-full transition-colors"
+                    aria-label={globalIsPlaying && currentPlayingAudioUrl === note.audioUrl ? 'Pause' : 'Play'}
+                  >
+                    {globalIsPlaying && currentPlayingAudioUrl === note.audioUrl ? 
+                      <PauseIcon className="h-5 w-5 text-white" /> : 
+                      <PlayIcon className="h-5 w-5 text-white" />
+                    }
+                  </button>
+                  
+                  <div className="text-sm text-gray-400">
+                    {globalIsPlaying && currentPlayingAudioUrl === note.audioUrl
+                      ? `${formatTime(globalAudioCurrentTime)} / ${formatTime(globalAudioDuration)}`
+                      : note.duration
+                        ? `${formatTime(note.duration)}`
+                        : '00:00'}
+                  </div>
+                  
+                  <button 
+                    onClick={handleDownloadAudio}
+                    className="p-2 text-gray-400 hover:text-indigo-500 transition-colors ml-auto"
+                    aria-label="Download audio"
+                    title="Download audio"
+                  >
+                    <ArrowDownTrayIcon className="h-5 w-5" />
+                  </button>
+                  
+                  <button 
+                    onClick={handleShareAudio}
+                    className="p-2 text-gray-400 hover:text-indigo-500 transition-colors"
+                    aria-label="Share audio"
+                    title="Share audio"
+                  >
+                    <ShareIcon className="h-5 w-5" />
+                  </button>
+                  
                   <button
                     onClick={handleDeleteAudio}
-                    className="p-2 rounded-lg hover:bg-red-600/20 transition-colors"
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                    aria-label="Delete audio"
                     title="Delete audio recording"
                   >
-                    <TrashIcon className="w-4 h-4 text-red-400" />
+                    <TrashIcon className="h-5 w-5" />
                   </button>
                 </div>
               </div>
