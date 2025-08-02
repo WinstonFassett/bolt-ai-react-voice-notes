@@ -57,34 +57,52 @@ export async function getAudioFileInfo(note: Note): Promise<AudioFileInfo | null
       throw new Error(`Failed to resolve audio URL: ${note.audioUrl}`);
     }
     
-    // Fetch the audio using the resolved URL
-    const response = await fetch(resolvedAudio.url, { method: 'HEAD' });
-    if (!response.ok) throw new Error(`Failed to fetch audio: ${response.statusText}`);
+    // For blob URLs, we can't use HEAD requests, so we'll get the size differently
+    let size = 0;
     
-    // Get size from headers
-    const size = parseInt(response.headers.get('content-length') || '0', 10);
+    // If it's a blob URL, we can fetch the blob and get its size
+    if (resolvedAudio.url.startsWith('blob:')) {
+      const blob = await fetch(resolvedAudio.url).then(r => r.blob());
+      size = blob.size;
+    }
     
-    // Get duration and format by loading a small portion of the audio
+    // Get duration and format by loading the audio
     const audioElement = document.createElement('audio');
     audioElement.src = resolvedAudio.url;
     
     const duration = await new Promise<number>((resolve) => {
       audioElement.addEventListener('loadedmetadata', () => {
-        resolve(audioElement.duration);
+        // Handle Infinity or NaN duration values
+        const audioDuration = audioElement.duration;
+        if (Number.isFinite(audioDuration) && audioDuration > 0) {
+          resolve(audioDuration);
+        } else {
+          // Estimate duration based on file size and typical bitrate
+          // Assuming 128kbps as a reasonable audio bitrate
+          const estimatedDuration = (size * 8) / (128 * 1024);
+          resolve(estimatedDuration);
+        }
       });
       
       // Handle errors
       audioElement.addEventListener('error', () => {
         console.error('Error loading audio metadata');
-        resolve(0);
+        // Estimate duration based on file size
+        const estimatedDuration = (size * 8) / (128 * 1024);
+        resolve(estimatedDuration);
       });
       
       // Set timeout in case it never loads
-      setTimeout(() => resolve(0), 5000);
+      setTimeout(() => {
+        // Estimate duration based on file size
+        const estimatedDuration = (size * 8) / (128 * 1024);
+        resolve(estimatedDuration);
+      }, 5000);
     });
     
-    // Calculate bitrate
-    const bitrate = duration > 0 ? (size * 8) / duration : 0;
+    // Calculate bitrate - ensure we have valid values
+    const validDuration = duration > 0 ? duration : 1;
+    const bitrate = (size * 8) / validDuration;
     
     // Get format from MIME type
     const format = resolvedAudio.mimeType.split('/')[1] || 'unknown';
@@ -105,8 +123,7 @@ export async function getAudioFileInfo(note: Note): Promise<AudioFileInfo | null
 }
 
 /**
- * List all audio files with their information
- * This is now on-demand rather than automatically filtering
+ * List all audio files that can be optimized
  */
 export async function identifyLargeAudioFiles(notes: Note[]): Promise<AudioFileInfo[]> {
   const audioFiles: AudioFileInfo[] = [];
@@ -116,11 +133,11 @@ export async function identifyLargeAudioFiles(notes: Note[]): Promise<AudioFileI
       try {
         const info = await getAudioFileInfo(note);
         if (info) {
-          // Add size classification for UI display
+          // Include all audio files, not just large ones
           audioFiles.push(info);
         }
       } catch (error) {
-        console.error('Error checking file info:', error);
+        console.error('Error checking audio file:', error);
       }
     }
   }
@@ -275,15 +292,22 @@ export async function optimizeAudioBlob(
       
       // Stop when audio finishes playing
       source.onended = () => {
-        mediaRecorder.stop();
+        if (mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
       };
+      
+      // Calculate a reasonable timeout - handle Infinity or invalid duration
+      const duration = Number.isFinite(audioBuffer.duration) ? audioBuffer.duration : 30;
+      const safeTimeout = Math.min(duration * 1000 + 2000, 60000); // Cap at 60 seconds max
       
       // Safety timeout in case onended doesn't fire
       setTimeout(() => {
         if (mediaRecorder.state !== 'inactive') {
+          console.log('Optimization timeout reached, stopping recorder');
           mediaRecorder.stop();
         }
-      }, audioBuffer.duration * 1000 + 1000);
+      }, safeTimeout);
       
     } catch (error) {
       reject(error);

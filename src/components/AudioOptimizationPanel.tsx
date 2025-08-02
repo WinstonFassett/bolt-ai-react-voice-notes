@@ -127,23 +127,16 @@ export default function AudioOptimizationPanel() {
   // Format for display
   const formattedSavings = formatBytes(totalSavings);
 
-  // Initial scan on mount
-  useEffect(() => {
-    scanForAudioFiles();
-  }, [notes.length]); // Re-scan when notes change
-
-  // if (audioFiles.length === 0 && !isScanning) {
-  //   return null; // Don't show anything if no audio files found
-  // }
+  // No automatic scanning on mount - completely on-demand
 
   return (
     <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
       <h3 className="text-lg font-medium text-orange-800 mb-2">
-        Audio Optimization!!!
+        Audio Optimization
       </h3>
       
       {isScanning ? (
-        <p className="text-sm text-orange-600">Scanning for large audio files...</p>
+        <p className="text-sm text-orange-600">Scanning for audio files...</p>
       ) : (
         <>
           <p className="text-sm text-orange-700 mb-3">
@@ -153,7 +146,7 @@ export default function AudioOptimizationPanel() {
                 Potential space savings: <strong>{formattedSavings}</strong>
               </>
             ) : (
-              'No audio files found.'
+              'Click "Scan for Audio Files" to find audio files that can be optimized.'
             )}
           </p>
           
@@ -171,7 +164,7 @@ export default function AudioOptimizationPanel() {
               disabled={isOptimizing}
               className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50"
             >
-              Rescan
+              Scan for Audio Files
             </button>
           </div>
           {audioFiles.length > 0 && (
