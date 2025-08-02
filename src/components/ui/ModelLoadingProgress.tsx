@@ -2,14 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Progress } from '../Progress';
 
-interface ProgressItem {
-  file: string;
-  loaded: number;
-  progress: number;
-  total: number;
-  name: string;
-  status: string;
-}
+import { ProgressItem } from '../../stores/transcriptionStore';
 
 interface ModelLoadingProgressProps {
   progressItems: ProgressItem[];
@@ -22,10 +15,11 @@ export const ModelLoadingProgress: React.FC<ModelLoadingProgressProps> = ({
   isVisible,
   className = ''
 }) => {
-  if (!isVisible || progressItems.length === 0) return null;
+  const hasIncompleteItems = progressItems.some(item => item.progress < 100);
+  if (!isVisible || progressItems.length === 0 || !hasIncompleteItems) return null;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -36,15 +30,26 @@ export const ModelLoadingProgress: React.FC<ModelLoadingProgressProps> = ({
           Loading AI Model...
         </h3>
         <div className="space-y-2">
-          {progressItems.map((item) => (
-            <div key={item.file} className="space-y-1">
-              <div className="flex justify-between text-xs text-indigo-400">
-                <span>{item.file}</span>
-                <span>{Math.round(item.progress)}%</span>
-              </div>
-              <Progress percentage={item.progress} />
-            </div>
-          ))}
+          <AnimatePresence>
+            {progressItems
+              .filter(item => item.progress < 100)
+              .map((item) => (
+                <motion.div 
+                  key={item.file}
+                  className="space-y-1"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="flex justify-between text-xs text-indigo-400">
+                    <span>{item.file}</span>
+                    <span>{Math.round(item.progress)}%</span>
+                  </div>
+                  <Progress percentage={item.progress} />
+                </motion.div>
+              ))}
+          </AnimatePresence>
         </div>
         <p className="text-xs text-indigo-400 mt-2">
           AI models are loading for the first time. This may take a moment.

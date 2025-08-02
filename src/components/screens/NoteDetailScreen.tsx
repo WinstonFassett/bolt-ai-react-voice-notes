@@ -21,6 +21,7 @@ import { BottomNavigation } from '../ui/BottomNavigation';
 import { CrepeEditorWrapper } from '../ui/CrepeEditor';
 import { RunAgentsDialog } from '../ui/RunAgentsDialog';
 import { TakeawayCard } from '../ui/TakeawayCard';
+import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -66,7 +67,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const { 
     startTranscriptionFromUrl,
     isNoteProcessing,
-    getNoteProcessingStatus
+    getNoteProcessingStatus,
+    getNoteProgressItems
   } = useTranscriptionStore();
   const { navigateToNote } = useRoutingStore();
   
@@ -542,18 +544,28 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
           {/* Show transcription/model loading status */}
           {isTranscribing && (
-            <div className="card">
-              <div className="flex items-center gap-3 mb-3">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"
-                />
-                <span className="text-sm text-indigo-300 font-medium">
-                  {transcriptionStatus || 'Processing...'}
-                </span>
-              </div>
-            </div>
+            <>
+              <ModelLoadingProgress
+                isVisible={true}
+                progressItems={getNoteProgressItems(note.id)}
+                className="mb-4"
+              />
+              {/* Show generic status when not loading model */}
+              {!getNoteProgressItems(note.id).length && (
+                <div className="card">
+                  <div className="flex items-center gap-3">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"
+                    />
+                    <span className="text-sm text-indigo-300 font-medium">
+                      {transcriptionStatus || 'Processing...'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {/* Tags */}

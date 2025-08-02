@@ -6,6 +6,15 @@ import { useLLMProvidersStore } from './llmProvidersStore';
 import { generateSmartTitle } from '../utils/titleGenerator';
 import { audioStorage, isStorageUrl, resolveStorageUrl } from '../utils/audioStorage';
 
+export interface ProgressItem {
+  file: string;
+  loaded?: number;
+  progress: number;
+  total?: number;
+  name?: string;
+  status: string;
+}
+
 interface TranscriptionState {
   // Worker state
   worker: Worker | null;
@@ -14,7 +23,11 @@ interface TranscriptionState {
   // Current transcription
   currentNoteId: string | null;
   lastTranscription: string | null;
-  processingNotes: Map<string, { isProcessing: boolean; status: string }>;
+  processingNotes: Map<string, { 
+    isProcessing: boolean; 
+    status: string;
+    progressItems: ProgressItem[];
+  }>;
   
   // Actions
   initializeWorker: () => void;
@@ -26,6 +39,7 @@ interface TranscriptionState {
   // Status getters
   isNoteProcessing: (noteId: string) => boolean;
   getNoteProcessingStatus: (noteId: string) => string;
+  getNoteProgressItems: (noteId: string) => ProgressItem[];
   
   // Internal handlers
   handleWorkerMessage: (event: MessageEvent) => void;
@@ -116,6 +130,11 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     const state = get();
     return state.processingNotes.get(noteId)?.status || '';
   },
+
+  getNoteProgressItems: (noteId: string) => {
+    const state = get();
+    return state.processingNotes.get(noteId)?.progressItems || [];
+  },
   
   handleWorkerMessage: (event: MessageEvent) => {
     const message = event.data;
@@ -126,28 +145,52 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
 
     switch (message.status) {
       case "initiate":
-        set((state) => ({
-          processingNotes: new Map(state.processingNotes).set(noteId, {
-            isProcessing: true,
-            status: `Loading ${message.file}...`
-          })
-        }));
+        set((state) => {
+          const existing = state.processingNotes.get(noteId)?.progressItems || [];
+          return {
+            processingNotes: new Map(state.processingNotes).set(noteId, {
+              isProcessing: true,
+              status: 'Loading model files...',
+              progressItems: [
+                ...existing.filter(item => item.file !== message.file),
+                {
+                  file: message.file,
+                  progress: 0,
+                  status: 'Starting...'
+                }
+              ]
+            })
+          };
+        });
         break;
         
       case "progress":
-        set((state) => ({
-          processingNotes: new Map(state.processingNotes).set(noteId, {
-            isProcessing: true,
-            status: `Loading model... ${Math.round(message.progress)}%`
-          })
-        }));
+        set((state) => {
+          const existing = state.processingNotes.get(noteId)?.progressItems || [];
+          return {
+            processingNotes: new Map(state.processingNotes).set(noteId, {
+              isProcessing: true,
+              status: 'Loading model files...',
+              progressItems: existing.map(item => 
+                item.file === message.file 
+                  ? { ...item, progress: Math.round(message.progress) }
+                  : item
+              )
+            })
+          };
+        });
         break;
         
       case "ready":
         set((state) => ({
           processingNotes: new Map(state.processingNotes).set(noteId, {
             isProcessing: true,
-            status: 'Model loaded, starting transcription...'
+            status: 'Model loaded, starting transcription...',
+            progressItems: state.processingNotes.get(noteId)?.progressItems.map(item => ({
+              ...item,
+              progress: 100,
+              status: 'Complete'
+            })) || []
           })
         }));
         break;
@@ -156,7 +199,8 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
         set((state) => ({
           processingNotes: new Map(state.processingNotes).set(noteId, {
             isProcessing: true,
-            status: 'Transcribing...'
+            status: 'Transcribing...',
+            progressItems: state.processingNotes.get(noteId)?.progressItems || []
           })
         }));
         if (message.data && message.data[0]) {
@@ -175,7 +219,8 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
         set((state) => ({
           processingNotes: new Map(state.processingNotes).set(noteId, {
             isProcessing: false,
-            status: 'Transcription failed'
+            status: 'Transcription failed',
+            progressItems: []
           }),
           currentNoteId: null
         }));
@@ -189,7 +234,8 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     set((state) => ({
       processingNotes: new Map(state.processingNotes).set(noteId, {
         isProcessing: true,
-        status: 'Loading audio...'
+        status: 'Loading audio...',
+        progressItems: []
       }),
       currentNoteId: noteId
     }));
@@ -224,7 +270,8 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
       set((state) => ({
         processingNotes: new Map(state.processingNotes).set(noteId, {
           isProcessing: false,
-          status: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          status: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          progressItems: []
         }),
         currentNoteId: null
       }));
@@ -256,7 +303,7 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
       const noteId = state.currentNoteId;
       if (noteId) {
         const notes = new Map(state.processingNotes);
-        notes.set(noteId, { isProcessing: false, status: 'Failed to initialize transcription worker' });
+        notes.set(noteId, { isProcessing: false, status: 'Failed to initialize transcription worker', progressItems: [] });
         set({ processingNotes: notes });
       }
       return;
@@ -267,7 +314,8 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     set({
       processingNotes: new Map(state.processingNotes).set(noteId, {
         isProcessing: true,
-        status: 'Preparing transcription...'
+        status: 'Preparing transcription...',
+        progressItems: []
       }),
       currentNoteId: noteId,
       lastTranscription: null
@@ -357,7 +405,8 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     set((state) => ({
       processingNotes: new Map(state.processingNotes).set(state.currentNoteId!, {
         isProcessing: false,
-        status: 'Complete'
+        status: 'Complete',
+        progressItems: []
       }),
       currentNoteId: null
     }));
