@@ -13,6 +13,7 @@ import {
 import { useDebugStore } from '../../stores/debugStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
+import AudioOptimizationPanel from '../AudioOptimizationPanel';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
@@ -144,6 +145,13 @@ export const SettingsScreen: React.FC = () => {
       title: 'Data Management',
       icon: DocumentArrowDownIcon,
       items: [
+        {
+          label: 'Audio Optimization',
+          description: 'Optimize large audio files to save space and improve performance',
+          component: (
+            <AudioOptimizationPanel />
+          )
+        },
         {
           label: 'Export All Notes',
           description: 'Download all your transcripts as JSON',
