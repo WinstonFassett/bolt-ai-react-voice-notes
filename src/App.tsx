@@ -27,7 +27,7 @@ import './styles/globals.css';
 function App() {
   const { isLoaded, setIsLoaded } = useAppStore();
   const { currentRoute, navigateBack, navigateToMain, setTab, canGoBack } = useRoutingStore();
-  const { getNoteById } = useNotesStore();
+  const { getNoteById, resetExportState } = useNotesStore();
   const { initializeAudio, handleUserInteraction, currentPlayingAudioUrl, showUrlModal, showErrorModal, lastError, setShowUrlModal, audioDownloadUrl, setAudioDownloadUrl, clearError, playAudio } = useAudioStore();
   const { initializeWorker } = useTranscriptionStore();
   const { initializeBuiltInAgents, canRunAnyAgents } = useAgentsStore();

@@ -16,7 +16,12 @@ import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
-  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio, importAudio } = useNotesStore();
+  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio, importAudio, resetExportState } = useNotesStore();
+  
+  // Reset export state on component mount to fix persisted state issues
+  React.useEffect(() => {
+    resetExportState();
+  }, [resetExportState]);
   const { isExportingAudio, exportProgress } = useNotesStore(
     (state) => ({
       isExportingAudio: state.isExportingAudio,

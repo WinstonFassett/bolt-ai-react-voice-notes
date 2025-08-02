@@ -43,6 +43,7 @@ interface NotesState {
   updateNote: (note: Note) => void;
   deleteNote: (id: string) => void;
   getNoteById: (id: string) => Note | undefined;
+  resetExportState: () => void;
   
   // Complex actions
   createNote: () => string;
@@ -232,6 +233,11 @@ export const useNotesStore = create<NotesState>()(
         });
       },
       
+      // Reset export state on app initialization or errors
+      resetExportState: () => {
+        set({ exportProgress: '', isExportingAudio: false });
+      },
+      
       downloadAllAudio: async (): Promise<void> => {
         const { notes } = get();
         const notesWithAudio = notes.filter(note => note.audioUrl);
@@ -292,7 +298,21 @@ export const useNotesStore = create<NotesState>()(
     {
       name: 'notes-store',
       version: 0,
-      migrate: (persistedState: any) => persistedState
+      migrate: (persistedState: any) => persistedState,
+      partialize: (state) => ({
+        ...state,
+        // Exclude these fields from persistence
+        isExportingAudio: false,
+        exportProgress: ''
+      }),
+      // Reset export state on rehydration for already persisted values
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Force reset export state when loading from storage
+          state.isExportingAudio = false;
+          state.exportProgress = '';
+        }
+      }
     }
   )
 );
