@@ -15,7 +15,7 @@ import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
-  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio } = useNotesStore();
+  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio, importAudio } = useNotesStore();
   const { setDebugVisible } = useDebugStore();
   const { useOpenAIForSTT, setUseOpenAIForSTT } = useSettingsStore();
   const { getValidProviders } = useLLMProvidersStore();
@@ -149,10 +149,42 @@ export const SettingsScreen: React.FC = () => {
           description: 'Download all audio recordings as a zip file',
           component: (
             <button
-              onClick={downloadAllAudio}
+              onClick={() => downloadAllAudio()}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
             >
-              Download
+              Download All Audio
+            </button>
+          )
+        },
+        {
+          label: 'Import Audio',
+          description: 'Import audio recordings from a zip file',
+          component: (
+            <button
+              onClick={() => {
+                // Create a file input element
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.zip';
+                fileInput.style.display = 'none';
+                document.body.appendChild(fileInput);
+                
+                // Handle file selection
+                fileInput.onchange = async (e) => {
+                  const target = e.target as HTMLInputElement;
+                  if (target.files && target.files.length > 0) {
+                    const file = target.files[0];
+                    await importAudio(file);
+                  }
+                  document.body.removeChild(fileInput);
+                };
+                
+                // Trigger file selection dialog
+                fileInput.click();
+              }}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+            >
+              Import Audio
             </button>
           )
         },
