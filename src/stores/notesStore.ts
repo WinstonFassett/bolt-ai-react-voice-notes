@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { audioStorage, resolveStorageUrl } from '../utils/audioStorage';
-import JSZip from 'jszip';
+import { audioStorage } from '../utils/audioStorage';
+import { exportAudioFiles } from '../services/audioExportService';
+import { importAudioFiles } from '../services/audioImportService';
 
 export interface NoteVersion {
   content: string;
@@ -34,6 +35,8 @@ export interface Note {
 
 interface NotesState {
   notes: Note[];
+  isExportingAudio: boolean;
+  exportProgress: string;
   
   // Actions
   addNote: (note: Note) => void;
@@ -60,6 +63,8 @@ export const useNotesStore = create<NotesState>()(
   persist(
     (set, get) => ({
       notes: [],
+      isExportingAudio: false,
+      exportProgress: '',
       
       // Simple actions
       addNote: (note) => set((state) => ({
@@ -229,327 +234,42 @@ export const useNotesStore = create<NotesState>()(
       
       downloadAllAudio: async () => {
         const { notes } = get();
+        
+        // Get all notes with audio
         const notesWithAudio = notes.filter(note => note.audioUrl);
         
-        if (notesWithAudio.length === 0) {
-          alert('No audio recordings found');
-          return;
-        }
-        
-        // Create a new zip file
-        const zip = new JSZip();
-        let processedCount = 0;
-        let successCount = 0;
-        
-        try {
-          // Add a loading indicator
-          const loadingDiv = document.createElement('div');
-          loadingDiv.textContent = `Preparing audio files (0/${notesWithAudio.length})...`;
-          loadingDiv.style.position = 'fixed';
-          loadingDiv.style.top = '20%';
-          loadingDiv.style.left = '50%';
-          loadingDiv.style.transform = 'translateX(-50%)';
-          loadingDiv.style.padding = '15px 20px';
-          loadingDiv.style.backgroundColor = '#4f46e5';
-          loadingDiv.style.color = 'white';
-          loadingDiv.style.borderRadius = '8px';
-          loadingDiv.style.zIndex = '9999';
-          loadingDiv.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-          loadingDiv.style.fontSize = '16px';
-          loadingDiv.style.fontWeight = 'bold';
-          document.body.appendChild(loadingDiv);
-          
-          // Process notes in batches to prevent memory issues on iOS
-          const BATCH_SIZE = 3; // Small batch size for iOS
-          
-          for (let i = 0; i < notesWithAudio.length; i += BATCH_SIZE) {
-            // Get the current batch
-            const batch = notesWithAudio.slice(i, i + BATCH_SIZE);
-            
-            // Update batch progress
-            const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-            const totalBatches = Math.ceil(notesWithAudio.length / BATCH_SIZE);
-            loadingDiv.textContent = `Processing batch ${batchNumber}/${totalBatches}... (${successCount}/${notesWithAudio.length} files)`;
-            
-            // Process each note in the batch
-            for (const note of batch) {
-              try {
-                processedCount++;
-                
-                if (note.audioUrl) {
-                  // Use resolveStorageUrl which properly handles audio-storage:// URLs
-                  const resolvedAudio = await resolveStorageUrl(note.audioUrl);
-                  
-                  if (!resolvedAudio) {
-                    console.error(`Failed to resolve audio URL for note: ${note.id}`);
-                    loadingDiv.textContent = `Preparing audio files (${successCount}/${notesWithAudio.length})... (${processedCount} processed)`;
-                    continue;
-                  }
-                  
-                  // Create a safe filename that includes both title for readability and IDs for reliable importing
-                  // Format: title__note-id__audio-id.extension
-                  const safeTitle = note.title.replace(/[^a-z0-9]/gi, '_').toLowerCase().substring(0, 30);
-                  const audioId = note.audioUrl.replace('audio-storage://', '');
-                  const extension = resolvedAudio.mimeType.split('/')[1] || 'webm';
-                  
-                  // Make sure we don't add duplicate extensions
-                  let fileName;
-                  if (audioId.endsWith(`.${extension}`)) {
-                    fileName = `${safeTitle}__note-${note.id}__audio-${audioId}`;
-                  } else {
-                    fileName = `${safeTitle}__note-${note.id}__audio-${audioId}.${extension}`;
-                  }
-                  
-                  // Add to zip
-                  const response = await fetch(resolvedAudio.url);
-                  const blob = await response.blob();
-                  
-                  if (blob.size > 0) {
-                    zip.file(fileName, blob);
-                    successCount++;
-                  } else {
-                    console.error(`Empty blob for note: ${note.id}`);
-                  }
-                }
-                
-                // Update progress
-                loadingDiv.textContent = `Preparing audio files (${successCount}/${notesWithAudio.length})... (${processedCount} processed)`;
-              } catch (err) {
-                console.error(`Error processing audio for note ${note.id}:`, err);
-                processedCount++;
-                loadingDiv.textContent = `Preparing audio files (${successCount}/${notesWithAudio.length})... (${processedCount} processed)`;
-              }
-            }
-            
-            // Force garbage collection opportunity by yielding to the event loop
-            // This helps prevent memory buildup on iOS
-            await new Promise(resolve => setTimeout(resolve, 300));
-          }
-          
-          // Check if any audio files were successfully processed
-          if (successCount === 0) {
-            document.body.removeChild(loadingDiv);
-            alert('No audio files could be processed. This may be because the audio files are no longer available.');
-            return;
-          }
-          
-          // Update the loading indicator
-          loadingDiv.textContent = `Creating zip file with ${successCount} audio files...`;
-          
-          try {
-            // Generate the zip file with a timeout to prevent UI freezing
-            // Use a smaller chunk size for iOS
-            const zipBlob = await zip.generateAsync({ 
-              type: 'blob',
-              compression: 'DEFLATE',
-              compressionOptions: { level: 6 }, // Balance between size and speed
-              streamFiles: true, // Process one file at a time
-              comment: `Bolt Voice Notes - ${successCount} audio files exported on ${new Date().toISOString()}`
-            });
-            
-            if (zipBlob.size < 100) { // Check if zip is suspiciously small
-              document.body.removeChild(loadingDiv);
-              alert('Error creating zip file: The generated file appears to be empty or corrupted.');
-              return;
-            }
-            
-            const zipUrl = URL.createObjectURL(zipBlob);
-            
-            // Create download link
-            const a = document.createElement('a');
-            a.href = zipUrl;
-            a.download = 'bolt-voice-notes-audio.zip';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            
-            // Clean up
-            URL.revokeObjectURL(zipUrl);
-            document.body.removeChild(loadingDiv);
-          } catch (zipError) {
-            console.error('Error generating zip file:', zipError);
-            document.body.removeChild(loadingDiv);
-            alert('Error creating zip file: ' + (zipError instanceof Error ? zipError.message : 'Unknown error'));
-          }
-          
-          return;
-        } catch (error) {
-          console.error('Error downloading audio files:', error);
-          
-          // Remove loading indicator if it exists
-          try {
-            const loadingElement = document.querySelector('div[style*="position: fixed"][style*="zIndex: 9999"]');
-            if (loadingElement && loadingElement.parentNode) {
-              loadingElement.parentNode.removeChild(loadingElement);
-            }
-          } catch (e) {
-            console.error('Error removing loading indicator:', e);
-          }
-          
-          alert('Error downloading audio files: ' + (error instanceof Error ? error.message : 'Unknown error'));
-        }
+        // Use the exported service function
+        await exportAudioFiles(
+          notesWithAudio,
+          // Progress callback
+          (message) => set({ exportProgress: message }),
+          // Status callback
+          (isExporting) => set({ isExportingAudio: isExporting })
+        );
       },
       
-      importAudio: async (file) => {
-        // Check if it's a zip file
-        if (file.type !== 'application/zip' && !file.name.endsWith('.zip')) {
-          alert('Please select a zip file containing audio recordings');
-          return;
-        }
+      importAudio: async (file: File): Promise<void> => {
+        const { notes } = get();
         
-        try {
-          // Create loading indicator
-          const loadingDiv = document.createElement('div');
-          loadingDiv.textContent = 'Processing audio files...';
-          loadingDiv.style.position = 'fixed';
-          loadingDiv.style.top = '20%';
-          loadingDiv.style.left = '50%';
-          loadingDiv.style.transform = 'translateX(-50%)';
-          loadingDiv.style.padding = '15px 20px';
-          loadingDiv.style.backgroundColor = '#4f46e5';
-          loadingDiv.style.color = 'white';
-          loadingDiv.style.borderRadius = '8px';
-          loadingDiv.style.zIndex = '9999';
-          loadingDiv.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
-          loadingDiv.style.fontSize = '16px';
-          loadingDiv.style.fontWeight = 'bold';
-          document.body.appendChild(loadingDiv);
-          
-          // Read the zip file
-          loadingDiv.textContent = 'Reading zip file...';
-          const zipData = await file.arrayBuffer();
-          const zip = await JSZip.loadAsync(zipData);
-          
-          let processedCount = 0;
-          let successCount = 0;
-          const fileEntries = Object.entries(zip.files).filter(([_, zipEntry]) => !zipEntry.dir);
-          const totalFiles = fileEntries.length;
-          
-          if (totalFiles === 0) {
-            document.body.removeChild(loadingDiv);
-            alert('No audio files found in the zip file');
-            return;
+        // Use the exported service function
+        await importAudioFiles(
+          file,
+          notes,
+          // Progress callback
+          (message) => set({ exportProgress: message }),
+          // Status callback
+          (isImporting) => set({ isExportingAudio: isImporting }),
+          // Note update callback
+          (noteId, audioUrl) => {
+            set((state) => ({
+              notes: state.notes.map(n => 
+                n.id === noteId 
+                  ? { ...n, audioUrl } 
+                  : n
+              )
+            }));
           }
-          
-          // Process files in batches to prevent memory issues on iOS
-          const BATCH_SIZE = 3; // Small batch size for iOS
-          
-          for (let i = 0; i < fileEntries.length; i += BATCH_SIZE) {
-            // Get current batch
-            const batch = fileEntries.slice(i, i + BATCH_SIZE);
-            
-            // Update batch progress
-            const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-            const totalBatches = Math.ceil(fileEntries.length / BATCH_SIZE);
-            loadingDiv.textContent = `Processing batch ${batchNumber}/${totalBatches}... (${successCount}/${totalFiles} files)`;
-            
-            // Process each file in the batch
-            for (const [filename, zipEntry] of batch) {
-              try {
-                // Update progress
-                processedCount++;
-                loadingDiv.textContent = `Processing audio files (${successCount}/${totalFiles})... (${processedCount} processed)`;
-                
-                // Extract note ID and audio ID from filename
-                // Expected format: title__note-id__audio-id.extension
-                const noteIdMatch = filename.match(/__note-(\d+)__/);
-                const audioIdMatch = filename.match(/__audio-([\w.-]+)\.[\w]+$/);
-                
-                if (!noteIdMatch || !audioIdMatch) {
-                  console.warn(`Skipping file ${filename} - cannot parse IDs`);
-                  continue;
-                }
-                
-                const noteId = noteIdMatch[1];
-                const audioId = audioIdMatch[1];
-                
-                // Get the note
-                const { notes } = get();
-                const note = notes.find(n => n.id === noteId);
-                
-                if (!note) {
-                  console.warn(`Note with ID ${noteId} not found, skipping audio import`);
-                  continue;
-                }
-                
-                try {
-                  // Get the blob from the zip file with timeout to prevent UI freezing
-                  const blob = await zipEntry.async('blob');
-                  
-                  if (blob.size === 0) {
-                    console.error(`Empty blob for file ${filename}`);
-                    continue;
-                  }
-                  
-                  // Determine MIME type from extension
-                  const extension = filename.split('.').pop()?.toLowerCase() || 'webm';
-                  let mimeType = 'audio/webm';
-                  if (extension === 'mp3') mimeType = 'audio/mpeg';
-                  if (extension === 'wav') mimeType = 'audio/wav';
-                  if (extension === 'm4a') mimeType = 'audio/mp4';
-                  
-                  // Store the audio
-                  // The saveAudio method expects (blob, fileName, mimeType) parameters
-                  const storageId = `recording_${audioId}`;
-                  await audioStorage.saveAudio(blob, storageId, mimeType);
-                  
-                  // Update the note with the audio URL
-                  const audioUrl = `audio-storage://${storageId}`;
-                  const updatedNote = {
-                    ...note,
-                    audioUrl
-                  };
-                  
-                  // Update the note in the store
-                  set((state) => ({
-                    notes: state.notes.map(n => n.id === noteId ? updatedNote : n)
-                  }));
-                  
-                  successCount++;
-                } catch (blobError) {
-                  console.error(`Error processing blob for file ${filename}:`, blobError);
-                }
-              } catch (fileError) {
-                console.error(`Error processing file ${filename}:`, fileError);
-              }
-            }
-            
-            // Force garbage collection opportunity by yielding to the event loop
-            // This helps prevent memory buildup on iOS
-            await new Promise(resolve => setTimeout(resolve, 300));
-          }
-          
-          // Show completion message
-          if (successCount > 0) {
-            loadingDiv.textContent = `Imported ${successCount} audio files successfully!`;
-            loadingDiv.style.backgroundColor = '#10B981'; // green
-          } else {
-            loadingDiv.textContent = 'No audio files could be imported';
-            loadingDiv.style.backgroundColor = '#EF4444'; // red
-          }
-          
-          // Remove the loading indicator after a delay
-          setTimeout(() => {
-            if (document.body.contains(loadingDiv)) {
-              document.body.removeChild(loadingDiv);
-            }
-          }, 3000);
-          
-        } catch (error) {
-          console.error('Error importing audio files:', error);
-          
-          // Remove loading indicator if it exists
-          try {
-            const loadingElement = document.querySelector('div[style*="position: fixed"][style*="zIndex: 9999"]');
-            if (loadingElement && loadingElement.parentNode) {
-              loadingElement.parentNode.removeChild(loadingElement);
-            }
-          } catch (e) {
-            console.error('Error removing loading indicator:', e);
-          }
-          
-          alert('Error importing audio files: ' + (error instanceof Error ? error.message : 'Unknown error'));
-        }
+        );
       }
     }),
     {
