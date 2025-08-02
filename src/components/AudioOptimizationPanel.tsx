@@ -158,16 +158,16 @@ export default function AudioOptimizationPanel() {
   // No automatic scanning on mount - completely on-demand
 
   return (
-    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-      <h3 className="text-lg font-medium text-orange-800 mb-2">
+    <div className="bg-orange-100 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-700 rounded-lg p-4 mb-6">
+      <h3 className="text-lg font-medium text-orange-800 dark:text-orange-300 mb-2">
         Audio Optimization
       </h3>
       
       {isScanning ? (
-        <p className="text-sm text-orange-600">Scanning for audio files...</p>
+        <p className="text-sm text-orange-600 dark:text-orange-400">Scanning for audio files...</p>
       ) : (
         <>
-          <p className="text-sm text-orange-700 mb-3">
+          <p className="text-sm text-orange-700 dark:text-orange-300 mb-3">
             {audioFiles.length > 0 ? (
               <>
                 Found {audioFiles.length} audio {audioFiles.length === 1 ? 'file' : 'files'} that can be optimized.
@@ -190,7 +190,7 @@ export default function AudioOptimizationPanel() {
             <button
               onClick={scanForAudioFiles}
               disabled={isOptimizing}
-              className="text-orange-600 hover:text-orange-800 text-sm disabled:opacity-50"
+              className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 text-sm disabled:opacity-50"
             >
               Scan for Audio Files
             </button>
@@ -199,14 +199,14 @@ export default function AudioOptimizationPanel() {
             <div className="space-y-3">
               
               {isOptimizing && (
-                <div className="text-sm text-orange-600">
+                <div className="text-sm text-orange-600 dark:text-orange-400">
                   {progress} {optimizedCount > 0 && `(${optimizedCount}/${audioFiles.length} complete)`}
                 </div>
               )}
               
               <div className="max-h-60 overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-orange-700">
+                  <thead className="text-left text-orange-700 dark:text-orange-300">
                     <tr>
                       <th className="pb-2">Title</th>
                       <th className="pb-2">Size</th>
@@ -214,9 +214,9 @@ export default function AudioOptimizationPanel() {
                       <th className="pb-2"></th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="text-gray-800 dark:text-gray-200">
                     {audioFiles.map(file => (
-                      <tr key={file.noteId} className="border-t border-orange-200">
+                      <tr key={file.noteId} className="border-t border-orange-200 dark:border-orange-700/50">
                         <td className="py-2 pr-2 truncate max-w-[150px]">{file.title}</td>
                         <td className="py-2 pr-2">{formatBytes(file.size)}</td>
                         <td className="py-2 pr-2">{formatDuration(file.duration)}</td>
@@ -226,8 +226,8 @@ export default function AudioOptimizationPanel() {
                             disabled={isOptimizing}
                             className={`text-xs px-2 py-1 rounded ${
                               optimizingFile === file.noteId
-                                ? 'bg-orange-200 text-orange-800'
-                                : 'bg-orange-100 hover:bg-orange-200 text-orange-800'
+                                ? 'bg-orange-200 dark:bg-orange-700 text-orange-800 dark:text-orange-100'
+                                : 'bg-orange-100 dark:bg-orange-800 hover:bg-orange-200 dark:hover:bg-orange-700 text-orange-800 dark:text-orange-100'
                             } disabled:opacity-50`}
                           >
                             {optimizingFile === file.noteId ? 'Optimizing...' : 'Optimize'}
