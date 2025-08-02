@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useNotesStore } from '../stores/notesStore';
-import { formatFileSize } from '../services/audioOptimizationService';
 import { reportError } from '../services/errorReporting';
+import { useNotesStore } from '../stores/notesStore';
 
 interface AudioOptimizationButtonProps {
   noteId: string;
