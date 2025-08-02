@@ -42,8 +42,8 @@ export const RecordScreen: React.FC = () => {
 
       {/* Main Content - Vertically Centered */}
       <main className="flex-1 flex flex-col items-center justify-center px-4 pb-40 min-h-0">
-        <div className="w-full max-w-2xl">
-        <div className="w-full max-w-md space-y-8 text-center">
+        <div className="w-full max-w-2xl flex flex-col items-center">
+          <div className="w-full max-w-md space-y-8 text-center">
           <AnimatePresence mode="wait">
             {!isRecording ? (
               <motion.div
