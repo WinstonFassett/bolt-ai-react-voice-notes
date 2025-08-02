@@ -197,21 +197,32 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       // Clear previous data
       set({ recordedChunksInternal: [] });
       
-      // Get audio stream
+      // Get audio stream with lower quality settings for voice notes
+      // These settings optimize for voice recording while reducing file size
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
       
+      // Audio constraints optimized for voice recording and smaller file size
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          // Mono audio is sufficient for voice notes and reduces file size by half
+          channelCount: 1,
+          // Lower sample rate still good for voice but smaller files
+          sampleRate: 22050
         } 
       });
       
-      // Set up MediaRecorder with compatible format
-      let options: MediaRecorderOptions = {};
+      // Set up MediaRecorder with compatible format and compression
+      let options: MediaRecorderOptions = {
+        // Low bitrate for voice is sufficient (8-16kbps is typical for voice)
+        audioBitsPerSecond: 16000
+      };
+      
       if (isIOS || isSafari) {
+        // iOS/Safari optimizations
         if (MediaRecorder.isTypeSupported('audio/mp4')) {
           options.mimeType = 'audio/mp4';
         } else if (MediaRecorder.isTypeSupported('audio/aac')) {
@@ -220,6 +231,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
           options.mimeType = 'audio/wav';
         }
       } else {
+        // Opus codec provides excellent compression for voice
         if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           options.mimeType = 'audio/webm;codecs=opus';
         } else if (MediaRecorder.isTypeSupported('audio/webm')) {
