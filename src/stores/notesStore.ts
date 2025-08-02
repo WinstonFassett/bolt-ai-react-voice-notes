@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { audioStorage } from '../utils/audioStorage';
-import { exportAudioFiles } from '../services/audioExportService';
+import { exportAudioFiles, exportSingleAudioFile, ExportProgressCallback, ExportStatusCallback } from '../services/audioExportService';
 import { importAudioFiles } from '../services/audioImportService';
 
 export interface NoteVersion {
@@ -57,6 +57,7 @@ interface NotesState {
   clearAllNotes: () => void;
   clearAllRecordings: () => void;
   downloadAllAudio: () => Promise<void>;
+  downloadSingleAudio: (noteId: string) => Promise<void>;
   importAudio: (file: File) => Promise<void>;
 }
 
@@ -259,6 +260,45 @@ export const useNotesStore = create<NotesState>()(
           );
         } catch (error) {
           console.error('Error in downloadAllAudio:', error);
+          set({ 
+            exportProgress: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            isExportingAudio: false 
+          });
+          
+          // Reset progress after a delay
+          setTimeout(() => {
+            set({ exportProgress: '' });
+          }, 5000);
+        }
+      },
+      
+      // Export a single audio file (better for iOS)
+      downloadSingleAudio: async (noteId: string): Promise<void> => {
+        const { notes } = get();
+        const note = notes.find(note => note.id === noteId);
+        
+        if (!note || !note.audioUrl) {
+          alert('No audio recording found to export.');
+          return;
+        }
+        
+        // Reset progress state
+        set({ exportProgress: 'Preparing export...', isExportingAudio: true });
+        
+        try {
+          // Use the single file export function
+          await exportSingleAudioFile(
+            note,
+            // Progress callback
+            (message) => {
+              console.log('Export progress:', message); // Log for debugging
+              set({ exportProgress: message });
+            },
+            // Status callback
+            (isExporting) => set({ isExportingAudio: isExporting })
+          );
+        } catch (error) {
+          console.error('Error in downloadSingleAudio:', error);
           set({ 
             exportProgress: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
             isExportingAudio: false 
