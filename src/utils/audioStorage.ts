@@ -299,7 +299,65 @@ class AudioStorage {
       };
       
       request.onerror = () => {
-        console.error('❌ AudioStorage: Error retrieving audio for ID:', id, 'Error:', request.error);
+        console.error('❌ AudioStorage: Error retrieving audio for ID:', id);
+        resolve(null);
+      };
+    });
+  }
+  
+  /**
+   * Refresh the audio blob URL for a given ID
+   * This is useful when a blob URL has expired or is no longer valid
+   */
+  async refreshAudio(id: string): Promise<{ url: string; mimeType: string } | null> {
+    if (!this.db) await this.init();
+    
+    // First, try to revoke any existing blob URL for this ID
+    try {
+      // We don't have a way to track existing blob URLs, so we'll just create a new one
+      console.log('🔄 AudioStorage: Refreshing blob URL for ID:', id);
+    } catch (error) {
+      console.error('Error revoking blob URL:', error);
+    }
+    
+    // Then get the audio data again and create a fresh blob URL
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(id);
+      
+      request.onsuccess = () => {
+        if (request.result) {
+          const audioData: StoredAudio = request.result;
+          
+          // Validate the blob
+          if (!audioData.audioBlob || audioData.audioBlob.size === 0) {
+            console.error('AudioStorage: Invalid or empty blob for ID:', id);
+            resolve(null);
+            return;
+          }
+          
+          // Create a fresh blob URL
+          console.log('🔄 AudioStorage: Creating fresh blob URL for audio', { 
+            id, 
+            size: audioData.audioBlob.size, 
+            mimeType: audioData.mimeType
+          });
+          
+          // Ensure we use the correct MIME type for the blob
+          const blob = new Blob([audioData.audioBlob], { type: audioData.mimeType });
+          const url = URL.createObjectURL(blob);
+          
+          console.log('✅ AudioStorage: Refreshed audio for ID:', id, 'New URL:', url.substring(0, 50) + '...', 'MimeType:', audioData.mimeType, 'Blob size:', blob.size);
+          resolve({ url, mimeType: audioData.mimeType });
+        } else {
+          console.log('❌ AudioStorage: No audio found for ID to refresh:', id);
+          resolve(null);
+        }
+      };
+      
+      request.onerror = () => {
+        console.error('❌ AudioStorage: Error refreshing audio for ID:', id);
         resolve(null);
       };
     });
@@ -345,14 +403,18 @@ export const getStorageId = (url: string): string => {
 };
 
 // Helper function to resolve storage URL to blob URL
-export const resolveStorageUrl = async (url: string): Promise<{ url: string; mimeType: string } | null> => {
+export const resolveStorageUrl = async (url: string, forceRefresh = false): Promise<{ url: string; mimeType: string } | null> => {
   if (!isStorageUrl(url)) {
     // Return the URL as-is for non-storage URLs
     return { url, mimeType: 'audio/webm' };
   }
   
   const id = getStorageId(url);
-  const result = await audioStorage.getAudio(id);
+  
+  // If forceRefresh is true, try to get a fresh blob URL
+  const result = forceRefresh 
+    ? await audioStorage.refreshAudio(id) 
+    : await audioStorage.getAudio(id);
   
   console.log('🔗 resolveStorageUrl called', {
     originalUrl: url,

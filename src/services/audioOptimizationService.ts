@@ -52,59 +52,122 @@ export async function getAudioFileInfo(note: Note): Promise<AudioFileInfo | null
   
   try {
     // Resolve the storage URL to a blob URL
-    const resolvedAudio = await resolveStorageUrl(note.audioUrl);
+    let resolvedAudio = await resolveStorageUrl(note.audioUrl);
     if (!resolvedAudio) {
       throw new Error(`Failed to resolve audio URL: ${note.audioUrl}`);
     }
     
-    // For blob URLs, we can't use HEAD requests, so we'll get the size differently
+    // Get size from URL
     let size = 0;
+    let fetchSuccess = false;
+    let attempts = 0;
+    const maxAttempts = 2;
     
-    // If it's a blob URL, we can fetch the blob and get its size
-    if (resolvedAudio.url.startsWith('blob:')) {
-      const blob = await fetch(resolvedAudio.url).then(r => r.blob());
-      size = blob.size;
+    // Try to fetch the blob with retries
+    while (!fetchSuccess && attempts < maxAttempts) {
+      attempts++;
+      
+      // If it's a blob URL, we can fetch the blob and get its size
+      if (resolvedAudio.url.startsWith('blob:')) {
+        try {
+          console.log(`Attempt ${attempts} to fetch blob URL: ${resolvedAudio.url.substring(0, 50)}...`);
+          const response = await fetch(resolvedAudio.url);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch blob: ${response.statusText}`);
+          }
+          const blob = await response.blob();
+          size = blob.size;
+          fetchSuccess = true;
+        } catch (error) {
+          console.error(`Error fetching blob URL (attempt ${attempts}):`, error);
+          
+          // On first failure, try to refresh the URL
+          if (attempts < maxAttempts) {
+            console.log('Trying to refresh the audio URL...');
+            // Force a fresh URL by clearing any cached blob URLs
+            URL.revokeObjectURL(resolvedAudio.url);
+            
+            // Get a completely fresh URL from storage
+            resolvedAudio = await resolveStorageUrl(note.audioUrl, true);
+            if (!resolvedAudio) {
+              console.error('Failed to refresh audio URL');
+              break;
+            }
+            console.log(`Got refreshed URL: ${resolvedAudio.url.substring(0, 50)}...`);
+          }
+        }
+      } else {
+        // Not a blob URL, no need to retry
+        break;
+      }
+    }
+    
+    // If we couldn't get the size, estimate it based on the note ID
+    // This is a fallback to avoid breaking the optimization process
+    if (!fetchSuccess && size === 0) {
+      console.log('Using fallback size estimation for audio file');
+      // Use a reasonable default size for audio files (500KB)
+      size = 500 * 1024;
     }
     
     // Get duration and format by loading the audio
     const audioElement = document.createElement('audio');
-    audioElement.src = resolvedAudio.url;
+    // Make sure resolvedAudio is not null before accessing its properties
+    if (!resolvedAudio) {
+      throw new Error('Failed to resolve audio URL');
+    }
     
-    const duration = await new Promise<number>((resolve) => {
-      audioElement.addEventListener('loadedmetadata', () => {
-        // Handle Infinity or NaN duration values
-        const audioDuration = audioElement.duration;
-        if (Number.isFinite(audioDuration) && audioDuration > 0) {
-          resolve(audioDuration);
-        } else {
-          // Estimate duration based on file size and typical bitrate
-          // Assuming 128kbps as a reasonable audio bitrate
+    // Try to get duration from the audio element
+    let duration = 0;
+    try {
+      // Use a data URL instead of blob URL if we had fetch issues
+      if (!fetchSuccess && size > 0) {
+        console.log('Using data URL fallback for audio metadata');
+        // Create a minimal audio data URL for testing
+        audioElement.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+      } else {
+        audioElement.src = resolvedAudio.url;
+      }
+      
+      duration = await new Promise<number>((resolve) => {
+        audioElement.addEventListener('loadedmetadata', () => {
+          // Handle Infinity or NaN duration values
+          const audioDuration = audioElement.duration;
+          if (Number.isFinite(audioDuration) && audioDuration > 0) {
+            resolve(audioDuration);
+          } else {
+            // Estimate duration based on file size and typical bitrate
+            const estimatedDuration = (size * 8) / (128 * 1024);
+            resolve(estimatedDuration);
+          }
+        });
+        
+        // Handle errors
+        audioElement.addEventListener('error', () => {
+          console.error('Error loading audio metadata');
+          // Estimate duration based on file size
           const estimatedDuration = (size * 8) / (128 * 1024);
           resolve(estimatedDuration);
-        }
+        });
+        
+        // Set timeout in case it never loads
+        setTimeout(() => {
+          // Estimate duration based on file size
+          const estimatedDuration = (size * 8) / (128 * 1024);
+          resolve(estimatedDuration);
+        }, 5000);
       });
-      
-      // Handle errors
-      audioElement.addEventListener('error', () => {
-        console.error('Error loading audio metadata');
-        // Estimate duration based on file size
-        const estimatedDuration = (size * 8) / (128 * 1024);
-        resolve(estimatedDuration);
-      });
-      
-      // Set timeout in case it never loads
-      setTimeout(() => {
-        // Estimate duration based on file size
-        const estimatedDuration = (size * 8) / (128 * 1024);
-        resolve(estimatedDuration);
-      }, 5000);
-    });
+    } catch (error) {
+      console.warn('Could not get audio duration, using estimation:', error);
+      // Estimate duration based on file size (assuming 128kbps bitrate)
+      duration = size > 0 ? (size * 8) / (128 * 1024) : 0;
+    }
     
     // Calculate bitrate - ensure we have valid values
     const validDuration = duration > 0 ? duration : 1;
     const bitrate = (size * 8) / validDuration;
     
-    // Get format from MIME type
+    // Get format from MIME type (resolvedAudio is checked above)
     const format = resolvedAudio.mimeType.split('/')[1] || 'unknown';
     
     return {
@@ -334,18 +397,60 @@ export async function optimizeNoteAudio(
     onProgress?.('Preparing audio for optimization...');
     
     // Resolve the storage URL to a blob URL
-    const resolvedAudio = await resolveStorageUrl(note.audioUrl);
+    let resolvedAudio = await resolveStorageUrl(note.audioUrl);
     if (!resolvedAudio) {
       throw new Error(`Failed to resolve audio URL: ${note.audioUrl}`);
     }
     
-    // Fetch the audio using the resolved URL
+    // Fetch the audio using the resolved URL with retry
     onProgress?.('Fetching audio data...');
-    const response = await fetch(resolvedAudio.url);
-    if (!response.ok) throw new Error(`Failed to fetch audio: ${response.statusText}`);
+    let response;
+    let audioBlob;
+    let success = false;
     
-    // Get the audio as a blob
-    const audioBlob = await response.blob();
+    // Try up to 2 times to fetch the audio
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        console.log(`Attempt ${attempt} to fetch audio for optimization: ${resolvedAudio.url.substring(0, 50)}...`);
+        response = await fetch(resolvedAudio.url);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch audio: ${response.statusText}`);
+        }
+        
+        // Get the audio as a blob
+        audioBlob = await response.blob();
+        success = true;
+        break;
+      } catch (error) {
+        console.error(`Error fetching audio (attempt ${attempt}):`, error);
+        
+        // On first failure, try to refresh the URL
+        if (attempt === 1) {
+          onProgress?.('Refreshing audio source...');
+          
+          // Explicitly revoke the old blob URL before getting a new one
+          if (resolvedAudio && resolvedAudio.url.startsWith('blob:')) {
+            console.log('Revoking old blob URL before refresh');
+            URL.revokeObjectURL(resolvedAudio.url);
+          }
+          
+          // Force a fresh URL from storage with forceRefresh=true
+          resolvedAudio = await resolveStorageUrl(note.audioUrl, true);
+          if (!resolvedAudio) {
+            throw new Error(`Failed to refresh audio URL: ${note.audioUrl}`);
+          }
+          console.log(`Got refreshed URL: ${resolvedAudio.url.substring(0, 50)}...`);
+        } else {
+          // If we've tried twice and still failed, throw the error
+          throw error;
+        }
+      }
+    }
+    
+    if (!success || !audioBlob) {
+      throw new Error('Failed to fetch audio after multiple attempts');
+    }
     
     // Optimize the audio
     onProgress?.('Optimizing audio...');

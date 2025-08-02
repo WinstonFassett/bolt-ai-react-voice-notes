@@ -9,6 +9,29 @@ import {
 } from '../services/audioOptimizationService';
 
 /**
+ * Format duration in seconds to a readable string
+ */
+const formatDuration = (seconds: number): string => {
+  // Handle invalid values
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    return '0s';
+  }
+  
+  // Round to nearest second
+  const roundedSeconds = Math.round(seconds);
+  
+  // Format as MM:SS for longer durations
+  if (roundedSeconds >= 60) {
+    const minutes = Math.floor(roundedSeconds / 60);
+    const remainingSeconds = roundedSeconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+  
+  // Just show seconds for short clips
+  return `${roundedSeconds}s`;
+};
+
+/**
  * Component that lists audio files and offers on-demand optimization
  */
 export default function AudioOptimizationPanel() {
@@ -45,9 +68,11 @@ export default function AudioOptimizationPanel() {
       if (!note) throw new Error('Note not found');
       
       // Optimize the audio
+      setProgress('Preparing audio for optimization...');
       const optimizedUrl = await optimizeNoteAudio(note, (msg) => setProgress(msg));
       
       // Update the note with optimized audio
+      setProgress('Saving optimized audio...');
       await updateNote({
         ...note,
         audioUrl: optimizedUrl,
@@ -65,12 +90,15 @@ export default function AudioOptimizationPanel() {
       setOptimizedCount(prev => prev + 1);
       
       // Show success message
-      setProgress('Optimization complete!');
-      setTimeout(() => setProgress(''), 3000);
+      setProgress('Audio successfully optimized!');
+      setTimeout(() => setProgress(''), 2000); // Clear message after 2 seconds
     } catch (error) {
+      reportError(error as Error);
       console.error('Error optimizing file:', error);
-      setProgress(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setTimeout(() => setProgress(''), 5000);
+      
+      // Show error message to user
+      setProgress(`Error: ${(error as Error).message || 'Failed to optimize audio'}`);
+      setTimeout(() => setProgress(''), 3000); // Clear error after 3 seconds
     } finally {
       setIsOptimizing(false);
       setOptimizingFile(null);
@@ -191,7 +219,7 @@ export default function AudioOptimizationPanel() {
                       <tr key={file.noteId} className="border-t border-orange-200">
                         <td className="py-2 pr-2 truncate max-w-[150px]">{file.title}</td>
                         <td className="py-2 pr-2">{formatBytes(file.size)}</td>
-                        <td className="py-2 pr-2">{Math.round(file.duration)}s</td>
+                        <td className="py-2 pr-2">{formatDuration(file.duration)}</td>
                         <td className="py-2">
                           <button
                             onClick={() => optimizeSingleFile(file)}
