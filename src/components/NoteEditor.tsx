@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { IoCopyOutline } from 'react-icons/io5';
 import Transcript from "./Transcript";
-import { CrepeEditor } from './ui/CrepeEditor';
+import { CrepeEditorWrapper } from './ui/CrepeEditor';
 
 interface NoteVersion {
   content: string;
@@ -230,7 +230,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({
         />
       </div>
       
-      <CrepeEditor
+      <CrepeEditorWrapper
         content={content}
         onChange={handleEditorChange}
         placeholder="Start writing your note..."
