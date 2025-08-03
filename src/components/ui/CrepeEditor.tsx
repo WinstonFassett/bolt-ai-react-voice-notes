@@ -62,7 +62,7 @@ const CrepeEditor: React.FC<CrepeEditorProps> = ({
 };
 
 export const CrepeEditorWrapper: React.FC<CrepeEditorProps> = (props) => {
-  const className = props.className || "milkdown-editor max-w-none p-4 prose prose-sm dark:prose-invert bg-white dark:bg-gray-800";
+  const className = props.className || "milkdown-editor max-w-none p-4 prose prose-sm dark:prose-invert";
   return (
     <div className={className}>
       <MilkdownProvider>

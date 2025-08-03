@@ -73,7 +73,7 @@ export const MilkdownEditorWrapper: React.FC<MilkdownEditorProps> = (props) => {
   return (
     // prose and dark:prose-invert handle all the markdown styling
     // prose-sm makes it match our app's text size better
-    <div className="milkdown-editor prose prose-sm dark:prose-invert max-w-none p-4 bg-white dark:bg-gray-800">
+    <div className="milkdown-editor prose prose-sm dark:prose-invert max-w-none p-4">
       <MilkdownProvider>
         <MilkdownEditor {...props} />
       </MilkdownProvider>
