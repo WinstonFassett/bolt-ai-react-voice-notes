@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import Constants from '../utils/Constants';
+import { downloadSettings as exportSettingsUtil, importSettings as importSettingsUtil, resetSettings as resetSettingsUtil, clearAllData as clearAllDataUtil } from '../utils/settingsExporter';
 
 interface SettingsState {
   // Transcriber settings
@@ -25,6 +26,12 @@ interface SettingsState {
   
   // Complex actions
   updateModelSettings: (settings: Partial<SettingsState>) => void;
+  
+  // Settings management actions
+  exportSettings: () => void;
+  importSettings: (settingsData: any) => Promise<{success: boolean; message: string}>;
+  resetSettings: () => {success: boolean; message: string};
+  clearAllData: () => {success: boolean; message: string};
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -58,7 +65,43 @@ export const useSettingsStore = create<SettingsState>()(
       updateModelSettings: (settings) => set((state) => ({
         ...state,
         ...settings
-      }))
+      })),
+      
+      // Settings management actions
+      exportSettings: () => {
+        exportSettingsUtil();
+        return { success: true, message: 'Settings exported successfully' };
+      },
+      
+      importSettings: async (settingsData) => {
+        try {
+          const result = await importSettingsUtil(settingsData);
+          return result;
+        } catch (error) {
+          console.error('Error importing settings:', error);
+          return { success: false, message: 'Error importing settings' };
+        }
+      },
+      
+      resetSettings: () => {
+        try {
+          resetSettingsUtil();
+          return { success: true, message: 'Settings reset successfully' };
+        } catch (error) {
+          console.error('Error resetting settings:', error);
+          return { success: false, message: 'Error resetting settings' };
+        }
+      },
+      
+      clearAllData: () => {
+        try {
+          clearAllDataUtil();
+          return { success: true, message: 'All data cleared successfully' };
+        } catch (error) {
+          console.error('Error clearing all data:', error);
+          return { success: false, message: 'Error clearing all data' };
+        }
+      }
     }),
     {
       name: 'settings-store',
