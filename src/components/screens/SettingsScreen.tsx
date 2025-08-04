@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModelSelector } from '../ModelSelector';
 import { LLMProviderSettings } from '../ui/LLMProviderSettings';
@@ -8,20 +8,36 @@ import {
   CpuChipIcon,
   DocumentArrowDownIcon,
   InformationCircleIcon,
-  CpuChipIcon as RobotIcon
+  CpuChipIcon as RobotIcon,
+  Cog6ToothIcon,
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon
 } from '@heroicons/react/24/outline';
 import { useDebugStore } from '../../stores/debugStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
+import { useAgentsStore } from '../../stores/agentsStore';
+import { downloadSettings, importSettings } from '../../utils/settingsExporter';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
-  const { exportNotes, clearAllNotes, clearAllRecordings, importNotes, downloadAllAudio, importAudio, resetExportState } = useNotesStore();
+  const { 
+    exportNotes, 
+    clearAllNotes, 
+    clearAllRecordings, 
+    importNotes, 
+    downloadAllAudio, 
+    importAudio, 
+    resetExportState,
+    downloadSingleAudio,
+    notes
+  } = useNotesStore();
   
   // Reset export state on component mount to fix persisted state issues
-  React.useEffect(() => {
+  useEffect(() => {
     resetExportState();
   }, [resetExportState]);
+  
   const { isExportingAudio, exportProgress } = useNotesStore(
     (state) => ({
       isExportingAudio: state.isExportingAudio,
@@ -29,10 +45,16 @@ export const SettingsScreen: React.FC = () => {
     }),
     shallow
   );
+  
   const { setDebugVisible } = useDebugStore();
   const { useOpenAIForSTT, setUseOpenAIForSTT } = useSettingsStore();
   const { getValidProviders } = useLLMProvidersStore();
   const hasOpenAIProvider = getValidProviders().some(p => p.name.toLowerCase() === 'openai');
+
+  // Notes with audio for individual export
+  const notesWithAudio = useMemo(() => {
+    return notes.filter(note => note.audioUrl);
+  }, [notes]);
 
   const [showClearNotesConfirm, setShowClearNotesConfirm] = useState(false);
   const [showClearRecordingsConfirm, setShowClearRecordingsConfirm] = useState(false);
@@ -40,8 +62,58 @@ export const SettingsScreen: React.FC = () => {
   // Import status state for feedback
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
   const [importMessage, setImportMessage] = useState<string>('');
+  
+  // Settings import/export status
+  const [importSettingsStatus, setImportSettingsStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
+  const [importSettingsMessage, setImportSettingsMessage] = useState<string>('');
 
-  // Import handler
+  // Import settings handler
+  const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setImportSettingsStatus('loading');
+    setImportSettingsMessage('Importing settings...');
+    const file = event.target.files?.[0];
+    if (!file) {
+      setImportSettingsStatus('error');
+      setImportSettingsMessage('No file selected');
+      setTimeout(() => { setImportSettingsStatus('idle'); setImportSettingsMessage(''); }, 4000);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const settingsData = JSON.parse(e.target?.result as string);
+        const result = importSettings(settingsData);
+        
+        if (result.success) {
+          setImportSettingsStatus('success');
+          setImportSettingsMessage(result.message);
+        } else {
+          setImportSettingsStatus('error');
+          setImportSettingsMessage(result.message);
+        }
+      } catch (error: any) {
+        setImportSettingsStatus('error');
+        setImportSettingsMessage('Error importing settings: ' + (error?.message || 'Unknown error'));
+      }
+      setTimeout(() => { setImportSettingsStatus('idle'); setImportSettingsMessage(''); }, 4000);
+    };
+    reader.readAsText(file);
+  };
+  
+  // Handle settings export
+  const handleExportSettings = () => {
+    try {
+      downloadSettings();
+      setImportSettingsStatus('success');
+      setImportSettingsMessage('Settings exported successfully!');
+      setTimeout(() => { setImportSettingsStatus('idle'); setImportSettingsMessage(''); }, 4000);
+    } catch (error: any) {
+      setImportSettingsStatus('error');
+      setImportSettingsMessage('Error exporting settings: ' + (error?.message || 'Unknown error'));
+      setTimeout(() => { setImportSettingsStatus('idle'); setImportSettingsMessage(''); }, 4000);
+    }
+  };
+
   const handleImportNotes = (event: React.ChangeEvent<HTMLInputElement>) => {
     setImportStatus('loading');
     setImportMessage('Importing notes...');
@@ -55,9 +127,9 @@ export const SettingsScreen: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedNotesData = JSON.parse(e.target?.result as string);
-        if (Array.isArray(importedNotesData) && importedNotesData.every(note => typeof note === 'object' && 'id' in note && 'title' in note && 'content' in note)) {
-          importNotes(importedNotesData);
+        const notesData = JSON.parse(e.target?.result as string);
+        if (Array.isArray(notesData) && notesData.every(note => typeof note === 'object' && 'id' in note && 'title' in note && 'content' in note)) {
+          importNotes(notesData);
           setImportStatus('success');
           setImportMessage('Notes imported successfully!');
         } else {
@@ -146,84 +218,123 @@ export const SettingsScreen: React.FC = () => {
           )
         },
         {
-          label: 'Clear All Notes',
-          description: 'Delete all transcripts and notes',
+          label: 'Audio Management',
+          description: 'Export and import audio recordings',
           component: (
-            <button
-              onClick={() => setShowClearNotesConfirm(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-            >
-              Clear Notes
-            </button>
-          )
-        },
-        {
-          label: 'Download All Audio',
-          description: 'Download all audio recordings as a zip file',
-          component: (
-            <div className="flex flex-col gap-2 w-full">
-              <button
-                onClick={() => downloadAllAudio()}
-                disabled={isExportingAudio}
-                className={`px-4 py-2 ${isExportingAudio ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white rounded-lg transition-colors`}
-              >
-                {isExportingAudio ? 'Exporting...' : 'Download All Audio'}
-              </button>
-              
-              {/* Progress indicator */}
-              {isExportingAudio && exportProgress && (
-                <div className="mt-2">
-                  <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-600 animate-pulse" style={{ width: '100%' }}></div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={downloadAllAudio}
+                  disabled={isExportingAudio}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <DocumentArrowDownIcon className="w-5 h-5" />
+                  Export All Audio
+                </button>
+                
+                {isExportingAudio && (
+                  <div className="text-sm text-gray-300 mt-2">
+                    Exporting audio... {exportProgress}
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{exportProgress}</p>
+                )}
+                
+                {notesWithAudio && notesWithAudio.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-300 mb-2">Export Individual Audio Files</h4>
+                    <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
+                      {notesWithAudio.map(note => (
+                        <div key={note.id} className="flex items-center justify-between bg-gray-800 p-2 rounded">
+                          <div className="text-sm truncate flex-1 mr-2">{note.title || 'Untitled Note'}</div>
+                          <button
+                            onClick={() => downloadSingleAudio(note.id)}
+                            className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded transition-colors"
+                          >
+                            Export
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <div className="relative mt-2">
+                  <input
+                    type="file"
+                    id="import-audio"
+                    accept=".zip"
+                    onChange={importAudio}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="import-audio"
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <ArrowUpTrayIcon className="w-5 h-5" />
+                    Import Audio
+                  </label>
                 </div>
-              )}
+              </div>
             </div>
           )
         },
         {
-          label: 'Import Audio',
-          description: 'Import audio recordings from a zip file',
+          label: 'Clear Data',
+          description: 'Delete all transcripts and notes',
           component: (
-            <button
-              onClick={() => {
-                // Create a file input element
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.zip';
-                fileInput.style.display = 'none';
-                document.body.appendChild(fileInput);
-                
-                // Handle file selection
-                fileInput.onchange = async (e) => {
-                  const target = e.target as HTMLInputElement;
-                  if (target.files && target.files.length > 0) {
-                    const file = target.files[0];
-                    await importAudio(file);
-                  }
-                  document.body.removeChild(fileInput);
-                };
-                
-                // Trigger file selection dialog
-                fileInput.click();
-              }}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-            >
-              Import Audio
-            </button>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setShowClearNotesConfirm(true)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  Clear All Notes
+                </button>
+                <button
+                  onClick={() => setShowClearRecordingsConfirm(true)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  Clear All Recordings
+                </button>
+              </div>
+            </div>
           )
         },
         {
-          label: 'Clear All Recordings',
-          description: 'Delete all audio recordings (keeps text)',
+          label: 'Settings Management',
+          description: 'Export or import application settings including AI providers and agents',
           component: (
-            <button
-              onClick={() => setShowClearRecordingsConfirm(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-            >
-              Clear Audio
-            </button>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleExportSettings}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <ArrowDownTrayIcon className="w-5 h-5" />
+                  Export Settings
+                </button>
+                
+                <div className="relative mt-2">
+                  <input
+                    type="file"
+                    id="import-settings"
+                    accept=".json"
+                    onChange={handleImportSettings}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <label
+                    htmlFor="import-settings"
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <ArrowUpTrayIcon className="w-5 h-5" />
+                    Import Settings
+                  </label>
+                </div>
+              </div>
+              
+              <div className="text-xs text-gray-400 pt-2 border-t border-gray-700">
+                Settings export includes AI providers (with API keys), agent definitions, and application preferences.
+              </div>
+            </div>
           )
         }
       ]
@@ -460,6 +571,15 @@ export const SettingsScreen: React.FC = () => {
           ${importStatus === 'success' ? 'bg-green-600' : importStatus === 'error' ? 'bg-red-600' : 'bg-indigo-600'}`}
         >
           {importMessage}
+        </div>
+      )}
+      
+      {/* Settings import status feedback */}
+      {importSettingsStatus !== 'idle' && (
+        <div className={`fixed top-16 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-semibold transition-all
+          ${importSettingsStatus === 'success' ? 'bg-green-600' : importSettingsStatus === 'error' ? 'bg-red-600' : 'bg-indigo-600'}`}
+        >
+          {importSettingsMessage}
         </div>
       )}
     </div>
