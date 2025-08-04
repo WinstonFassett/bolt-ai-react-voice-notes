@@ -11,13 +11,16 @@ import {
   CpuChipIcon as RobotIcon,
   Cog6ToothIcon,
   ArrowDownTrayIcon,
-  ArrowUpTrayIcon
+  ArrowUpTrayIcon,
+  TrashIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useDebugStore } from '../../stores/debugStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 import { useAgentsStore } from '../../stores/agentsStore';
-import { downloadSettings, importSettings } from '../../utils/settingsExporter';
+import { downloadSettings, importSettings, resetSettings, clearAllData } from '../../utils/settingsExporter';
 
 export const SettingsScreen: React.FC = () => {
   // Get everything from stores
@@ -60,12 +63,18 @@ export const SettingsScreen: React.FC = () => {
   const [showClearRecordingsConfirm, setShowClearRecordingsConfirm] = useState(false);
 
   // Import status state for feedback
-  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
-  const [importMessage, setImportMessage] = useState<string>('');
-  
-  // Settings import/export status
-  const [importSettingsStatus, setImportSettingsStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
-  const [importSettingsMessage, setImportSettingsMessage] = useState<string>('');
+  const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [exportMessage, setExportMessage] = useState('');
+  const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [importMessage, setImportMessage] = useState('');
+  const [exportSettingsStatus, setExportSettingsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [exportSettingsMessage, setExportSettingsMessage] = useState('');
+  const [importSettingsStatus, setImportSettingsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [importSettingsMessage, setImportSettingsMessage] = useState('');
+  const [resetSettingsStatus, setResetSettingsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [resetSettingsMessage, setResetSettingsMessage] = useState('');
+  const [clearDataStatus, setClearDataStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [clearDataMessage, setClearDataMessage] = useState('');
 
   // Import settings handler
   const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,10 +88,10 @@ export const SettingsScreen: React.FC = () => {
       return;
     }
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const settingsData = JSON.parse(e.target?.result as string);
-        const result = importSettings(settingsData);
+        const result = await importSettings(settingsData);
         
         if (result.success) {
           setImportSettingsStatus('success');
@@ -102,15 +111,64 @@ export const SettingsScreen: React.FC = () => {
   
   // Handle settings export
   const handleExportSettings = () => {
+    setExportSettingsStatus('loading');
+    setExportSettingsMessage('Exporting settings...');
     try {
       downloadSettings();
-      setImportSettingsStatus('success');
-      setImportSettingsMessage('Settings exported successfully!');
-      setTimeout(() => { setImportSettingsStatus('idle'); setImportSettingsMessage(''); }, 4000);
+      setExportSettingsStatus('success');
+      setExportSettingsMessage('Settings exported successfully');
     } catch (error: any) {
-      setImportSettingsStatus('error');
-      setImportSettingsMessage('Error exporting settings: ' + (error?.message || 'Unknown error'));
-      setTimeout(() => { setImportSettingsStatus('idle'); setImportSettingsMessage(''); }, 4000);
+      setExportSettingsStatus('error');
+      setExportSettingsMessage('Error exporting settings: ' + (error?.message || 'Unknown error'));
+    }
+    setTimeout(() => { setExportSettingsStatus('idle'); setExportSettingsMessage(''); }, 4000);
+  };
+
+  // Reset settings handler
+  const handleResetSettings = () => {
+    if (window.confirm('Are you sure you want to reset all settings to defaults? This will remove all custom providers and agents.')) {
+      setResetSettingsStatus('loading');
+      setResetSettingsMessage('Resetting settings...');
+      try {
+        const result = resetSettings();
+        if (result.success) {
+          setResetSettingsStatus('success');
+          setResetSettingsMessage(result.message);
+        } else {
+          setResetSettingsStatus('error');
+          setResetSettingsMessage(result.message);
+        }
+      } catch (error: any) {
+        setResetSettingsStatus('error');
+        setResetSettingsMessage('Error resetting settings: ' + (error?.message || 'Unknown error'));
+      }
+      setTimeout(() => { setResetSettingsStatus('idle'); setResetSettingsMessage(''); }, 4000);
+    }
+  };
+
+  // Clear all data handler
+  const handleClearAllData = () => {
+    if (window.confirm('⚠️ WARNING: This will delete ALL data including notes, recordings, settings, and providers. This action cannot be undone! Are you absolutely sure?')) {
+      setClearDataStatus('loading');
+      setClearDataMessage('Clearing all data...');
+      try {
+        const result = clearAllData();
+        if (result.success) {
+          setClearDataStatus('success');
+          setClearDataMessage(result.message);
+          // Show a final confirmation that requires page refresh
+          setTimeout(() => {
+            window.alert('All data has been cleared. The page will now reload.');
+            window.location.reload();
+          }, 1500);
+        } else {
+          setClearDataStatus('error');
+          setClearDataMessage(result.message);
+        }
+      } catch (error: any) {
+        setClearDataStatus('error');
+        setClearDataMessage('Error clearing data: ' + (error?.message || 'Unknown error'));
+      }
     }
   };
 
@@ -300,34 +358,168 @@ export const SettingsScreen: React.FC = () => {
           )
         },
         {
-          label: 'Settings Management',
-          description: 'Export or import application settings including AI providers and agents',
+          label: 'Data Management',
+          description: 'Manage your notes, audio recordings, and application settings',
           component: (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={handleExportSettings}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <ArrowDownTrayIcon className="w-5 h-5" />
-                  Export Settings
-                </button>
-                
-                <div className="relative mt-2">
-                  <input
-                    type="file"
-                    id="import-settings"
-                    accept=".json"
-                    onChange={handleImportSettings}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <label
-                    htmlFor="import-settings"
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            <div className="space-y-6">
+              {/* Notes Management */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-300">Notes Management</h3>
+                <div className="flex flex-row gap-2">
+                  <button
+                    onClick={exportNotes}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                    disabled={exportStatus === 'loading'}
                   >
-                    <ArrowUpTrayIcon className="w-5 h-5" />
-                    Import Settings
-                  </label>
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                    Export
+                  </button>
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="import-notes"
+                      accept=".json"
+                      onChange={handleImportNotes}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="import-notes"
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ArrowUpTrayIcon className="w-5 h-5" />
+                      Import
+                    </label>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowClearNotesConfirm(true)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                    Clear
+                  </button>
+                </div>
+                {importMessage && (
+                  <div className={`text-sm ${importStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {importMessage}
+                  </div>
+                )}
+              </div>
+              
+              {/* Audio Management */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-300">Audio Management</h3>
+                <div className="flex flex-row gap-2">
+                  <button
+                    onClick={downloadAllAudio}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                    disabled={isExportingAudio}
+                  >
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                    Export All
+                  </button>
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="import-audio"
+                      accept=".zip"
+                      onChange={importAudio}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="import-audio"
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ArrowUpTrayIcon className="w-5 h-5" />
+                      Import
+                    </label>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowClearRecordingsConfirm(true)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                    Clear
+                  </button>
+                </div>
+                {exportMessage && (
+                  <div className={`text-sm ${exportStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {exportMessage}
+                  </div>
+                )}
+              </div>
+              
+              {/* Settings Management */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-gray-300">Settings Management</h3>
+                <div className="flex flex-row gap-2">
+                  <button
+                    onClick={handleExportSettings}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                    disabled={exportSettingsStatus === 'loading'}
+                  >
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                    Export
+                  </button>
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="import-settings"
+                      accept=".json"
+                      onChange={handleImportSettings}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="import-settings"
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ArrowUpTrayIcon className="w-5 h-5" />
+                      Import
+                    </label>
+                  </div>
+                  
+                  <button
+                    onClick={handleResetSettings}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                    disabled={resetSettingsStatus === 'loading'}
+                  >
+                    <ArrowPathIcon className="w-5 h-5" />
+                    Reset
+                  </button>
+                </div>
+                {importSettingsMessage && (
+                  <div className={`text-sm ${importSettingsStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {importSettingsMessage}
+                  </div>
+                )}
+                {resetSettingsMessage && (
+                  <div className={`text-sm ${resetSettingsStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {resetSettingsMessage}
+                  </div>
+                )}
+              </div>
+              
+              {/* Danger Zone */}
+              <div className="mt-8 pt-4 border-t border-gray-700">
+                <h3 className="text-sm font-medium text-red-500">Danger Zone</h3>
+                <div className="mt-2">
+                  <button
+                    onClick={handleClearAllData}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 w-full"
+                    disabled={clearDataStatus === 'loading'}
+                  >
+                    <ExclamationTriangleIcon className="w-5 h-5" />
+                    Clear All Data on Device
+                  </button>
+                  {clearDataMessage && (
+                    <div className={`text-sm mt-2 ${clearDataStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                      {clearDataMessage}
+                    </div>
+                  )}
                 </div>
               </div>
               
