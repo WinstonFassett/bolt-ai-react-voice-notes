@@ -39,13 +39,16 @@ export function exportSettings(): ExportedSettings {
   }));
   
   // Get custom agents and any overrides to built-in agents
-  const customAgents = agentsState.agents;
+  const customAgents = agentsState.agents.map(agent => ({
+    ...agent,
+    modelId: agent.modelId || null // Ensure modelId is included
+  }));
   
   // Get ALL built-in agents to preserve their state
   const builtInAgentOverrides = agentsState.builtInAgents.map(agent => ({
     id: agent.id,
     autoRun: agent.autoRun,
-    modelId: agent.modelId
+    modelId: agent.modelId || null // Ensure modelId is included and null if not set
   }));
   
   // Collect app settings
@@ -176,21 +179,38 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
       
       // Create a map of built-in agent overrides for quick lookup
       const overrideMap = new Map();
-      data.agents.builtInAgentOverrides.forEach(override => {
-        overrideMap.set(override.id, override);
-      });
+      if (data.agents.builtInAgentOverrides) {
+        data.agents.builtInAgentOverrides.forEach(override => {
+          overrideMap.set(override.id, override);
+        });
+      }
       
       // Apply overrides to ALL built-in agents
       agentsStore.builtInAgents.forEach(builtInAgent => {
         // Get the override or use default values if not found
         const override = overrideMap.get(builtInAgent.id);
         
+        // Get model ID from override, validate it exists in available models
+        let modelId = builtInAgent.modelId;
+        if (override && override.modelId) {
+          const allModels = llmProvidersStore.getAvailableModels();
+          const modelExists = allModels.some(model => {
+            const fullModelId = `${model.providerId}-${model.id}`;
+            return fullModelId === override.modelId;
+          });
+          if (modelExists) {
+            modelId = override.modelId;
+          } else {
+            console.warn(`Model ${override.modelId} not found for built-in agent ${builtInAgent.name}, using default`);
+          }
+        }
+        
         // Always update each built-in agent to ensure state is preserved
         agentsStore.updateAgent({
           ...builtInAgent,
           // If we have an override, use its values, otherwise keep current values
           autoRun: override ? override.autoRun : builtInAgent.autoRun,
-          modelId: override ? override.modelId : builtInAgent.modelId
+          modelId
         });
       });
     }
