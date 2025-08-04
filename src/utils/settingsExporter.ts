@@ -191,8 +191,11 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
         const override = overrideMap.get(builtInAgent.id);
         
         // Get model ID from override, validate it exists in available models
+        // If no override model ID, use the default model ID from LLM providers
         let modelId = builtInAgent.modelId;
+        
         if (override && override.modelId) {
+          // Use the override model if specified
           const allModels = llmProvidersStore.getAvailableModels();
           const modelExists = allModels.some(model => {
             const fullModelId = `${model.providerId}-${model.id}`;
@@ -203,15 +206,36 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
           } else {
             console.warn(`Model ${override.modelId} not found for built-in agent ${builtInAgent.name}, using default`);
           }
+        } else if (data.llmProviders && data.llmProviders.defaultModelId) {
+          // If no specific model override but we have a default model, use that
+          const defaultModelId = data.llmProviders.defaultModelId;
+          const allModels = llmProvidersStore.getAvailableModels();
+          const modelExists = allModels.some(model => {
+            const fullModelId = `${model.providerId}-${model.id}`;
+            return fullModelId === defaultModelId;
+          });
+          if (modelExists) {
+            modelId = defaultModelId;
+          }
         }
         
         // Always update each built-in agent to ensure state is preserved
         agentsStore.updateAgent({
           ...builtInAgent,
           // If we have an override, use its values, otherwise keep current values
-          autoRun: override ? override.autoRun : builtInAgent.autoRun,
+          // For autoRun, explicitly check if it's defined in the override to handle false values correctly
+          autoRun: override && override.hasOwnProperty('autoRun') ? override.autoRun : builtInAgent.autoRun,
           modelId
         });
+        
+        if (import.meta.env.DEV) {
+          console.log(`Updated built-in agent ${builtInAgent.name}:`, {
+            id: builtInAgent.id,
+            modelId,
+            autoRun: override && override.hasOwnProperty('autoRun') ? override.autoRun : builtInAgent.autoRun,
+            hasOverride: !!override
+          });
+        }
       });
     }
     
