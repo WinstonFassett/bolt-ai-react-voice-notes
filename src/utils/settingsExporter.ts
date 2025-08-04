@@ -182,48 +182,7 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
     
     // Import custom agents
     if (data.agents && data.agents.agents) {
-      // First, create a map of old provider IDs to new provider IDs
-      const providerIdMap = new Map();
-      
-      // Map old timestamp-based provider IDs to new stable provider IDs
-      data.llmProviders?.providers.forEach(oldProvider => {
-        const oldProviderId = oldProvider.id;
-        // Find the matching new provider by name
-        const newProvider = llmProvidersStore.providers.find(p => p.name === oldProvider.name);
-        
-        if (newProvider && oldProviderId !== newProvider.id) {
-          providerIdMap.set(oldProviderId, newProvider.id);
-          if (import.meta.env.DEV) {
-            console.log(`Mapped old provider ID ${oldProviderId} to new ID ${newProvider.id}`);
-          }
-        }
-      });
-      
       data.agents.agents.forEach(agent => {
-        // Update model ID if it references an old provider ID
-        let updatedModelId = agent.modelId;
-        
-        if (agent.modelId && typeof agent.modelId === 'string') {
-          // Extract provider ID from the model ID
-          const parts = agent.modelId.split('-');
-          if (parts.length >= 2) {
-            const oldProviderId = parts[0];
-            const newProviderId = providerIdMap.get(oldProviderId);
-            
-            if (newProviderId) {
-              // Replace old provider ID with new provider ID in the model ID
-              const modelParts = agent.modelId.split('-');
-              // If it's a timestamp-based ID (openai-1234567890-gpt-4), extract the model name (gpt-4)
-              const modelName = modelParts.length >= 3 ? modelParts.slice(2).join('-') : modelParts[1];
-              updatedModelId = `${newProviderId}-${modelName}`;
-              
-              if (import.meta.env.DEV) {
-                console.log(`Updated agent model ID from ${agent.modelId} to ${updatedModelId}`);
-              }
-            }
-          }
-        }
-        
         // Check for existing agent by ID first
         const existingAgentById = agentsStore.agents.find(a => a.id === agent.id);
         
@@ -235,29 +194,19 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
         if (existingAgentById) {
           // Update existing agent with same ID
           agentsStore.updateAgent({
-            ...agent,
-            modelId: updatedModelId
+            ...agent
           });
         } else if (existingAgentByName) {
           // Update existing agent with same name but different ID
           agentsStore.updateAgent({
+            ...existingAgentByName,
             ...agent,
-            id: existingAgentByName.id,
-            createdAt: existingAgentByName.createdAt,
-            updatedAt: Date.now(),
-            modelId: updatedModelId
+            id: existingAgentByName.id // Keep the existing ID
           });
         } else {
-          // Add as a completely new agent
+          // Add new agent
           agentsStore.addAgent({
-            name: agent.name,
-            prompt: agent.prompt,
-            modelId: updatedModelId,
-            avatar: agent.avatar,
-            autoRun: agent.autoRun,
-            tags: agent.tags,
-            outputFormat: agent.outputFormat || 'markdown',
-            isBuiltIn: false
+            ...agent
           });
         }
       });
@@ -286,26 +235,8 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
           // Use the override model if specified
           let overrideModelId = override.modelId;
           
-          // First check if we need to map an old provider ID to a new one
-          if (typeof overrideModelId === 'string') {
-            const parts = overrideModelId.split('-');
-            if (parts.length >= 2) {
-              const oldProviderId = parts[0];
-              const newProviderId = providerIdMap.get(oldProviderId);
-              
-              if (newProviderId) {
-                // Replace old provider ID with new provider ID in the model ID
-                const modelParts = overrideModelId.split('-');
-                // If it's a timestamp-based ID (openai-1234567890-gpt-4), extract the model name (gpt-4)
-                const modelName = modelParts.length >= 3 ? modelParts.slice(2).join('-') : modelParts[1];
-                overrideModelId = `${newProviderId}-${modelName}`;
-                
-                if (import.meta.env.DEV) {
-                  console.log(`Updated built-in agent override model ID from ${override.modelId} to ${overrideModelId}`);
-                }
-              }
-            }
-          }
+          // The model ID handling is now done in the store migration
+          // No need to handle old provider IDs here anymore
           
           // Extract the base model ID (e.g., "gpt-4o-mini") from the full ID
           // The model ID could be in various formats depending on provider

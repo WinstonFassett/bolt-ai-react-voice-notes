@@ -621,8 +621,67 @@ export const useAgentsStore = create<AgentsState>()(
     }),
     {
       name: 'agents-store',
-      version: 1,
-      migrate: (persistedState: any) => persistedState
+      version: 2, // Increment version number
+      migrate: (persistedState: any, version: number) => {
+        // If migrating from version 1 (with timestamp-based provider IDs in model references)
+        if (version === 1) {
+          // Get the latest provider data to map old IDs to new ones
+          const llmProvidersStore = useLLMProvidersStore.getState();
+          const currentProviders = llmProvidersStore.providers;
+          
+          // Function to update model IDs in agents
+          const updateModelIds = (agent: any) => {
+            if (!agent.modelId) return agent;
+            
+            const modelIdParts = agent.modelId.split('-');
+            if (modelIdParts.length < 2) return agent;
+            
+            // Extract the old provider ID and check if it's timestamp-based
+            const oldProviderId = modelIdParts[0];
+            if (!oldProviderId.includes('-') || isNaN(parseInt(oldProviderId.split('-')[1]))) {
+              // Not a timestamp-based ID, no need to update
+              return agent;
+            }
+            
+            // Extract provider name from the old ID
+            const providerName = oldProviderId.split('-')[0];
+            
+            // Find the matching provider by name in the current providers
+            const matchingProvider = currentProviders.find(p => 
+              p.name.toLowerCase() === providerName.toLowerCase()
+            );
+            
+            if (matchingProvider) {
+              // Extract the model name (everything after the timestamp)
+              const modelName = modelIdParts.length >= 3 ? 
+                modelIdParts.slice(2).join('-') : 
+                modelIdParts[1];
+              
+              // Create the new model ID with the stable provider ID
+              const newModelId = `${matchingProvider.id}-${modelName}`;
+              
+              return {
+                ...agent,
+                modelId: newModelId
+              };
+            }
+            
+            return agent;
+          };
+          
+          // Update all agents and built-in agent overrides
+          const updatedAgents = persistedState.agents.map(updateModelIds);
+          const updatedBuiltInAgents = persistedState.builtInAgents.map(updateModelIds);
+          
+          return {
+            ...persistedState,
+            agents: updatedAgents,
+            builtInAgents: updatedBuiltInAgents
+          };
+        }
+        
+        return persistedState;
+      }
     }
   )
 )

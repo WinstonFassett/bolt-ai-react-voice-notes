@@ -51,10 +51,11 @@ This branch fixes critical issues with the settings import/export functionality 
     - Updated AudioManagement component to use notesStore directly
     - Removed unnecessary audio methods from recordingStore
 
-13. `commit_id` - **13. Fix settings import with provider ID mapping**
-    - Fixed model ID mapping during import to handle old timestamp-based provider IDs
-    - Added provider ID mapping to ensure agents reference valid models after import
-    - Enhanced debug logging for easier troubleshooting
+13. `commit_id` - **13. Fix settings import with version-based migration**
+     - Implemented proper version-based migration in store persist middleware
+     - Added migration logic to convert timestamp-based provider IDs to stable IDs
+     - Updated model references in agents during migration
+     - Removed special case handling from import/export code
 
 ## Key Changes
 
@@ -138,36 +139,85 @@ export const AudioManagement: React.FC = () => {
 }
 ```
 
-### 6. Provider ID Mapping During Import
+### 6. Version-Based Migration for Provider IDs
 
-Added provider ID mapping to ensure agents reference valid models after import:
+Implemented proper version-based migration in store persist middleware to handle timestamp-based provider IDs:
 
 ```typescript
-// Create a map of old provider IDs to new provider IDs
-const providerIdMap = new Map();
-
-// Map old timestamp-based provider IDs to new stable provider IDs
-data.llmProviders?.providers.forEach(oldProvider => {
-  const oldProviderId = oldProvider.id;
-  // Find the matching new provider by name
-  const newProvider = llmProvidersStore.providers.find(p => p.name === oldProvider.name);
-  
-  if (newProvider && oldProviderId !== newProvider.id) {
-    providerIdMap.set(oldProviderId, newProvider.id);
+// In llmProvidersStore.ts
+{
+  name: 'llm-providers-store',
+  version: 2, // Increment version number
+  migrate: (persistedState: any, version: number) => {
+    // If migrating from version 1 (timestamp-based IDs)
+    if (version === 1) {
+      const providers = persistedState.providers.map((provider: any) => {
+        // Check if this is a timestamp-based ID
+        if (provider.id && provider.id.includes('-') && !isNaN(parseInt(provider.id.split('-')[1]))) {
+          // Extract the base name (e.g., 'openai' from 'openai-1234567890')
+          const baseName = provider.id.split('-')[0];
+          
+          // Create a stable ID based on provider name
+          const existingCount = persistedState.providers
+            .filter((p: any) => p.id !== provider.id && p.id.startsWith(baseName))
+            .length;
+          
+          const newId = existingCount > 0 ? `${baseName}-${existingCount + 1}` : baseName;
+          
+          // Update provider ID and all model references
+          return {
+            ...provider,
+            id: newId,
+            models: provider.models.map((model: any) => ({
+              ...model,
+              providerId: newId
+            }))
+          };
+        }
+        return provider;
+      });
+      
+      return { ...persistedState, providers };
+    }
+    return persistedState;
   }
-});
+}
+```
 
-// Update model IDs to use new provider IDs
-if (agent.modelId && typeof agent.modelId === 'string') {
-  // Extract provider ID and model name
-  const parts = agent.modelId.split('-');
-  const oldProviderId = parts[0];
-  const newProviderId = providerIdMap.get(oldProviderId);
-  
-  if (newProviderId) {
-    // Replace old provider ID with new provider ID
-    const modelName = parts.length >= 3 ? parts.slice(2).join('-') : parts[1];
-    updatedModelId = `${newProviderId}-${modelName}`;
+And in the agents store, we update all model references to use the new provider IDs:
+
+```typescript
+// In agentsStore.ts
+{
+  name: 'agents-store',
+  version: 2,
+  migrate: (persistedState: any, version: number) => {
+    if (version === 1) {
+      // Get current providers to map old IDs to new ones
+      const currentProviders = llmProvidersStore.getState().providers;
+      
+      // Update model IDs in all agents
+      const updatedAgents = persistedState.agents.map(agent => {
+        if (!agent.modelId) return agent;
+        
+        // Extract provider name from old ID and find matching new provider
+        const providerName = agent.modelId.split('-')[0];
+        const matchingProvider = currentProviders.find(p => 
+          p.name.toLowerCase() === providerName.toLowerCase()
+        );
+        
+        if (matchingProvider) {
+          // Create new model ID with stable provider ID
+          const modelName = extractModelName(agent.modelId);
+          return { ...agent, modelId: `${matchingProvider.id}-${modelName}` };
+        }
+        
+        return agent;
+      });
+      
+      return { ...persistedState, agents: updatedAgents };
+    }
+    return persistedState;
   }
 }
 ```
