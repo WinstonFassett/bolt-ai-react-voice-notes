@@ -82,8 +82,13 @@ export const useLLMProvidersStore = create<LLMProvidersState>()(
       isValidating: false,
       
       addProvider: (providerData) => {
-        const id = `${providerData.name.toLowerCase()}-${Date.now()}`;
-        const config = PROVIDER_CONFIGS[providerData.name.toLowerCase() as keyof typeof PROVIDER_CONFIGS];
+        // Use a stable ID based on provider name without timestamps
+        // If there are multiple providers with the same name, append a number
+        const baseName = providerData.name.toLowerCase();
+        const existingCount = get().providers.filter(p => p.id.startsWith(baseName)).length;
+        const id = existingCount > 0 ? `${baseName}-${existingCount + 1}` : baseName;
+        
+        const config = PROVIDER_CONFIGS[baseName as keyof typeof PROVIDER_CONFIGS];
         
         const newProvider: LLMProvider = {
           ...providerData,

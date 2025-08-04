@@ -393,7 +393,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
     await get().createNoteFromRecording();
   },
   
-  createNoteFromRecording: async () => {
+  createNoteFromRecording: async (): Promise<void> => {
     const state = get();
     
     if (state.recordedChunksInternal.length === 0) {

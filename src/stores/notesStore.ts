@@ -57,7 +57,8 @@ interface NotesState {
   clearAllNotes: () => void;
   clearAllRecordings: () => void;
   downloadAllAudio: () => Promise<void>;
-  importAudio: (file: File) => Promise<void>;
+  downloadSingleAudio: (noteId: string) => Promise<void>;
+  importAudio: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
 
 export const useNotesStore = create<NotesState>()(
@@ -271,7 +272,42 @@ export const useNotesStore = create<NotesState>()(
         }
       },
       
-      importAudio: async (file: File): Promise<void> => {
+      downloadSingleAudio: async (noteId: string): Promise<void> => {
+        const { notes } = get();
+        const note = notes.find(n => n.id === noteId);
+        
+        if (!note || !note.audioUrl) {
+          console.error('Note not found or has no audio');
+          return;
+        }
+        
+        try {
+          // Get audio data from storage
+          const audioData = await audioStorage.getAudio(note.id);
+          if (!audioData) {
+            console.error('Audio data not found');
+            return;
+          }
+          
+          // Use the URL directly since audioStorage.getAudio already returns a blob URL
+          const a = document.createElement('a');
+          a.href = audioData.url;
+          a.download = `${note.title || 'audio'}-${note.id}.${audioData.mimeType.split('/')[1] || 'wav'}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          // Don't revoke the URL here as it might be used elsewhere in the app
+          // URL.revokeObjectURL will be called when the app no longer needs this audio
+        } catch (error) {
+          console.error('Error downloading single audio file:', error);
+        }
+      },
+      
+      importAudio: async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        
         const { notes } = get();
         
         // Use the exported service function
