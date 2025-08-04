@@ -303,12 +303,55 @@ export function resetSettings(): { success: boolean; message: string } {
 }
 
 /**
- * Clears all app data including notes, audio, settings, providers, and agents
+ * Deletes downloaded Whisper models from the cache
  */
-export function clearAllData(): { success: boolean; message: string } {
+export async function deleteDownloadedModels(): Promise<{ success: boolean; message: string }> {
   try {
-    // Clear IndexedDB storage
-    window.indexedDB.deleteDatabase('audio-storage');
+    // Clear the Cache Storage (where transformer models are stored)
+    const cacheKeys = await caches.keys();
+    await Promise.all(
+      cacheKeys
+        .filter(key => key.includes('transformers'))
+        .map(key => caches.delete(key))
+    );
+
+    return {
+      success: true,
+      message: 'All downloaded models cleared successfully'
+    };
+  } catch (error) {
+    console.error('Failed to clear downloaded models:', error);
+    return {
+      success: false,
+      message: `Failed to clear models: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
+  }
+}
+
+/**
+ * Clears all app data including notes, audio, settings, providers, agents, and cached models
+ */
+export async function clearAllData(): Promise<{ success: boolean; message: string }> {
+  try {
+    // Get all IndexedDB databases and delete them
+    const databases = await window.indexedDB.databases();
+    await Promise.all(
+      databases.map(db => 
+        new Promise<void>((resolve, reject) => {
+          if (!db.name) {
+            resolve();
+            return;
+          }
+          const request = window.indexedDB.deleteDatabase(db.name);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        })
+      )
+    );
+
+    // Clear Cache Storage (transformers models and other cached data)
+    const cacheKeys = await caches.keys();
+    await Promise.all(cacheKeys.map(key => caches.delete(key)));
     
     // Clear localStorage
     localStorage.clear();
