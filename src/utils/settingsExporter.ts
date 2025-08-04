@@ -62,6 +62,7 @@ export function exportSettings(): ExportedSettings {
     openAIModel: settingsState.openAIModel
   };
   
+  // With stable provider IDs, we can use the original format
   return {
     version: 1,
     timestamp: Date.now(),
@@ -115,17 +116,26 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
       
       // Set default model after validation to ensure the model exists
       if (data.llmProviders.defaultModelId) {
-        // Get the full model ID format (which includes provider ID)
         const importedModelId = data.llmProviders.defaultModelId;
         
-        // Extract the base model ID (e.g., "gpt-4o-mini") from the full ID
-        // Format is typically "providerId-modelId" where providerId might contain hyphens
-        const importedBaseModelId = importedModelId.split('-').slice(-2).join('-');
+        // With stable provider IDs, exact matching should work better
+        // But we'll still extract the base model ID as a fallback
+        let baseModelId = '';
+        if (typeof importedModelId === 'string') {
+          const parts = importedModelId.split('-');
+          if (parts.length >= 3) {
+            // Skip the first two segments (provider name and timestamp)
+            baseModelId = parts.slice(2).join('-');
+          } else {
+            // Fallback to the last segment if format is different
+            baseModelId = parts[parts.length - 1];
+          }
+        }
         
         if (import.meta.env.DEV) {
           console.log('Importing model ID:', {
             fullId: importedModelId,
-            extractedBaseId: importedBaseModelId
+            extractedBaseId: baseModelId
           });
         }
         
@@ -137,13 +147,13 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
         });
         
         // If no exact match, try matching by the base model ID
-        if (!matchedModel) {
+        if (!matchedModel && baseModelId) {
           matchedModel = allModels.find(model => {
-            return model.id === importedBaseModelId;
+            return model.id === baseModelId;
           });
           
-          if (matchedModel) {
-            console.log(`Found model match by base ID: ${importedBaseModelId}`);
+          if (matchedModel && import.meta.env.DEV) {
+            console.log(`Found model match by base ID: ${baseModelId}`);
           }
         }
         
@@ -165,21 +175,13 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
             const firstModel = allModels[0];
             const firstModelId = `${firstModel.providerId}-${firstModel.id}`;
             llmProvidersStore.setDefaultModel(firstModelId);
-            
-            if (import.meta.env.DEV) {
-              console.log('Falling back to first available model:', {
-                modelId: firstModelId,
-                modelName: firstModel.name
-              });
-            }
           }
         }
       }
     }
     
-    // Import agents
-    if (data.agents) {
-      // Import custom agents
+    // Import custom agents
+    if (data.agents && data.agents.agents) {
       data.agents.agents.forEach(agent => {
         // Check for existing agent by ID first
         const existingAgentById = agentsStore.agents.find(a => a.id === agent.id);
@@ -236,7 +238,25 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
           // Use the override model if specified
           const overrideModelId = override.modelId;
           // Extract the base model ID (e.g., "gpt-4o-mini") from the full ID
-          const overrideBaseModelId = overrideModelId ? overrideModelId.split('-').slice(-2).join('-') : null;
+          // The model ID could be in various formats depending on provider
+          let overrideBaseModelId = null;
+          if (overrideModelId && typeof overrideModelId === 'string') {
+            // For OpenAI models like "openai-1234567890-gpt-4o-mini", we want "gpt-4o-mini"
+            // For Anthropic models like "anthropic-1234567890-claude-3-opus", we want "claude-3-opus"
+            // Extract everything after the second hyphen as the base model ID
+            const parts = overrideModelId.split('-');
+            if (parts.length >= 3) {
+              // Skip the first two segments (provider name and timestamp)
+              overrideBaseModelId = parts.slice(2).join('-');
+            } else {
+              // Fallback to the last segment if format is different
+              overrideBaseModelId = parts[parts.length - 1];
+            }
+            
+            if (import.meta.env.DEV) {
+              console.log(`Extracted base model ID: ${overrideBaseModelId} from ${overrideModelId}`);
+            }
+          }
           
           const allModels = llmProvidersStore.getAvailableModels();
           
@@ -273,7 +293,23 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
         } else if (data.llmProviders && data.llmProviders.defaultModelId) {
           // If no specific model override but we have a default model, use that
           const defaultModelId = data.llmProviders.defaultModelId;
-          const defaultBaseModelId = defaultModelId.split('-').slice(-2).join('-');
+          
+          // Extract the base model ID using the same improved logic
+          let defaultBaseModelId = null;
+          if (defaultModelId && typeof defaultModelId === 'string') {
+            const parts = defaultModelId.split('-');
+            if (parts.length >= 3) {
+              // Skip the first two segments (provider name and timestamp)
+              defaultBaseModelId = parts.slice(2).join('-');
+            } else {
+              // Fallback to the last segment if format is different
+              defaultBaseModelId = parts[parts.length - 1];
+            }
+            
+            if (import.meta.env.DEV) {
+              console.log(`Extracted default base model ID: ${defaultBaseModelId} from ${defaultModelId}`);
+            }
+          }
           
           const allModels = llmProvidersStore.getAvailableModels();
           
