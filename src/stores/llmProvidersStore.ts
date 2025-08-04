@@ -290,8 +290,71 @@ export const useLLMProvidersStore = create<LLMProvidersState>()(
     }),
     {
       name: 'llm-providers-store',
-      version: 1,
-      migrate: (persistedState: any) => persistedState
+      version: 2, // Increment version number
+      migrate: (persistedState: any, version: number) => {
+        // If migrating from version 1 (timestamp-based IDs)
+        if (version === 1) {
+          const providers = persistedState.providers.map((provider: any) => {
+            // Check if this is a timestamp-based ID
+            if (provider.id && provider.id.includes('-') && !isNaN(parseInt(provider.id.split('-')[1]))) {
+              // Extract the base name (e.g., 'openai' from 'openai-1234567890')
+              const baseName = provider.id.split('-')[0];
+              
+              // Create a stable ID based on provider name
+              // If there are multiple providers with the same name, append a number
+              const existingCount = persistedState.providers
+                .filter((p: any) => p.id !== provider.id && p.id.startsWith(baseName))
+                .length;
+              
+              const newId = existingCount > 0 ? `${baseName}-${existingCount + 1}` : baseName;
+              
+              // Update provider ID and all model references
+              const updatedProvider = {
+                ...provider,
+                id: newId,
+                models: provider.models.map((model: any) => ({
+                  ...model,
+                  providerId: newId
+                }))
+              };
+              
+              return updatedProvider;
+            }
+            return provider;
+          });
+          
+          // Update defaultModelId if it references a changed provider ID
+          let defaultModelId = persistedState.defaultModelId;
+          if (defaultModelId) {
+            const parts = defaultModelId.split('-');
+            if (parts.length >= 2) {
+              const oldProviderId = parts[0];
+              const oldProvider = persistedState.providers.find((p: any) => p.id === oldProviderId);
+              
+              if (oldProvider) {
+                // Find the corresponding updated provider
+                const updatedProvider = providers.find((p: any) => 
+                  p.name.toLowerCase() === oldProvider.name.toLowerCase() && p.id !== oldProviderId
+                );
+                
+                if (updatedProvider) {
+                  // Extract model name (last part or everything after timestamp)
+                  const modelName = parts.length >= 3 ? parts.slice(2).join('-') : parts[1];
+                  defaultModelId = `${updatedProvider.id}-${modelName}`;
+                }
+              }
+            }
+          }
+          
+          return {
+            ...persistedState,
+            providers,
+            defaultModelId
+          };
+        }
+        
+        return persistedState;
+      }
     }
   )
 );
