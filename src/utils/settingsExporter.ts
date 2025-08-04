@@ -239,7 +239,7 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
           const overrideModelId = override.modelId;
           // Extract the base model ID (e.g., "gpt-4o-mini") from the full ID
           // The model ID could be in various formats depending on provider
-          let overrideBaseModelId = null;
+          let overrideBaseModelId: string | null = null;
           if (overrideModelId && typeof overrideModelId === 'string') {
             // For OpenAI models like "openai-1234567890-gpt-4o-mini", we want "gpt-4o-mini"
             // For Anthropic models like "anthropic-1234567890-claude-3-opus", we want "claude-3-opus"
@@ -295,7 +295,7 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
           const defaultModelId = data.llmProviders.defaultModelId;
           
           // Extract the base model ID using the same improved logic
-          let defaultBaseModelId = null;
+          let defaultBaseModelId: string | null = null;
           if (defaultModelId && typeof defaultModelId === 'string') {
             const parts = defaultModelId.split('-');
             if (parts.length >= 3) {
