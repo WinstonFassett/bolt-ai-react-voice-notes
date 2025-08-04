@@ -22,7 +22,7 @@ This PR fixes these issues with a straightforward approach:
 5. **Debug Logging**: Added detailed logging for easier troubleshooting
 6. **Audio Management Architecture**: Updated the `AudioManagement` component to use the `notesStore` directly, which has the actual implementations of the audio export/import methods
 7. **Clean Store Architecture**: Removed unnecessary audio method declarations from the `recordingStore` to maintain clean separation of concerns
-8. **Provider ID Mapping**: Added mapping between old timestamp-based provider IDs and new stable IDs during import to ensure agents reference valid models
+8. **Simplified Import/Export**: Streamlined the import/export functionality to work with existing provider IDs without requiring special mapping
 
 ## Testing Done
 

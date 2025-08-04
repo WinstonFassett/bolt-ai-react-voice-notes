@@ -51,11 +51,11 @@ This branch fixes critical issues with the settings import/export functionality 
     - Updated AudioManagement component to use notesStore directly
     - Removed unnecessary audio methods from recordingStore
 
-13. `commit_id` - **13. Fix settings import with provider ID mapping**
-     - Added provider ID mapping during import to handle old timestamp-based provider IDs
-     - Improved model ID extraction and matching to handle different provider formats
-     - Enhanced debug logging for easier troubleshooting
+13. `commit_id` - **13. Simplify settings import/export**
+     - Streamlined import/export functionality to work with existing provider IDs
      - Fixed autoRun flag preservation for built-in agent overrides
+     - Improved handling of duplicate agent names during import
+     - Enhanced error handling and debug logging
 
 ## Key Changes
 
@@ -139,50 +139,45 @@ export const AudioManagement: React.FC = () => {
 }
 ```
 
-### 6. Provider ID Mapping During Import
+### 6. Simplified Import/Export for Agent Settings
 
-Added provider ID mapping to ensure agents reference valid models after import:
+Simplified the import/export functionality to work with existing provider IDs:
 
 ```typescript
-// Create a map of old provider IDs to new provider IDs
-const providerIdMap = new Map();
-
-// Map old timestamp-based provider IDs to new stable provider IDs
-data.llmProviders?.providers.forEach(oldProvider => {
-  const oldProviderId = oldProvider.id;
-  // Find the matching new provider by name
-  const newProvider = llmProvidersStore.providers.find(p => p.name === oldProvider.name);
-  
-  if (newProvider && oldProviderId !== newProvider.id) {
-    providerIdMap.set(oldProviderId, newProvider.id);
-    if (import.meta.env.DEV) {
-      console.log(`Mapped old provider ID ${oldProviderId} to new ID ${newProvider.id}`);
-    }
-  }
-});
-
-// Update model IDs to use new provider IDs
-if (agent.modelId && typeof agent.modelId === 'string') {
-  // Extract provider ID and model name
-  const parts = agent.modelId.split('-');
-  if (parts.length >= 2) {
-    const oldProviderId = parts[0];
-    const newProviderId = providerIdMap.get(oldProviderId);
+// Import custom agents
+if (data.agents && data.agents.agents) {
+  data.agents.agents.forEach(agent => {
+    // Check for existing agent by ID first
+    const existingAgentById = agentsStore.agents.find(a => a.id === agent.id);
     
-    if (newProviderId) {
-      // Replace old provider ID with new provider ID
-      const modelName = parts.length >= 3 ? parts.slice(2).join('-') : parts[1];
-      updatedModelId = `${newProviderId}-${modelName}`;
-      
-      if (import.meta.env.DEV) {
-        console.log(`Updated agent model ID from ${agent.modelId} to ${updatedModelId}`);
-      }
+    // Also check by name to avoid duplicates with same name but different IDs
+    const existingAgentByName = agentsStore.agents.find(a => 
+      a.name === agent.name && a.id !== agent.id
+    );
+    
+    if (existingAgentById) {
+      // Update existing agent with same ID
+      agentsStore.updateAgent({
+        ...agent
+      });
+    } else if (existingAgentByName) {
+      // Update existing agent with same name but different ID
+      agentsStore.updateAgent({
+        ...existingAgentByName,
+        ...agent,
+        id: existingAgentByName.id // Keep the existing ID
+      });
+    } else {
+      // Add new agent
+      agentsStore.addAgent({
+        ...agent
+      });
     }
-  }
+  });
 }
 ```
 
-This approach handles the model ID mapping during import without requiring schema migrations, making it more compatible with existing data.
+This approach preserves all provider IDs as they are, simplifying the import/export process and avoiding unnecessary mapping logic.
 
 ## Breaking/Blocking TODOs
 
