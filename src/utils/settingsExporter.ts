@@ -118,15 +118,46 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
         // Get the full model ID format (which includes provider ID)
         const importedModelId = data.llmProviders.defaultModelId;
         
-        // Check if the model exists in any provider
+        // Extract the base model ID (e.g., "gpt-4o-mini") from the full ID
+        // Format is typically "providerId-modelId" where providerId might contain hyphens
+        const importedBaseModelId = importedModelId.split('-').slice(-2).join('-');
+        
+        if (import.meta.env.DEV) {
+          console.log('Importing model ID:', {
+            fullId: importedModelId,
+            extractedBaseId: importedBaseModelId
+          });
+        }
+        
+        // First try exact match
         const allModels = llmProvidersStore.getAvailableModels();
-        const modelExists = allModels.some(model => {
+        let matchedModel = allModels.find(model => {
           const fullModelId = `${model.providerId}-${model.id}`;
           return fullModelId === importedModelId;
         });
         
-        if (modelExists) {
-          llmProvidersStore.setDefaultModel(importedModelId);
+        // If no exact match, try matching by the base model ID
+        if (!matchedModel) {
+          matchedModel = allModels.find(model => {
+            return model.id === importedBaseModelId;
+          });
+          
+          if (matchedModel) {
+            console.log(`Found model match by base ID: ${importedBaseModelId}`);
+          }
+        }
+        
+        if (matchedModel) {
+          const matchedModelId = `${matchedModel.providerId}-${matchedModel.id}`;
+          llmProvidersStore.setDefaultModel(matchedModelId);
+          
+          if (import.meta.env.DEV) {
+            console.log('Set default model:', {
+              matchedId: matchedModelId,
+              originalId: importedModelId,
+              modelName: matchedModel.name
+            });
+          }
         } else {
           console.warn('Default model from import not found, using first available model');
           // Set to first available model if the imported default doesn't exist
@@ -134,6 +165,13 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
             const firstModel = allModels[0];
             const firstModelId = `${firstModel.providerId}-${firstModel.id}`;
             llmProvidersStore.setDefaultModel(firstModelId);
+            
+            if (import.meta.env.DEV) {
+              console.log('Falling back to first available model:', {
+                modelId: firstModelId,
+                modelName: firstModel.name
+              });
+            }
           }
         }
       }
@@ -196,26 +234,70 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
         
         if (override && override.modelId) {
           // Use the override model if specified
+          const overrideModelId = override.modelId;
+          // Extract the base model ID (e.g., "gpt-4o-mini") from the full ID
+          const overrideBaseModelId = overrideModelId ? overrideModelId.split('-').slice(-2).join('-') : null;
+          
           const allModels = llmProvidersStore.getAvailableModels();
-          const modelExists = allModels.some(model => {
+          
+          // First try exact match
+          let matchedModel = allModels.find(model => {
             const fullModelId = `${model.providerId}-${model.id}`;
-            return fullModelId === override.modelId;
+            return fullModelId === overrideModelId;
           });
-          if (modelExists) {
-            modelId = override.modelId;
+          
+          // If no exact match, try matching by base model ID
+          if (!matchedModel && overrideBaseModelId) {
+            matchedModel = allModels.find(model => model.id === overrideBaseModelId);
+            
+            if (matchedModel) {
+              if (import.meta.env.DEV) {
+                console.log(`Agent ${builtInAgent.name}: Found model match by base ID: ${overrideBaseModelId}`);
+              }
+            }
+          }
+          
+          if (matchedModel) {
+            modelId = `${matchedModel.providerId}-${matchedModel.id}`;
+            
+            if (import.meta.env.DEV) {
+              console.log(`Agent ${builtInAgent.name}: Using model:`, {
+                originalId: overrideModelId,
+                matchedId: modelId,
+                modelName: matchedModel.name
+              });
+            }
           } else {
-            console.warn(`Model ${override.modelId} not found for built-in agent ${builtInAgent.name}, using default`);
+            console.warn(`Model ${overrideModelId} not found for built-in agent ${builtInAgent.name}, using default`);
           }
         } else if (data.llmProviders && data.llmProviders.defaultModelId) {
           // If no specific model override but we have a default model, use that
           const defaultModelId = data.llmProviders.defaultModelId;
+          const defaultBaseModelId = defaultModelId.split('-').slice(-2).join('-');
+          
           const allModels = llmProvidersStore.getAvailableModels();
-          const modelExists = allModels.some(model => {
+          
+          // First try exact match
+          let matchedModel = allModels.find(model => {
             const fullModelId = `${model.providerId}-${model.id}`;
             return fullModelId === defaultModelId;
           });
-          if (modelExists) {
-            modelId = defaultModelId;
+          
+          // If no exact match, try matching by base model ID
+          if (!matchedModel) {
+            matchedModel = allModels.find(model => model.id === defaultBaseModelId);
+          }
+          
+          if (matchedModel) {
+            modelId = `${matchedModel.providerId}-${matchedModel.id}`;
+            
+            if (import.meta.env.DEV) {
+              console.log(`Agent ${builtInAgent.name}: Using default model:`, {
+                originalId: defaultModelId,
+                matchedId: modelId,
+                modelName: matchedModel.name
+              });
+            }
           }
         }
         
