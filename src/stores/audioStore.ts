@@ -55,7 +55,7 @@ interface AudioState {
   handleAudioError: () => void;
 }
 
-export const useAudioStore = create<AudioState>((set, get) => ({
+export const useAudioStore = create<AudioState>()((set, get) => ({
   // Initial state
   currentPlayingAudioUrl: null,
   resolvedPlayingAudioUrl: null,
