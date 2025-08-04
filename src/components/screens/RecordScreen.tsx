@@ -23,19 +23,7 @@ export const RecordScreen: React.FC = () => {
       >
         <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gradient">AI Voice Recorder</h1>
-          <a 
-            href="https://bolt.new" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex-shrink-0"
-          >
-            <img 
-              src="/bolt-badge-white-circle.svg" 
-              alt="Built with Bolt.new" 
-              className="w-12 h-12 opacity-80 hover:opacity-100 transition-opacity"
-            />
-          </a>
+          <h1 className="text-2xl font-bold text-gradient">AI Voice Recorder</h1>         
         </div>
         </div>
       </motion.header>

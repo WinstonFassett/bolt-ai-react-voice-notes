@@ -121,28 +121,30 @@ export const SettingsScreen: React.FC = () => {
 
   return (
     <div className="w-full h-full overflow-y-auto p-4">
-      {settingsGroups.map((group, index) => (
-        <div key={index} className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600/20 flex items-center justify-center">
-              <group.icon className="w-5 h-5 text-indigo-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-white">{group.title}</h2>
-          </div>
-          
-          <div className="space-y-6">
-            {group.items.map((item, itemIndex) => (
-              <div key={itemIndex} className="bg-gray-900/50 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-300 mb-2">{item.label}</h3>
-                {item.description && (
-                  <p className="text-sm text-gray-400 mb-4">{item.description}</p>
-                )}
-                {item.component}
+      <div className="max-w-4xl mx-auto">
+        {settingsGroups.map((group, index) => (
+          <div key={index} className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-indigo-600/20 flex items-center justify-center">
+                <group.icon className="w-5 h-5 text-indigo-400" />
               </div>
-            ))}
+              <h2 className="text-lg font-semibold text-white">{group.title}</h2>
+            </div>
+            
+            <div className="space-y-6">
+              {group.items.map((item, itemIndex) => (
+                <div key={itemIndex} className="bg-gray-900/50 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-300 mb-2">{item.label}</h3>
+                  {item.description && (
+                    <p className="text-sm text-gray-400 mb-4">{item.description}</p>
+                  )}
+                  {item.component}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
