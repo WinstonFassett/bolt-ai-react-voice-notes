@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { useRecordingStore } from '../../stores/recordingStore';
+import { useNotesStore } from '../../stores/notesStore';
 
 export const AudioManagement: React.FC = () => {
-  const { exportAllAudio, importAudio, clearAllRecordings } = useRecordingStore();
+  const { downloadAllAudio, importAudio, clearAllRecordings } = useNotesStore();
   
   // UI state
   const [exportAudioStatus, setExportAudioStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -17,7 +17,7 @@ export const AudioManagement: React.FC = () => {
   const handleExportAllAudio = () => {
     setExportAudioStatus('loading');
     try {
-      exportAllAudio();
+      downloadAllAudio();
       setExportAudioStatus('success');
       setTimeout(() => setExportAudioStatus('idle'), 2000);
     } catch (error) {
@@ -31,8 +31,7 @@ export const AudioManagement: React.FC = () => {
     setImportAudioStatus('loading');
     setImportAudioMessage('Importing audio...');
     
-    const file = event.target.files?.[0];
-    if (!file) {
+    if (!event.target.files?.length) {
       setImportAudioStatus('error');
       setImportAudioMessage('No file selected');
       setTimeout(() => { 
@@ -43,7 +42,7 @@ export const AudioManagement: React.FC = () => {
     }
     
     try {
-      importAudio(file);
+      importAudio(event);
       setImportAudioStatus('success');
       setImportAudioMessage('Audio imported successfully!');
     } catch (error: any) {
