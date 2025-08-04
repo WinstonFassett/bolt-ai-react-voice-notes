@@ -61,6 +61,8 @@ export const SettingsScreen: React.FC = () => {
 
   const [showClearNotesConfirm, setShowClearNotesConfirm] = useState(false);
   const [showClearRecordingsConfirm, setShowClearRecordingsConfirm] = useState(false);
+  const [showResetSettingsConfirm, setShowResetSettingsConfirm] = useState(false);
+  const [showClearAllDataConfirm, setShowClearAllDataConfirm] = useState(false);
 
   // Import status state for feedback
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -117,58 +119,58 @@ export const SettingsScreen: React.FC = () => {
       downloadSettings();
       setExportSettingsStatus('success');
       setExportSettingsMessage('Settings exported successfully');
-    } catch (error: any) {
+      setTimeout(() => { setExportSettingsStatus('idle'); setExportSettingsMessage(''); }, 4000);
+    } catch (error) {
+      console.error('Error exporting settings:', error);
       setExportSettingsStatus('error');
-      setExportSettingsMessage('Error exporting settings: ' + (error?.message || 'Unknown error'));
+      setExportSettingsMessage('Error exporting settings');
+      setTimeout(() => { setExportSettingsStatus('idle'); setExportSettingsMessage(''); }, 4000);
     }
-    setTimeout(() => { setExportSettingsStatus('idle'); setExportSettingsMessage(''); }, 4000);
   };
 
   // Reset settings handler
   const handleResetSettings = () => {
-    if (window.confirm('Are you sure you want to reset all settings to defaults? This will remove all custom providers and agents.')) {
-      setResetSettingsStatus('loading');
-      setResetSettingsMessage('Resetting settings...');
-      try {
-        const result = resetSettings();
-        if (result.success) {
-          setResetSettingsStatus('success');
-          setResetSettingsMessage(result.message);
-        } else {
-          setResetSettingsStatus('error');
-          setResetSettingsMessage(result.message);
-        }
-      } catch (error: any) {
-        setResetSettingsStatus('error');
-        setResetSettingsMessage('Error resetting settings: ' + (error?.message || 'Unknown error'));
-      }
-      setTimeout(() => { setResetSettingsStatus('idle'); setResetSettingsMessage(''); }, 4000);
+    setResetSettingsStatus('loading');
+    setResetSettingsMessage('Resetting settings...');
+    
+    try {
+      resetSettings();
+      setResetSettingsStatus('success');
+      setResetSettingsMessage('Settings reset successfully');
+      setTimeout(() => { 
+        setResetSettingsStatus('idle'); 
+        setResetSettingsMessage(''); 
+        setShowResetSettingsConfirm(false);
+      }, 4000);
+    } catch (error) {
+      console.error('Error resetting settings:', error);
+      setResetSettingsStatus('error');
+      setResetSettingsMessage('Error resetting settings');
+      setTimeout(() => { 
+        setResetSettingsStatus('idle'); 
+        setResetSettingsMessage(''); 
+      }, 4000);
     }
   };
 
   // Clear all data handler
   const handleClearAllData = () => {
-    if (window.confirm('⚠️ WARNING: This will delete ALL data including notes, recordings, settings, and providers. This action cannot be undone! Are you absolutely sure?')) {
-      setClearDataStatus('loading');
-      setClearDataMessage('Clearing all data...');
-      try {
-        const result = clearAllData();
-        if (result.success) {
-          setClearDataStatus('success');
-          setClearDataMessage(result.message);
-          // Show a final confirmation that requires page refresh
-          setTimeout(() => {
-            window.alert('All data has been cleared. The page will now reload.');
-            window.location.reload();
-          }, 1500);
-        } else {
-          setClearDataStatus('error');
-          setClearDataMessage(result.message);
-        }
-      } catch (error: any) {
-        setClearDataStatus('error');
-        setClearDataMessage('Error clearing data: ' + (error?.message || 'Unknown error'));
-      }
+    setClearDataStatus('loading');
+    setClearDataMessage('Clearing all data...');
+    
+    try {
+      clearAllData();
+      // Note: The app will reload after this, so no need to set success state
+      setClearDataStatus('success');
+      setClearDataMessage('All data cleared successfully');
+    } catch (error) {
+      console.error('Error clearing all data:', error);
+      setClearDataStatus('error');
+      setClearDataMessage('Error clearing all data');
+      setTimeout(() => { 
+        setClearDataStatus('idle'); 
+        setClearDataMessage(''); 
+      }, 4000);
     }
   };
 
@@ -247,123 +249,69 @@ export const SettingsScreen: React.FC = () => {
     {
       title: 'Data Management',
       icon: DocumentArrowDownIcon,
-      items: [
-        {
-          label: 'Export All Notes',
-          description: 'Download all your transcripts as JSON',
-          component: (
-            <button
-              onClick={exportNotes}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-            >
-              Export
-            </button>
-          )
-        },
-        {
-          label: 'Import Notes',
-          description: 'Import transcripts from a backup file',
-          component: (
-            <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer">
-              Import
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImportNotes}
-                className="hidden"
-              />
-            </label>
-          )
-        },
-        {
-          label: 'Audio Management',
-          description: 'Export and import audio recordings',
-          component: (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={downloadAllAudio}
-                  disabled={isExportingAudio}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <DocumentArrowDownIcon className="w-5 h-5" />
-                  Export All Audio
-                </button>
-                
-                {isExportingAudio && (
-                  <div className="text-sm text-gray-300 mt-2">
-                    Exporting audio... {exportProgress}
-                  </div>
-                )}
-                
-                {notesWithAudio && notesWithAudio.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium text-gray-300 mb-2">Export Individual Audio Files</h4>
-                    <div className="max-h-40 overflow-y-auto space-y-2 pr-2">
-                      {notesWithAudio.map(note => (
-                        <div key={note.id} className="flex items-center justify-between bg-gray-800 p-2 rounded">
-                          <div className="text-sm truncate flex-1 mr-2">{note.title || 'Untitled Note'}</div>
-                          <button
-                            onClick={() => downloadSingleAudio(note.id)}
-                            className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded transition-colors"
-                          >
-                            Export
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="relative mt-2">
-                  <input
-                    type="file"
-                    id="import-audio"
-                    accept=".zip"
-                    onChange={importAudio}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <label
-                    htmlFor="import-audio"
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+    items: [
+      {
+        label: 'Data Management',
+        description: 'Export, import, and manage your data',
+        component: (
+          <div className="space-y-6 w-full">
+            {/* Settings Management UI - New organized version */}
+            <div className="bg-gray-800 rounded-lg p-4 space-y-4">
+              <div className="flex flex-row items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-300">Settings Management</h3>
+                <div className="flex flex-row gap-2">
+                  <button
+                    onClick={handleExportSettings}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                    disabled={exportSettingsStatus === 'loading'}
                   >
-                    <ArrowUpTrayIcon className="w-5 h-5" />
-                    Import Audio
-                  </label>
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                    Export
+                  </button>
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      id="import-settings-file"
+                      accept=".json"
+                      onChange={handleImportSettings}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="import-settings-file"
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ArrowUpTrayIcon className="w-5 h-5" />
+                      Import
+                    </label>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowResetSettingsConfirm(true)}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ArrowPathIcon className="w-5 h-5" />
+                    Reset
+                  </button>
                 </div>
               </div>
+              
+              {resetSettingsMessage && (
+                <div className={`text-sm ${resetSettingsStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  {resetSettingsMessage}
+                </div>
+              )}
+              
+              {importSettingsMessage && (
+                <div className={`text-sm ${importSettingsStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  {importSettingsMessage}
+                </div>
+              )}
             </div>
-          )
-        },
-        {
-          label: 'Clear Data',
-          description: 'Delete all transcripts and notes',
-          component: (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => setShowClearNotesConfirm(true)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                >
-                  Clear All Notes
-                </button>
-                <button
-                  onClick={() => setShowClearRecordingsConfirm(true)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                >
-                  Clear All Recordings
-                </button>
-              </div>
-            </div>
-          )
-        },
-        {
-          label: 'Data Management',
-          description: 'Manage your notes, audio recordings, and application settings',
-          component: (
-            <div className="space-y-6">
-              {/* Notes Management */}
-              <div className="space-y-2">
+            
+            {/* Notes Management UI */}
+            <div className="bg-gray-800 rounded-lg p-4 space-y-4">
+              <div className="flex flex-row items-center justify-between">
                 <h3 className="text-sm font-medium text-gray-300">Notes Management</h3>
                 <div className="flex flex-row gap-2">
                   <button
@@ -385,7 +333,7 @@ export const SettingsScreen: React.FC = () => {
                     />
                     <label
                       htmlFor="import-notes"
-                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <ArrowUpTrayIcon className="w-5 h-5" />
                       Import
@@ -452,63 +400,14 @@ export const SettingsScreen: React.FC = () => {
                 )}
               </div>
               
-              {/* Settings Management */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium text-gray-300">Settings Management</h3>
-                <div className="flex flex-row gap-2">
-                  <button
-                    onClick={handleExportSettings}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                    disabled={exportSettingsStatus === 'loading'}
-                  >
-                    <ArrowDownTrayIcon className="w-5 h-5" />
-                    Export
-                  </button>
-                  
-                  <div className="relative">
-                    <input
-                      type="file"
-                      id="import-settings"
-                      accept=".json"
-                      onChange={handleImportSettings}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <label
-                      htmlFor="import-settings"
-                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <ArrowUpTrayIcon className="w-5 h-5" />
-                      Import
-                    </label>
-                  </div>
-                  
-                  <button
-                    onClick={handleResetSettings}
-                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                    disabled={resetSettingsStatus === 'loading'}
-                  >
-                    <ArrowPathIcon className="w-5 h-5" />
-                    Reset
-                  </button>
-                </div>
-                {importSettingsMessage && (
-                  <div className={`text-sm ${importSettingsStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                    {importSettingsMessage}
-                  </div>
-                )}
-                {resetSettingsMessage && (
-                  <div className={`text-sm ${resetSettingsStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                    {resetSettingsMessage}
-                  </div>
-                )}
-              </div>
+
               
               {/* Danger Zone */}
               <div className="mt-8 pt-4 border-t border-gray-700">
                 <h3 className="text-sm font-medium text-red-500">Danger Zone</h3>
                 <div className="mt-2">
                   <button
-                    onClick={handleClearAllData}
+                    onClick={() => setShowClearAllDataConfirm(true)}
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 w-full"
                     disabled={clearDataStatus === 'loading'}
                   >
@@ -774,6 +673,82 @@ export const SettingsScreen: React.FC = () => {
           {importSettingsMessage}
         </div>
       )}
+
+      {/* Reset Settings Confirmation Modal */}
+      <AnimatePresence>
+        {showResetSettingsConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+            >
+              <h3 className="text-lg font-semibold text-white mb-4">Reset Settings</h3>
+              <p className="text-gray-300 mb-6">
+                Are you sure you want to reset all settings to default values? This will reset your AI providers, agents, and app preferences.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowResetSettingsConfirm(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResetSettings}
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors"
+                >
+                  Reset Settings
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Clear All Data Confirmation Modal */}
+      <AnimatePresence>
+        {showClearAllDataConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+            >
+              <h3 className="text-lg font-semibold text-red-500 mb-4">Clear All Data</h3>
+              <p className="text-gray-300 mb-6">
+                Are you sure you want to delete ALL data from this device? This includes notes, recordings, settings, and AI providers. This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowClearAllDataConfirm(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleClearAllData}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  Clear All Data
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

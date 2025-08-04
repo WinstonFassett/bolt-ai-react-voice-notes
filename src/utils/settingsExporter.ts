@@ -41,10 +41,12 @@ export function exportSettings(): ExportedSettings {
   // Get custom agents and any overrides to built-in agents
   const customAgents = agentsState.agents;
   
-  // Get built-in agents that have been modified
-  const builtInAgentOverrides = agentsState.builtInAgents.filter(agent => 
-    agent.autoRun === false || agent.modelId !== ''
-  );
+  // Get ALL built-in agents to preserve their state
+  const builtInAgentOverrides = agentsState.builtInAgents.map(agent => ({
+    id: agent.id,
+    autoRun: agent.autoRun,
+    modelId: agent.modelId
+  }));
   
   // Collect app settings
   const appSettings = {
@@ -61,7 +63,7 @@ export function exportSettings(): ExportedSettings {
     version: 1,
     timestamp: Date.now(),
     llmProviders: {
-      providers,
+      providers: llmProvidersState.providers,
       defaultModelId: llmProvidersState.defaultModelId
     },
     agents: {
@@ -110,17 +112,25 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
       
       // Set default model after validation to ensure the model exists
       if (data.llmProviders.defaultModelId) {
+        // Get the full model ID format (which includes provider ID)
+        const importedModelId = data.llmProviders.defaultModelId;
+        
         // Check if the model exists in any provider
         const allModels = llmProvidersStore.getAvailableModels();
-        const modelExists = allModels.some(model => model.id === data.llmProviders.defaultModelId);
+        const modelExists = allModels.some(model => {
+          const fullModelId = `${model.providerId}-${model.id}`;
+          return fullModelId === importedModelId;
+        });
         
         if (modelExists) {
-          llmProvidersStore.setDefaultModel(data.llmProviders.defaultModelId);
+          llmProvidersStore.setDefaultModel(importedModelId);
         } else {
           console.warn('Default model from import not found, using first available model');
           // Set to first available model if the imported default doesn't exist
           if (allModels.length > 0) {
-            llmProvidersStore.setDefaultModel(allModels[0].id);
+            const firstModel = allModels[0];
+            const firstModelId = `${firstModel.providerId}-${firstModel.id}`;
+            llmProvidersStore.setDefaultModel(firstModelId);
           }
         }
       }
@@ -170,17 +180,18 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
         overrideMap.set(override.id, override);
       });
       
-      // Apply overrides to all built-in agents
+      // Apply overrides to ALL built-in agents
       agentsStore.builtInAgents.forEach(builtInAgent => {
+        // Get the override or use default values if not found
         const override = overrideMap.get(builtInAgent.id);
-        if (override) {
-          // Apply the override from the imported settings
-          agentsStore.updateAgent({
-            ...builtInAgent,
-            autoRun: override.autoRun,
-            modelId: override.modelId
-          });
-        }
+        
+        // Always update each built-in agent to ensure state is preserved
+        agentsStore.updateAgent({
+          ...builtInAgent,
+          // If we have an override, use its values, otherwise keep current values
+          autoRun: override ? override.autoRun : builtInAgent.autoRun,
+          modelId: override ? override.modelId : builtInAgent.modelId
+        });
       });
     }
     
