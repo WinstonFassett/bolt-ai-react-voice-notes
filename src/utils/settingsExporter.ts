@@ -338,13 +338,16 @@ export async function importSettings(data: ExportedSettings): Promise<{ success:
         }
         
         // Always update each built-in agent to ensure state is preserved
-        agentsStore.updateAgent({
+        // Create an updated agent with the override values
+        const updatedAgent = {
           ...builtInAgent,
-          // If we have an override, use its values, otherwise keep current values
-          // For autoRun, explicitly check if it's defined in the override to handle false values correctly
+          // CRITICAL: For autoRun, explicitly check if it's defined in the override to handle false values correctly
           autoRun: override && override.hasOwnProperty('autoRun') ? override.autoRun : builtInAgent.autoRun,
           modelId
-        });
+        };
+        
+        // Use the updateAgent method which handles both regular and built-in agents
+        agentsStore.updateAgent(updatedAgent);
         
         if (import.meta.env.DEV) {
           console.log(`Updated built-in agent ${builtInAgent.name}:`, {
