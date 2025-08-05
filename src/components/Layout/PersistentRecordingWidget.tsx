@@ -1,7 +1,7 @@
 import { Mic, Square, Pause, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { useAppStore } from '@/stores/mock-appStore'
+import { useAppStore } from '@/store/appStore'
 import { cn } from '@/lib/utils'
 
 export function PersistentRecordingWidget() {
