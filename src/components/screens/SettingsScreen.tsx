@@ -9,7 +9,7 @@ import {
 
 // Import components
 import { ModelSelector } from '../ModelSelector';
-import { LLMProviderSettings } from '../ui/LLMProviderSettings';
+import { LLMProviderSettings } from '../LLMProviderSettings';
 import { 
   NotesManagement, 
   AudioManagement, 

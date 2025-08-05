@@ -5,7 +5,7 @@ import {
   PlayIcon,
   CheckIcon
 } from '@heroicons/react/24/outline';
-import { useAgentsStore } from '../../stores/agentsStore';
+import { useAgentsStore } from '../stores/agentsStore';
 
 interface RunAgentsDialogProps {
   isOpen: boolean;

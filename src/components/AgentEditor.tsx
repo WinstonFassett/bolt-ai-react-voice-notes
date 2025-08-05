@@ -5,8 +5,8 @@ import {
   PlusIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
-import { useAgentsStore } from '../../stores/agentsStore';
-import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
+import { useAgentsStore } from '../stores/agentsStore';
+import { useLLMProvidersStore } from '../stores/llmProvidersStore';
 
 interface AgentFormData {
   name: string;

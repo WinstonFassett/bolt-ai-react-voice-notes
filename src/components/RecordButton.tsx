@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MicrophoneIcon, StopIcon, PauseIcon, PlayIcon, XMarkIcon } from '@heroicons/react/24/solid';
-import { WaveformVisualizer } from './WaveformVisualizer';
-import { useAudioStore } from '../../stores/audioStore';
-import { useRecordingStore } from '../../stores/recordingStore';
-import { useRoutingStore } from '../../stores/routingStore';
+import { WaveformVisualizer } from './ui/WaveformVisualizer';
+import { useAudioStore } from '../stores/audioStore';
+import { useRecordingStore } from '../stores/recordingStore';
+import { useRoutingStore } from '../stores/routingStore';
 
 export const RecordButton: React.FC = () => {
   // Get everything from stores

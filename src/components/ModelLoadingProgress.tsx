@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Progress } from '../Progress';
+import { Progress } from './Progress';
 
-import { ProgressItem } from '../../stores/transcriptionStore';
+import { ProgressItem } from '../stores/transcriptionStore';
 
 interface ModelLoadingProgressProps {
   progressItems: ProgressItem[];

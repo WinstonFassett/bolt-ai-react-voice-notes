@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { IoCopyOutline } from 'react-icons/io5';
 import Transcript from "./Transcript";
-import { CrepeEditorWrapper } from './ui/CrepeEditor';
+import { CrepeEditorWrapper } from './CrepeEditor';
 
 interface NoteVersion {
   content: string;

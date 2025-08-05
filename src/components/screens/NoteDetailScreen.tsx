@@ -17,11 +17,11 @@ import { isStorageUrl, resolveStorageUrl } from '../../utils/audioStorage';
 import { Note, useNotesStore } from '../../stores/notesStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
-import { BottomNavigation } from '../ui/BottomNavigation';
-import { CrepeEditorWrapper } from '../ui/CrepeEditor';
-import { RunAgentsDialog } from '../ui/RunAgentsDialog';
-import { TakeawayCard } from '../ui/TakeawayCard';
-import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
+import { BottomNavigation } from '../BottomNavigation';
+import { CrepeEditorWrapper } from '../CrepeEditor';
+import { RunAgentsDialog } from '../RunAgentsDialog';
+import { TakeawayCard } from '../TakeawayCard';
+import { ModelLoadingProgress } from '../ModelLoadingProgress';
 
 interface NoteDetailScreenProps {
   note: Note;

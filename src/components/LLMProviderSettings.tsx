@@ -8,8 +8,8 @@ import {
   EyeIcon,
   EyeSlashIcon
 } from '@heroicons/react/24/outline';
-import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
-import { useAgentsStore } from '../../stores/agentsStore';
+import { useLLMProvidersStore } from '../stores/llmProvidersStore';
+import { useAgentsStore } from '../stores/agentsStore';
 
 interface AddProviderModalProps {
   isOpen: boolean;

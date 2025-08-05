@@ -4,7 +4,7 @@ import { MicrophoneIcon } from '@heroicons/react/24/solid';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { useAudioStore } from '../../stores/audioStore';
-import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
+import { ModelLoadingProgress } from '../ModelLoadingProgress';
 
 export const RecordScreen: React.FC = () => {
   // Get everything from stores

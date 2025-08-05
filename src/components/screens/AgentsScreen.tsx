@@ -12,7 +12,7 @@ import {
 // Zustand stores
 import { useAgentsStore } from '../../stores/agentsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
-import { AgentEditor } from '../ui/AgentEditor';
+import { AgentEditor } from '../AgentEditor';
 import { useAppStore } from '../../stores/appStore';
 import { useRoutingStore } from '../../stores/routingStore';
 

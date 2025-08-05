@@ -6,7 +6,7 @@ import { SettingsScreen } from './components/screens/SettingsScreen';
 import { AgentsScreen } from './components/screens/AgentsScreen';
 import { NoteDetailScreen } from './components/screens/NoteDetailScreen';
 import { BottomNavigation } from './components/layout/BottomNavigation';
-import { RecordButton } from './components/ui/RecordButton';
+import { RecordButton } from './components/RecordButton';
 import { PersistentAudioPlayer } from './components/layout/PersistentAudioPlayer';
 import { PersistentRecordingWidget } from './components/layout/PersistentRecordingWidget';
 import Modal from './components/modal/Modal';
