@@ -5,9 +5,10 @@ import { LibraryScreen } from './components/screens/LibraryScreen';
 import { SettingsScreen } from './components/screens/SettingsScreen';
 import { AgentsScreen } from './components/screens/AgentsScreen';
 import { NoteDetailScreen } from './components/screens/NoteDetailScreen';
-import { BottomNavigation } from './components/ui/BottomNavigation';
+import { BottomNavigation } from './components/layout/BottomNavigation';
 import { RecordButton } from './components/ui/RecordButton';
-import { GlobalAudioPlayer } from './components/ui/GlobalAudioPlayer';
+import { PersistentAudioPlayer } from './components/layout/PersistentAudioPlayer';
+import { PersistentRecordingWidget } from './components/layout/PersistentRecordingWidget';
 import Modal from './components/modal/Modal';
 import { UrlInput } from './components/modal/UrlInput';
 import axios from 'axios';
@@ -125,7 +126,7 @@ function App() {
             activeTab={currentRoute.tab}
             onTabChange={setTab}
           />
-          {currentPlayingAudioUrl && <GlobalAudioPlayer />}
+          <PersistentAudioPlayer />
         </div>
       );
     }
@@ -187,8 +188,9 @@ function App() {
       </AnimatePresence>
 
       <RecordButton />
-      {currentPlayingAudioUrl && <GlobalAudioPlayer />}
-      <BottomNavigation activeTab={currentRoute.tab} onTabChange={setTab} />
+      <PersistentAudioPlayer />
+      <PersistentRecordingWidget />
+      <BottomNavigation />
 
       {/* URL Modal */}
       <Modal
