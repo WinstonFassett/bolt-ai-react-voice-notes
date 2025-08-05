@@ -7,9 +7,9 @@ import {
   BackwardIcon,
   ForwardIcon
 } from '@heroicons/react/24/solid';
-import { useAudioStore } from '../../stores/audioStore';
-import { useNotesStore } from '../../stores/notesStore';
-import { useRoutingStore } from '../../stores/routingStore';
+import { useAudioStore } from '../stores/audioStore';
+import { useNotesStore } from '../stores/notesStore';
+import { useRoutingStore } from '../stores/routingStore';
 
 export const GlobalAudioPlayer: React.FC = () => {
   // Get everything from stores

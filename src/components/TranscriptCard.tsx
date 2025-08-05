@@ -10,7 +10,7 @@ import {
   SparklesIcon
 } from '@heroicons/react/24/outline';
 
-import { useAudioStore } from '../../stores/audioStore';
+import { useAudioStore } from '@/stores/audioStore';
 
 interface TranscriptCardProps {
   id: string;

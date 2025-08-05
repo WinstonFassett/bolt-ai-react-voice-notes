@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TranscriptCard } from '../ui/TranscriptCard';
-import { AddButton } from '../ui/AddButton';
+import { TranscriptCard } from '../TranscriptCard';
+import { AddButton } from '../AddButton';
 import { useNotesStore } from '../../stores/notesStore';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useAudioStore } from '../../stores/audioStore';

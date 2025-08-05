@@ -1,70 +1,80 @@
-import { Pause, Play, Square, Mic } from 'lucide-react'
-import { useRecordingStore } from '../../stores/recordingStore'
-// Import formatTime with type declaration
-import { formatTime } from '../../utils/formatTime'
+import { Mic, Square, Pause, Play } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { useAppStore } from '@/stores/mock-appStore'
+import { cn } from '@/lib/utils'
 
 export function PersistentRecordingWidget() {
   const { 
     isRecording, 
-    isPaused,
+    isPaused, 
     recordingTime, 
     pauseRecording, 
     resumeRecording, 
     stopRecording 
-  } = useRecordingStore()
-  
+  } = useAppStore()
+
   if (!isRecording) return null
-  
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const handleToggle = () => {
+    if (isPaused) {
+      resumeRecording()
+    } else {
+      pauseRecording()
+    }
+  }
+
   return (
-    <div className="fixed bottom-16 left-0 right-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-border p-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-red-500/20 flex items-center justify-center">
-            <Mic className="h-5 w-5 text-red-500" />
+    <Card className="fixed bottom-20 left-4 right-4 z-40 shadow-2xl border-emerald-500/30 bg-slate-900/95 backdrop-blur-md">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "h-3 w-3 rounded-full",
+              isPaused ? "bg-amber-500 animate-pulse" : "bg-red-500 animate-pulse"
+            )} />
+            <span className="text-sm font-medium text-white">
+              {isPaused ? 'Recording Paused' : 'Recording'}
+            </span>
           </div>
           
-          <div>
-            <div className="text-sm font-medium flex items-center">
-              {isPaused ? (
-                <span>Recording paused</span>
-              ) : (
-                <>
-                  <span className="inline-block h-2 w-2 rounded-full bg-red-500 mr-2 animate-pulse" />
-                  <span>Recording</span>
-                </>
-              )}
-            </div>
-            <div className="text-xs text-muted-foreground">
+          <div className="flex-1 text-center">
+            <div className="text-lg font-mono font-bold text-emerald-400">
               {formatTime(recordingTime)}
             </div>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {isPaused ? (
-            <button
-              onClick={resumeRecording}
-              className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
-            >
-              <Play className="h-4 w-4 ml-0.5" />
-            </button>
-          ) : (
-            <button
-              onClick={pauseRecording}
-              className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
-            >
-              <Pause className="h-4 w-4" />
-            </button>
-          )}
           
-          <button
-            onClick={stopRecording}
-            className="h-8 w-8 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
-          >
-            <Square className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleToggle}
+              className="h-8 w-8 p-0"
+            >
+              {isPaused ? (
+                <Play className="h-4 w-4" />
+              ) : (
+                <Pause className="h-4 w-4" />
+              )}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={stopRecording}
+              className="h-8 w-8 p-0"
+            >
+              <Square className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

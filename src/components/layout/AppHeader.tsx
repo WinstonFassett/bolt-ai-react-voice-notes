@@ -1,5 +1,5 @@
 import { ArrowLeft, Menu } from 'lucide-react'
-import { useRoutingStore } from '../../stores/routingStore'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 
 interface AppHeaderProps {
@@ -9,7 +9,7 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, showBack, actions }: AppHeaderProps) {
-  const { navigateBack } = useRoutingStore()
+  const navigate = useNavigate()
 
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
@@ -19,7 +19,7 @@ export function AppHeader({ title, showBack, actions }: AppHeaderProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigateBack()}
+              onClick={() => navigate(-1)}
               className="h-8 w-8 p-0"
             >
               <ArrowLeft className="h-4 w-4" />
