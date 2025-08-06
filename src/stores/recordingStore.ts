@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { audioStorage } from '../utils/audioStorage';
-import { generateSmartTitle } from '../utils/titleGenerator';
 
 interface RecordingState {
   // Recording state
@@ -214,8 +213,6 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   
   // High-level flows that handle everything
   startRecordingFlow: async () => {
-    const state = get();
-    
     try {
       console.log('🎙️ RecordingStore: Starting recording flow');
       
@@ -325,7 +322,10 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   
   pauseRecordingFlow: () => {
     const state = get();
-    if (state.mediaRecorderInstance && state.isRecording && !state.isPaused) {
+    
+    if (!state.isRecording || state.isPaused) return;
+    
+    if (state.mediaRecorderInstance) {
       state.mediaRecorderInstance.pause();
       const now = Date.now();
       set({
@@ -539,9 +539,11 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         processingStatus: ''
       });
       
-      // Navigate using window.location to ensure compatibility with React Router
+      // Use React Router for navigation without page reload
       console.log(`🎙️ RecordingStore: Navigating to note detail page for ${noteId}`);
-      window.location.href = `/note/${noteId}`;
+      // Import dynamically to avoid circular dependencies
+      const { useRoutingStore } = await import('./routingStore');
+      useRoutingStore.getState().navigateToNote(noteId);
       
       // Start transcription
       await get().startTranscription(audioBlob, noteId);

@@ -3,17 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MicrophoneIcon } from '@heroicons/react/24/solid';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useAudioStore } from '../../stores/audioStore';
-import { useNavigate } from 'react-router-dom';
 
 export const RecordScreen: React.FC = () => {
   // Get everything from stores
   const { isRecording, startRecordingFlow } = useRecordingStore();
-  const { currentPlayingAudioUrl } = useAudioStore();
-  const navigate = useNavigate();
+  const { currentPlayingAudioUrl, closePlayer } = useAudioStore();
   
-  // Handle recording start with proper navigation
+  // We don't need this function anymore as we've moved the logic to handleStartRecording
+
   const handleStartRecording = useCallback(async () => {
     try {
+      // Cancel any active playback before starting recording
+      if (currentPlayingAudioUrl) {
+        closePlayer();
+      }
       await startRecordingFlow();
       // Note: Navigation to note detail will be handled by the recording store
       // when it creates a note from the recording
@@ -21,7 +24,7 @@ export const RecordScreen: React.FC = () => {
       console.error('Failed to start recording:', error);
       // Show error message to user
     }
-  }, [startRecordingFlow]);
+  }, [startRecordingFlow, currentPlayingAudioUrl, closePlayer]);
 
   // Show the big record button when no audio is playing
   const showBigRecordButton = currentPlayingAudioUrl === null;
