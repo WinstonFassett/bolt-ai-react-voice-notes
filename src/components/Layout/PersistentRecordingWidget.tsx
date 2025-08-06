@@ -28,7 +28,7 @@ export function PersistentRecordingWidget() {
   }
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-40 shadow-2xl border-emerald-500/30 bg-slate-900/95 backdrop-blur-md">
+    <Card className="fixed bottom-20 left-4 right-4 z-40 shadow-2xl border-primary/30 bg-background/95 backdrop-blur-md">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
@@ -36,13 +36,13 @@ export function PersistentRecordingWidget() {
               "h-3 w-3 rounded-full",
               isPaused ? "bg-amber-500 animate-pulse" : "bg-red-500 animate-pulse"
             )} />
-            <span className="text-sm font-medium text-white">
+            <span className="text-sm font-medium">
               {isPaused ? 'Recording Paused' : 'Recording'}
             </span>
           </div>
           
           <div className="flex-1 text-center">
-            <div className="text-lg font-mono font-bold text-emerald-400">
+            <div className="text-lg font-mono font-bold text-primary">
               {formatTime(recordingTime)}
             </div>
           </div>

@@ -34,16 +34,11 @@ export const SettingsScreen: React.FC = () => {
   // Using stable references to prevent infinite loops
   const modelSelectorComponent = useMemo(() => <ModelSelector className="w-full" />, []);
   const llmProviderSettingsComponent = useMemo(() => <LLMProviderSettings />, []);
-  const settingsManagementComponent = useMemo(() => <SettingsManagement />, []);
-  const notesManagementComponent = useMemo(() => <NotesManagement />, []);
-  const audioManagementComponent = useMemo(() => <AudioManagement />, []);
-  const dangerZoneComponent = useMemo(() => <DangerZone />, []);
   const debugInfoComponent = useMemo(() => <DebugInfo />, []);
 
   const memoizedAudioManagement = useMemo(() => <AudioManagement />, []);
   const memoizedNotesManagement = useMemo(() => <NotesManagement />, []);
   const memoizedSettingsManagement = useMemo(() => <SettingsManagement />, []);
-  const memoizedDebugInfo = useMemo(() => <DebugInfo />, []);
   const memoizedDangerZone = useMemo(() => <DangerZone />, []);
 
   const settingsGroups = useMemo(() => [
@@ -131,8 +126,19 @@ export const SettingsScreen: React.FC = () => {
   ], [hasOpenAIProvider, useOpenAIForSTT]);
 
   return (
-    <div className="w-full h-full overflow-y-auto p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="flex flex-col h-full bg-gray-900 relative">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
+        <div className="safe-area-top py-4 px-4">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-2xl font-bold text-white">Settings</h1>
+          </div>
+        </div>
+      </header>
+      
+      {/* Content */}
+      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-20">
+        <div className="max-w-4xl mx-auto">
         {settingsGroups.map((group, index) => (
           <div key={index} className="mb-8">
             <div className="flex items-center gap-3 mb-4">
@@ -155,7 +161,8 @@ export const SettingsScreen: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      </main>
     </div>
   );
 };
