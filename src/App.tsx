@@ -32,7 +32,7 @@ function AppContent() {
   }, [navigate])
 
   return (
-    <div className="h-screen bg-background text-foreground overflow-hidden">
+    <div className="h-screen bg-background text-foreground transition-colors overflow-hidden">
       <div className={`h-full ${isRecording ? 'pb-32' : 'pb-16'}`}>
         <Routes>
           <Route path="/" element={<RecordScreen />} />

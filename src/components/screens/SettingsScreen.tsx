@@ -100,13 +100,13 @@ export const SettingsScreen: React.FC = () => {
           label: 'Theme',
           
           component: (
-            <div className="flex flex-col space-y-2">
-              <div className="w-full">
-                <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2 sm:mb-0">Choose your preferred color scheme</p>
               </div>
-              <div className="w-full">
+              <div>
                 <Select value={theme} onValueChange={setTheme}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Select theme" />
                   </SelectTrigger>
                   <SelectContent>
