@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { TranscriptCard } from '../TranscriptCard';
+import { TranscriptCard as BaseTranscriptCard } from '../TranscriptCard';
 import { AddButton } from '../AddButton';
 import { useNotesStore } from '../../stores/notesStore';
 import { useRecordingStore } from '../../stores/recordingStore';
@@ -10,6 +10,9 @@ import {
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { Note } from '../../stores/notesStore';
+
+// Create a memoized version of TranscriptCard to prevent unnecessary re-renders
+const TranscriptCard = memo(BaseTranscriptCard);
 
 interface LibraryScreenProps {
   onUploadFile: () => void;
@@ -20,12 +23,12 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   // Get everything from stores
   const { notes, deleteNote, createNote } = useNotesStore();
   const { startRecordingFlow } = useRecordingStore();
-  const { playAudio, currentPlayingAudioUrl, globalIsPlaying, setShowUrlModal } = useAudioStore();
+  const { playAudio, currentPlayingAudioUrl, globalIsPlaying } = useAudioStore();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [noteToDelete, setNoteToDelete] = useState<any>(null);
+  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
 
   const filteredNotes = useMemo(() => {
     const searchLower = searchQuery.toLowerCase();
@@ -68,123 +71,134 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     return groups;
   }, [filteredNotes]);
 
-  const handleDeleteClick = (note: Note) => {
+  // Memoize event handlers to prevent unnecessary re-renders
+  const handleDeleteClick = useCallback((note: Note) => {
     setNoteToDelete(note);
     setShowDeleteConfirm(true);
-  };
+  }, []);
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = useCallback(() => {
     if (noteToDelete) {
       deleteNote(noteToDelete.id);
       setNoteToDelete(null);
       setShowDeleteConfirm(false);
     }
-  };
+  }, [noteToDelete, deleteNote]);
 
-  const handleCancelDelete = () => {
+  const handleCancelDelete = useCallback(() => {
     setNoteToDelete(null);
     setShowDeleteConfirm(false);
-  };
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
         <motion.div
-        initial={{ opacity: 0, y: 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="safe-area-top py-4 px-4"
-      >
-        <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-white">Library</h1>
-          <div>
-            <AddButton
-              onStartRecording={startRecordingFlow}
-              onUploadFile={onUploadFile}
-              onFromUrl={onFromUrl}
-              onCreateNote={() => {
-                const newNoteId = createNote();
-                navigate(`/note/${newNoteId}`);
-              }}
-            />
-          </div>
-        </div>
+          initial={{ opacity: 0, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="safe-area-top py-4 px-4"
+        >
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-white">Library</h1>
+              <div>
+                <AddButton
+                  onStartRecording={startRecordingFlow}
+                  onUploadFile={onUploadFile}
+                  onFromUrl={onFromUrl}
+                  onCreateNote={() => {
+                    const newNoteId = createNote();
+                    navigate(`/note/${newNoteId}`);
+                  }}
+                />
+              </div>
+            </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search transcripts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl 
-                     text-white placeholder-gray-400 focus:outline-none focus:ring-2 
-                     focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
-        </div>
+            {/* Search Bar */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Search transcripts..."
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
+                >
+                  <span className="text-xl">&times;</span>
+                </button>
+              )}
+            </div>
+          </div>
         </motion.div>
       </header>
 
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full">
         <div className="max-w-4xl mx-auto">
-        {filteredNotes.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
-              <span className="text-2xl">🎙️</span>
-            </div>
-            <h3 className="text-lg font-medium text-white mb-2">
-              {searchQuery ? 'No matches found' : 'No transcripts yet'}
-            </h3>
-            <p className="text-gray-400 mb-6">
-              {searchQuery 
-                ? `No transcripts match "${searchQuery}"`
-                : 'Start recording to create your first transcript'
-              }
-            </p>
-          </motion.div>
-        ) : (
-          <div className="space-y-6 max-w-full">
-            {Object.entries(groupedNotes).map(([groupName, groupNotes]) => (
-              <div
-                key={groupName}
-                className="space-y-3 max-w-full"
-              >
-                <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
-                  {groupName}
-                </h2>
-                <div className="space-y-3 max-w-full">
-                  {groupNotes.map((note) => (
-                    <TranscriptCard
-                      key={note.id}
-                      id={note.id}
-                      title={note.title}
-                      content={note.content}
-                      tags={note.tags}
-                      createdAt={note.lastEdited}
-                      audioUrl={note.audioUrl}
-                      duration={note.duration}
-                      takeaways={note.takeaways}
-                      onClick={() => navigate(`/note/${note.id}`)}
-                      onDeleteClick={() => handleDeleteClick(note)}
-                      onPlayAudio={playAudio}
-                      currentPlayingAudioUrl={currentPlayingAudioUrl}
-                      globalIsPlaying={globalIsPlaying}
-                    />
-                  ))}
-                </div>
+          {filteredNotes.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-12"
+            >
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+                <span className="text-2xl">🎙️</span>
               </div>
-            ))}
-          </div>
-        )}
+              <h3 className="text-lg font-medium text-white mb-2">
+                {searchQuery ? 'No matches found' : 'No transcripts yet'}
+              </h3>
+              <p className="text-gray-400 mb-6">
+                {searchQuery 
+                  ? `No transcripts match "${searchQuery}"`
+                  : 'Start recording to create your first transcript'
+                }
+              </p>
+            </motion.div>
+          ) : (
+            <div className="space-y-6 max-w-full">
+              {Object.entries(groupedNotes).map(([groupName, groupNotes]) => (
+                <div
+                  key={groupName}
+                  className="space-y-3 max-w-full"
+                >
+                  <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
+                    {groupName}
+                  </h2>
+                  <div className="space-y-3 max-w-full">
+                    {groupNotes.map((note) => (
+                      <TranscriptCard
+                        key={`note-${note.id}`}
+                        id={note.id}
+                        title={note.title}
+                        content={note.content}
+                        tags={note.tags}
+                        createdAt={note.lastEdited}
+                        audioUrl={note.audioUrl}
+                        duration={note.duration}
+                        takeaways={note.takeaways}
+                        onClick={() => navigate(`/note/${note.id}`)}
+                        onDeleteClick={() => handleDeleteClick(note)}
+                        onPlayAudio={playAudio}
+                        currentPlayingAudioUrl={currentPlayingAudioUrl}
+                        globalIsPlaying={globalIsPlaying}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
+      
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {showDeleteConfirm && noteToDelete && (
@@ -226,6 +240,5 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
         )}
       </AnimatePresence>
     </div>
-      
   );
 };
