@@ -20,6 +20,13 @@ import {
   DangerZone,
   DebugInfo
 } from '../settings';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 // Import stores
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -93,41 +100,36 @@ export const SettingsScreen: React.FC = () => {
           label: 'Theme',
           
           component: (
-            <div className="flex flex-col space-y-4">
+            <div className="flex flex-col space-y-2">
               <div className="w-full">
                 <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
               </div>
-              <div className="w-full grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setTheme('system')}
-                  className={cn(
-                    'p-2 rounded-lg flex items-center justify-center gap-2',
-                    theme === 'system' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
-                  )}
-                >
-                  <ComputerDesktopIcon className="w-5 h-5" />
-                  System
-                </button>
-                <button
-                  onClick={() => setTheme('light')}
-                  className={cn(
-                    'p-2 rounded-lg flex items-center justify-center gap-2',
-                    theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
-                  )}
-                >
-                  <SunIcon className="w-5 h-5" />
-                  Light
-                </button>
-                <button
-                  onClick={() => setTheme('dark')}
-                  className={cn(
-                    'p-2 rounded-lg flex items-center justify-center gap-2',
-                    theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
-                  )}
-                >
-                  <MoonIcon className="w-5 h-5" />
-                  Dark
-                </button>
+              <div className="w-full">
+                <Select value={theme} onValueChange={setTheme}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select theme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="system">
+                      <div className="flex items-center gap-2">
+                        <ComputerDesktopIcon className="h-4 w-4" />
+                        System
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="light">
+                      <div className="flex items-center gap-2">
+                        <SunIcon className="h-4 w-4" />
+                        Light
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="dark">
+                      <div className="flex items-center gap-2">
+                        <MoonIcon className="h-4 w-4" />
+                        Dark
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )
