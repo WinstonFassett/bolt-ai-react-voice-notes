@@ -128,14 +128,14 @@ export function ModelSelector({ className = '' }: Props): React.ReactElement {
     return (
         <div className={`space-y-4 ${className}`}>
             <div className="space-y-2">
-                <label htmlFor="model-select" className="block text-sm font-medium text-gray-300">
+                <label htmlFor="model-select" className="block text-sm font-medium">
                     Transcription Model
                 </label>
                 <select
                     id="model-select"
                     value={model}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-input"
                 >
                     {modelOptions.map((option) => (
                         <option key={option.id} value={option.id}>
@@ -143,13 +143,13 @@ export function ModelSelector({ className = '' }: Props): React.ReactElement {
                         </option>
                     ))}
                 </select>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                     {modelOptions.find(m => m.id === model)?.description || 'Select a model for transcription'}
                 </p>
             </div>
             
             <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium">
                     Language Detection
                 </label>
                 <div className="flex items-center">
@@ -157,13 +157,13 @@ export function ModelSelector({ className = '' }: Props): React.ReactElement {
                         type="checkbox"
                         checked={multilingual}
                         onChange={(e) => setMultilingual(e.target.checked)}
-                        className="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                        className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-ring"
                     />
-                    <span className="ml-2 text-sm text-gray-300">
+                    <span className="ml-2 text-sm">
                         {multilingual ? 'Auto-detect language' : 'English only'}
                     </span>
                 </div>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                     {multilingual 
                         ? 'Automatically detect and transcribe multiple languages'
                         : 'Optimized for English transcription only'

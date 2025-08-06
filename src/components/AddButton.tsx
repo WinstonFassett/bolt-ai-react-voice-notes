@@ -113,7 +113,7 @@ export const AddButton: React.FC<AddButtonProps> = ({
           animate={{ rotate: isOpen ? 45 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <PlusIcon className="w-6 h-6 text-white" />
+          <PlusIcon className="w-6 h-6 text-primary-foreground" />
         </motion.div>
       </motion.button>
     </div>

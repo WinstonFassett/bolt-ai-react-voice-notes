@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { 
   CpuChipIcon,
   DocumentArrowDownIcon,
   InformationCircleIcon,
-  CpuChipIcon as RobotIcon
+  CpuChipIcon as RobotIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
 // Import components
@@ -20,6 +21,7 @@ import {
 // Import stores
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
+import { deleteDownloadedModels } from '@/utils/settingsExporter';
 
 export const SettingsScreen: React.FC = () => {
   // Get only what we need from stores using primitive selectors to avoid unnecessary re-renders
@@ -40,6 +42,39 @@ export const SettingsScreen: React.FC = () => {
   const memoizedNotesManagement = useMemo(() => <NotesManagement />, []);
   const memoizedSettingsManagement = useMemo(() => <SettingsManagement />, []);
   const memoizedDangerZone = useMemo(() => <DangerZone />, []);
+
+  const [clearModelsStatus, setClearModelsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [clearModelsMessage, setClearModelsMessage] = useState('');
+  
+  const handleClearModels = useCallback(async () => {
+    setClearModelsStatus('loading');
+    setClearModelsMessage('Deleting downloaded models...');
+    
+    try {
+      const result = await deleteDownloadedModels();
+      
+      if (result.success) {
+        setClearModelsStatus('success');
+        setClearModelsMessage(result.message);
+      } else {
+        setClearModelsStatus('error');
+        setClearModelsMessage(result.message);
+      }
+      
+      setTimeout(() => { 
+        setClearModelsStatus('idle'); 
+        setClearModelsMessage(''); 
+      }, 4000);
+    } catch (error: any) {
+      console.error('Error clearing models:', error);
+      setClearModelsStatus('error');
+      setClearModelsMessage('Error clearing models');
+      setTimeout(() => { 
+        setClearModelsStatus('idle'); 
+        setClearModelsMessage(''); 
+      }, 4000);
+    }
+  }, []);
 
   const settingsGroups = useMemo(() => [
     {
@@ -88,7 +123,7 @@ export const SettingsScreen: React.FC = () => {
       icon: DocumentArrowDownIcon,
       items: [
         {
-          label: 'Data Management',
+          label: 'My Data',
           description: 'Export, import, and manage your data',
           component: (
             <div className="space-y-6 w-full">
@@ -105,24 +140,48 @@ export const SettingsScreen: React.FC = () => {
               {memoizedDangerZone}
             </div>
           )
-        }
-      ]
-    },
-    {
-      title: 'About',
-      icon: InformationCircleIcon,
-      items: [
+        },
         {
-          label: 'Debug Info',
-          description: 'View technical information about the app',
+          label: 'Cache',
+          description: 'Manage cached data',
           component: (
-            <div className="w-full">
-              {debugInfoComponent}
-            </div>
+          <div>
+            <h4 className="text-sm text-gray-400 mb-2">Downloaded Models</h4>
+            <button
+              onClick={handleClearModels}
+              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 w-full"
+              disabled={clearModelsStatus === 'loading'}
+            >
+              <TrashIcon className="w-5 h-5" />
+              Delete Downloaded Models
+            </button>
+            
+            {clearModelsMessage && (
+              <div className={`text-sm mt-2 ${clearModelsStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                {clearModelsMessage}
+              </div>
+            )}
+          </div>
           )
         }
       ]
-    }
+    },
+    // Not useful yet
+    // {
+    //   title: 'About',
+    //   icon: InformationCircleIcon,
+    //   items: [
+    //     {
+    //       label: 'Debug Info',
+    //       description: 'View technical information about the app',
+    //       component: (
+    //         <div className="w-full">
+    //           {debugInfoComponent}
+    //         </div>
+    //       )
+    //     }
+    //   ]
+    // }
   ], [hasOpenAIProvider, useOpenAIForSTT]);
 
   return (
