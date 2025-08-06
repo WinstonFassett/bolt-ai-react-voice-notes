@@ -171,3 +171,28 @@ provider connected info card is off. seems styled for dark. should do both.
 
 
  still waiting to see sticky section headers in settings and in library.
+
+Still seeing darkness in data management settings.
+
+Clear All Data dialog is still dark. 
+
+Confirms for settings clearing should alos be dialogs. We need to get rid of the JS confirms.
+
+Remove debug info. I'll just comment the About pane when you pause.
+
+Still waiting for sticky headers. 
+
+Library header is still shorter than the others. 
+Agents Add button plus is still dark in light theme when it should not be.
+
+Note detail is still dark theme and should follow theming.
+
+Footer tabs still look WEIRD on light theme. the tabs themselves a whitebox but inside a row that is like translucent gray.
+
+Navigation on detail page is still not what I requested.
+
+Breadcrumb is a little choppy. Seems like it jumps levels. Need to show all levels when possible and otherwise have ellipsis logic?
+
+Notes search should be part of fixed top area attached to header
+
+Section labels should be sticky. 

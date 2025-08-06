@@ -274,14 +274,14 @@ export const LLMProviderSettings: React.FC = () => {
       {/* Default Model Selection */}
       {availableModels.length > 0 && (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
+          <label className="block text-sm font-medium text-muted-foreground">
             Default Model for Agents
           </label>
           <select
             value={defaultModelId || ''}
             onChange={(e) => setDefaultModel(e.target.value)}
-            className={`w-full px-3 py-2 bg-gray-700 border rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-              !defaultModelId ? 'border-yellow-500' : 'border-gray-600'
+            className={`w-full px-3 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent ${
+              !defaultModelId ? 'border-warning' : 'border-input'
             }`}
           >
             <option value="">Select a default model...</option>
@@ -291,7 +291,7 @@ export const LLMProviderSettings: React.FC = () => {
               </option>
             ))}
           </select>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted-foreground">
             This model will be used by agents unless they specify a different one
           </p>
         </div>
@@ -303,7 +303,7 @@ export const LLMProviderSettings: React.FC = () => {
           {/* Add Provider Button at top of list */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
           >
             <PlusIcon className="w-4 h-4" />
             Add Provider
@@ -314,16 +314,16 @@ export const LLMProviderSettings: React.FC = () => {
               key={provider.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="p-4 bg-gray-800 border border-gray-700 rounded-lg"
+              className="p-4 bg-background border border-border rounded-lg"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-medium text-white">{provider.name}</h4>
+                    <h4 className="font-medium">{provider.name}</h4>
                     <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
                       provider.isValid
-                        ? 'bg-green-900/30 text-green-300 border border-green-700/30'
-                        : 'bg-red-900/30 text-red-300 border border-red-700/30'
+                        ? 'bg-success/10 text-success border border-success/30'
+                        : 'bg-destructive/10 text-destructive border border-destructive/30'
                     }`}>
                       {provider.isValid ? (
                         <>
@@ -339,12 +339,12 @@ export const LLMProviderSettings: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="text-sm text-gray-400 space-y-1">
+                  <div className="text-sm text-muted-foreground space-y-1">
                     <div>API Key: {provider.apiKey.substring(0, 8)}...</div>
                     <div>Models: {provider.models.length} available</div>
                     <div>Last validated: {formatLastValidated(provider.lastValidated)}</div>
                     {provider.lastError && (
-                      <div className="text-red-400">Error: {provider.lastError}</div>
+                      <div className="text-destructive">Error: {provider.lastError}</div>
                     )}
                   </div>
                 </div>
@@ -353,13 +353,13 @@ export const LLMProviderSettings: React.FC = () => {
                   <button
                     onClick={() => handleValidateProvider(provider.id)}
                     disabled={validatingProvider === provider.id}
-                    className="px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-700 text-white rounded text-sm transition-colors"
+                    className="px-3 py-1 bg-muted hover:bg-muted/80 disabled:bg-muted/50 rounded text-sm transition-colors"
                   >
                     {validatingProvider === provider.id ? 'Testing...' : 'Test'}
                   </button>
                   <button
                     onClick={() => deleteProvider(provider.id)}
-                    className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors"
+                    className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded transition-colors"
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -370,13 +370,13 @@ export const LLMProviderSettings: React.FC = () => {
         </div>
       ) : (
         <div className="text-center py-8">
-          <h3 className="text-lg font-medium text-white mb-2">No providers configured</h3>
-          <p className="text-gray-400 mb-4">
+          <h3 className="text-lg font-medium mb-2">No providers configured</h3>
+          <p className="text-muted-foreground mb-4">
             Add an LLM provider to enable AI agents
           </p>
           <button
             onClick={() => setShowAddModal(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
           >
             <PlusIcon className="w-4 h-4" />
             Add Provider

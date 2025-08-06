@@ -170,7 +170,16 @@ export const AgentsScreen: React.FC = () => {
           <div className="text-2xl">{agent.avatar || '🤖'}</div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold">{agent.name}</h3>
+              <h3 
+                className="font-semibold cursor-pointer hover:text-primary transition-colors" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditAgent(agent);
+                }}
+                title="Click to edit agent"
+              >
+                {agent.name}
+              </h3>
               {agent.isBuiltIn && (
                 <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
                   Built-in
@@ -311,7 +320,7 @@ export const AgentsScreen: React.FC = () => {
           {/* Custom Agents */}
           {agents.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">👤 Custom Agents</h2>
+              <h2 className="text-lg font-semibold mb-4">👤 Custom Agents</h2>
               <div className="space-y-3">
                 {agents.map((agent, index) => renderAgent(agent, index))}
               </div>
@@ -321,7 +330,7 @@ export const AgentsScreen: React.FC = () => {
           {/* Built-in Agents */}
           {builtInAgents.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">🤖 Built-in Agents</h2>
+              <h2 className="text-lg font-semibold mb-4">🤖 Built-in Agents</h2>
               <div className="space-y-3">
                 {builtInAgents.map((agent, index) => renderAgent(agent, agents.length + index))}
               </div>
@@ -335,11 +344,11 @@ export const AgentsScreen: React.FC = () => {
               animate={{ opacity: 1 }}
               className="text-center py-12"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                 <span className="text-2xl">🤖</span>
               </div>
-              <h3 className="text-lg font-medium text-white mb-2">No Agents Available</h3>
-              <p className="text-gray-400 mb-6">
+              <h3 className="text-lg font-medium mb-2">No Agents Available</h3>
+              <p className="text-muted-foreground mb-6">
                 Configure LLM providers in Settings to enable AI agents
               </p>
             </motion.div>
