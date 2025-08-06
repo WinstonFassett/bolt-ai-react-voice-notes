@@ -617,9 +617,21 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       // Use React Router for navigation without page reload
       console.log(`🎙️ RecordingStore: Navigating to note detail page for ${noteId}`);
       
-      // Use window.location for navigation as a fallback
-      // This isn't ideal but ensures navigation works while we debug the recording flow
-      window.location.href = `/note/${noteId}`;
+      // Use React Router for navigation to avoid page reloads
+      // Import dynamically to avoid circular dependencies
+      try {
+        // Use the history API directly to avoid circular imports
+        // This will use the React Router context without requiring imports
+        window.history.pushState({}, '', `/note/${noteId}`);
+        
+        // Dispatch a navigation event to notify React Router of the change
+        const navigationEvent = new PopStateEvent('popstate');
+        window.dispatchEvent(navigationEvent);
+        
+        console.log(`🎙️ RecordingStore: Navigated to note ${noteId} using history API`);
+      } catch (error) {
+        console.error('❌ RecordingStore: Error navigating with history API:', error);
+      }
       
       // Start transcription
       await get().startTranscription(audioBlob, noteId);

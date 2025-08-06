@@ -1,18 +1,22 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { TranscriptCard as BaseTranscriptCard } from '../TranscriptCard';
-import { AddButton } from '../AddButton';
-import { useNotesStore } from '../../stores/notesStore';
+import { formatDistanceToNow } from 'date-fns';
+
+// Import existing stores
+import { useNotesStore, Note } from '../../stores/notesStore';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useAudioStore } from '../../stores/audioStore';
-import { 
-  MagnifyingGlassIcon,
-} from '@heroicons/react/24/outline';
-import { Note } from '../../stores/notesStore';
 
-// Create a memoized version of TranscriptCard to prevent unnecessary re-renders
-const TranscriptCard = memo(BaseTranscriptCard);
+// Import redesigned UI components
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Card, CardContent } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Plus, Search, Play, Pause, Trash2 } from 'lucide-react';
+import { AddButton } from '../AddButton';
+import { AppHeader } from '../Layout/AppHeader';
+import { MagnifyingGlassIcon } from '@radix-ui/react-icons';
 
 interface LibraryScreenProps {
   onUploadFile: () => void;
@@ -23,13 +27,14 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   // Get everything from stores
   const { notes, deleteNote, createNote } = useNotesStore();
   const { startRecordingFlow } = useRecordingStore();
-  const { playAudio, currentPlayingAudioUrl, globalIsPlaying } = useAudioStore();
+  const { playAudio, pauseAudio, currentPlayingAudioUrl, isPlaying } = useAudioStore();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
 
+  // Filter and sort notes based on search query
   const filteredNotes = useMemo(() => {
     const searchLower = searchQuery.toLowerCase();
     return notes.filter(note => {
@@ -41,6 +46,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     }).sort((a, b) => b.lastEdited - a.lastEdited);
   }, [notes, searchQuery]);
 
+  // Group notes by date categories
   const groupedNotes = useMemo(() => {
     const groups: { [key: string]: Note[] } = {};
     const now = new Date();
@@ -71,133 +77,177 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     return groups;
   }, [filteredNotes]);
 
-  // Memoize event handlers to prevent unnecessary re-renders
+  // Event handlers
   const handleDeleteClick = useCallback((note: Note) => {
     setNoteToDelete(note);
     setShowDeleteConfirm(true);
   }, []);
-
-  const handleConfirmDelete = useCallback(() => {
-    if (noteToDelete) {
-      deleteNote(noteToDelete.id);
-      setNoteToDelete(null);
-      setShowDeleteConfirm(false);
-    }
-  }, [noteToDelete, deleteNote]);
 
   const handleCancelDelete = useCallback(() => {
     setNoteToDelete(null);
     setShowDeleteConfirm(false);
   }, []);
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
-        <motion.div
-          initial={{ opacity: 0, y: 0 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="safe-area-top py-4 px-4"
-        >
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-white">Library</h1>
-              <div>
-                <AddButton
-                  onStartRecording={startRecordingFlow}
-                  onUploadFile={onUploadFile}
-                  onFromUrl={onFromUrl}
-                  onCreateNote={() => {
-                    const newNoteId = createNote();
-                    navigate(`/note/${newNoteId}`);
-                  }}
-                />
+  const handleAudioToggle = useCallback((audioUrl: string | undefined) => {
+    if (!audioUrl) return;
+    
+    if (currentPlayingAudioUrl === audioUrl && isPlaying) {
+      pauseAudio();
+    } else {
+      playAudio(audioUrl);
+    }
+  }, [currentPlayingAudioUrl, isPlaying, pauseAudio, playAudio]);
+
+  // Helper function to truncate content
+  const truncateContent = (content: string, maxLength: number = 120) => {
+    const plainText = content.replace(/[#*`]/g, '').trim();
+    return plainText.length > maxLength ? plainText.slice(0, maxLength) + '...' : plainText;
+  };
+
+  // Render a note card with redesigned UI
+  const renderNoteCard = (note: Note) => {
+    const isCurrentlyPlaying = currentPlayingAudioUrl === note.audioUrl && isPlaying;
+    const formattedDate = formatDistanceToNow(new Date(note.lastEdited), { addSuffix: true });
+    
+    return (
+      <Card 
+        key={note.id}
+        className="cursor-pointer hover:bg-accent/50 transition-all duration-200 hover:shadow-md hover:scale-[1.01] 
+                 border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
+        onClick={() => navigate(`/note/${note.id}`)}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium truncate mb-1">{note.title}</h3>
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                {truncateContent(note.content)}
+              </p>
+              
+              {note.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {note.tags.slice(0, 3).map(tag => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {note.tags.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{note.tags.length - 3}
+                    </Badge>
+                  )}
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  {formattedDate}
+                </span>
+                
+                {note.duration && (
+                  <span className="text-xs text-muted-foreground">
+                    {Math.floor(note.duration / 60)}:{(note.duration % 60).toString().padStart(2, '0')}
+                  </span>
+                )}
               </div>
             </div>
-
-            {/* Search Bar */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Search transcripts..."
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
+            
+            <div className="flex flex-col gap-2">
+              {note.audioUrl && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAudioToggle(note.audioUrl);
+                  }}
+                  className="h-8 w-8 p-0"
                 >
-                  <span className="text-xl">&times;</span>
-                </button>
+                  {isCurrentlyPlaying ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                </Button>
               )}
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(note);
+                }}
+                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-        </motion.div>
-      </header>
+        </CardContent>
+      </Card>
+    );
+  };
 
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full">
-        <div className="max-w-4xl mx-auto">
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header with AppHeader component */}
+      <AppHeader 
+        title="Library" 
+        actions={
+          <AddButton
+            onStartRecording={startRecordingFlow}
+            onUploadFile={onUploadFile}
+            onFromUrl={onFromUrl}
+            onCreateNote={() => {
+              const newNoteId = createNote();
+              navigate(`/note/${newNoteId}`);
+            }}
+          />
+        }
+      />
+      
+      {/* Main content */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 space-y-4 max-w-4xl mx-auto">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search notes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Notes List */}
           {filteredNotes.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
-            >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
-                <span className="text-2xl">🎙️</span>
+            <div className="text-center py-12">
+              <div className="text-muted-foreground mb-4">
+                {searchQuery ? 'No notes match your search' : 'No notes yet'}
               </div>
-              <h3 className="text-lg font-medium text-white mb-2">
-                {searchQuery ? 'No matches found' : 'No transcripts yet'}
-              </h3>
-              <p className="text-gray-400 mb-6">
-                {searchQuery 
-                  ? `No transcripts match "${searchQuery}"`
-                  : 'Start recording to create your first transcript'
-                }
-              </p>
-            </motion.div>
+              <Button onClick={() => startRecordingFlow()}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create your first note
+              </Button>
+            </div>
           ) : (
-            <div className="space-y-6 max-w-full">
+            <div className="space-y-6">
               {Object.entries(groupedNotes).map(([groupName, groupNotes]) => (
-                <div
-                  key={groupName}
-                  className="space-y-3 max-w-full"
-                >
-                  <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
+                <div key={groupName} className="space-y-3">
+                  <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                     {groupName}
                   </h2>
-                  <div className="space-y-3 max-w-full">
-                    {groupNotes.map((note) => (
-                      <TranscriptCard
-                        key={`note-${note.id}`}
-                        id={note.id}
-                        title={note.title}
-                        content={note.content}
-                        tags={note.tags}
-                        createdAt={note.lastEdited}
-                        audioUrl={note.audioUrl}
-                        duration={note.duration}
-                        takeaways={note.takeaways}
-                        onClick={() => navigate(`/note/${note.id}`)}
-                        onDeleteClick={() => handleDeleteClick(note)}
-                        onPlayAudio={playAudio}
-                        currentPlayingAudioUrl={currentPlayingAudioUrl}
-                        globalIsPlaying={globalIsPlaying}
-                      />
-                    ))}
+                  <div className="space-y-3">
+                    {groupNotes.map(note => renderNoteCard(note))}
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
-      </main>
+      </div>
       
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
@@ -212,28 +262,32 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-background rounded-xl p-6 max-w-md w-full border border-border"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Delete Note</h3>
-              <p className="text-gray-300 mb-2">
+              <h3 className="text-lg font-semibold mb-4">Delete Note</h3>
+              <p className="mb-2">
                 Are you sure you want to delete "{noteToDelete.title}"?
               </p>
-              <p className="text-gray-400 text-sm mb-6">
+              <p className="text-muted-foreground text-sm mb-6">
                 This action cannot be undone.
               </p>
               <div className="flex justify-end gap-2">
-                <button
+                <Button
+                  variant="outline"
                   onClick={handleCancelDelete}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
                 >
                   Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    deleteNote(noteToDelete.id);
+                    setNoteToDelete(null);
+                    setShowDeleteConfirm(false);
+                  }}
                 >
                   Delete Note
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>
