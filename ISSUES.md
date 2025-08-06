@@ -1,3 +1,9 @@
+# The Rules
+
+Don't fucking rewrite shit that is working. 
+
+Do not sweat TS warnings about unused things. Come on. The goal is to make things work. This is the real world. Be expedient.
+
 
 # UX Issues
 
@@ -107,3 +113,5 @@ Don't hae duplicated lists of notes in the note detail. one list of notes, forma
 
 General testing:
 Nav flow is ok, responsive design is ok. Func is ok. 
+
+Remember to format markdown snippets. We weren't doing it consistently so where we aren't, like in the library card view, fix it, based on where we ARE doing it, like in the detail view listing child notes.
