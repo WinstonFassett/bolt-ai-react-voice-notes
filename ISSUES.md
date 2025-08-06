@@ -70,3 +70,40 @@ Downloaded models are not really danger zone, they are cache.
 I don't think the debug log makes sense. We should just remove that. Don't really need an about section. yet. 
 
 Make the X providers connected message more compact, like a single row on desktop with space between texts, and allow wrap on sm screens, and left align in that case.
+
+---
+
+# Testing Results So Far
+
+1: fail. 2: added in wrong place. Add to library now. 3. Tag click failed on ai takewawy tag. 
+4. pass
+
+note 
+1. pass
+2. yes but left a dupe header above it and also a dupe secton above that
+
+
+note has
+
+Related notes (lists ai takeaways)
+Recent AI Takeaways (lists ai takeaways)
+AI Tools | Run AI Agents
+
+This is BAD.
+
+There should only be Child Notes or what I call Takeaways.
+No fucking related notes.
+No fucking AI tools.
+Put the ai button in row with Takeaways for pete's sake.
+
+Formatting of cards in related notes IS better for the card part than in recent ai takeaways. BUT recent ai takewawyas card CONTENT IS better than related notes card content. (header, markdown, delete button) are better.
+
+Really this should use the same damn idiomatic card tree UX from the library list view, right???
+
+
+Styling is not great. Color seems to bright. Library view has it more right for these cards / trees than the others.
+
+Don't hae duplicated lists of notes in the note detail. one list of notes, formatted like library does it. we are sort of nested in a library view, get it?
+
+General testing:
+Nav flow is ok, responsive design is ok. Func is ok. 

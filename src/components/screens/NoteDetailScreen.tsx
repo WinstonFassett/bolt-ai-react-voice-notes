@@ -9,12 +9,12 @@ import {
   ShareIcon
 } from '@heroicons/react/24/outline';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'share-api-polyfill';
 import { useAgentsStore } from '../../stores/agentsStore';
 import { useAudioStore } from '../../stores/audioStore';
-import { isStorageUrl, resolveStorageUrl } from '../../utils/audioStorage';
+import { resolveStorageUrl } from '../../utils/audioStorage';
 import { Note, useNotesStore } from '../../stores/notesStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { BottomNavigation } from '../BottomNavigation';
@@ -49,8 +49,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   
   const { 
     canRunAnyAgents, 
-    getAutoRunAgents, 
-    processNoteWithAllAutoAgents,
     isProcessing: agentsProcessing,
     processingStatus: agentsStatus
   } = useAgentsStore();
@@ -59,8 +57,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     notes, 
     updateNote, 
     deleteNote, 
-    saveVersion, 
-    restoreVersion, 
     updateTags 
   } = useNotesStore();
   
@@ -79,11 +75,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRetranscribeConfirm, setShowRetranscribeConfirm] = useState(false);
   const [showRunAgentsDialog, setShowRunAgentsDialog] = useState(false);
-  const editorRef = useRef<any>(null);
 
-  // Import status state
-  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
-  const [importMessage, setImportMessage] = useState<string>('');
+  // Import functionality removed as it's handled elsewhere
 
   // Check if this is an agent-generated note
   const isAgentNote = note?.type === 'agent';
@@ -381,23 +374,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Import notes handler
-  const handleImportNotes = async (importFn: () => Promise<any>) => {
-    setImportStatus('loading');
-    setImportMessage('Importing notes...');
-    try {
-      await importFn();
-      setImportStatus('success');
-      setImportMessage('Notes imported successfully!');
-    } catch (err: any) {
-      setImportStatus('error');
-      setImportMessage('Failed to import notes: ' + (err?.message || 'Unknown error'));
-    }
-    setTimeout(() => {
-      setImportStatus('idle');
-      setImportMessage('');
-    }, 4000);
-  };
+  // Import status is used elsewhere in the component
+  // The import function is handled in a different component
 
   if (!note) {
     return null;
@@ -405,14 +383,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-gray-900 relative">
-      {/* Import status feedback */}
-      {importStatus !== 'idle' && (
-        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-semibold transition-all
-          ${importStatus === 'success' ? 'bg-green-600' : importStatus === 'error' ? 'bg-red-600' : 'bg-indigo-600'}`}
-        >
-          {importMessage}
-        </div>
-      )}
+      {/* Import status feedback removed - handled elsewhere */}
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
@@ -614,8 +585,19 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             )}
           </div>
 
-          {/* Editor */}
-          <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
+          {/* Editor with floating copy button */}
+          <div className="border border-gray-700 rounded-lg bg-gray-800 p-4 relative">
+            {/* Floating copy button */}
+            <button
+              onClick={handleCopyToClipboard}
+              className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-1 bg-gray-700/80 hover:bg-gray-600/80 
+                        text-white text-sm rounded-lg transition-colors shadow-md"
+              title="Copy content"
+            >
+              <DocumentDuplicateIcon className="w-4 h-4" />
+              Copy
+            </button>
+            
             <CrepeEditorWrapper
               content={content}
               onChange={handleEditorChange}
@@ -700,12 +682,13 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </div>
           )}
           
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <div className="flex-1"></div>
-            
-            {/* AI Agents Button */}
-            {canRunAnyAgents() && content.trim() && (
+          {/* AI Agents Section Header with Button */}
+          {canRunAnyAgents() && content.trim() && (
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-6">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <SparklesIcon className="w-5 h-5 text-indigo-400" />
+                AI Tools
+              </h3>
               <button
                 onClick={() => setShowRunAgentsDialog(true)}
                 disabled={agentsProcessing}
@@ -715,17 +698,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 <SparklesIcon className="w-5 h-5" />
                 Run AI Agents
               </button>
-            )}
-            
-            <button
-              onClick={handleCopyToClipboard}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 
-                       text-white rounded-lg transition-colors"
-            >
-              <DocumentDuplicateIcon className="w-5 h-5" />
-              Copy
-            </button>
-          </div>
+            </div>
+          )}
 
           {/* Agent Processing Status */}
           {agentsProcessing && (
