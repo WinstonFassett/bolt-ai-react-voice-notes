@@ -156,7 +156,9 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                         variant="secondary" 
                         className="text-xs cursor-pointer hover:bg-primary/20"
                         onClick={(e) => {
+                          e.preventDefault(); // Prevent default behavior
                           e.stopPropagation(); // Prevent card click
+                          // Update search query state
                           setSearchQuery(tag);
                           // Update URL with search query parameter
                           const url = new URL(window.location.href);

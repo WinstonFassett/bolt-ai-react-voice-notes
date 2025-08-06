@@ -20,7 +20,6 @@ import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { BottomNavigation } from '../BottomNavigation';
 import { CrepeEditorWrapper } from '../CrepeEditor';
 import { RunAgentsDialog } from '../RunAgentsDialog';
-import { TakeawayCard } from '../TakeawayCard';
 import { ModelLoadingProgress } from '../ModelLoadingProgress';
 
 interface NoteDetailScreenProps {
@@ -88,9 +87,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const isTranscribing = note ? isNoteProcessing(note.id) : false;
   const transcriptionStatus = note ? getNoteProcessingStatus(note.id) : '';
   
-  // Get child notes (notes that have this note as their source)
+  // Get all child notes (both regular child notes and AI takeaways)
   const childNotes = notes.filter(n => 
-    n.sourceNoteIds?.includes(note.id)
+    n.sourceNoteIds?.includes(note.id) || note.takeaways?.includes(n.id)
   );
 
   // Update local state when note prop changes (for reactive updates)
@@ -277,10 +276,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   // Only use globalAudioDuration for progress calculation if we don't have a stored duration
   const progressDuration = effectiveDuration > 0 ? effectiveDuration : globalAudioDuration;
   
-  // Get agent-generated takeaways for this note
-  const takeawayNotes = note.takeaways 
-    ? notes.filter(n => note.takeaways?.includes(n.id))
-    : [];
+  // All child notes are now considered takeaways - no separate sections
   const getWordCount = (text: string) => {
     const strippedText = text.replace(/<[^>]*>/g, '');
     return strippedText.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -612,29 +608,39 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </div>
           )}
          
-          {/* Child Notes */}
-          {childNotes.length > 0 && (
-            <div className="space-y-3 mt-6">
-              <h3 className="text-lg font-semibold text-white flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {isAgentNote ? (
-                    <SparklesIcon className="w-5 h-5 text-indigo-400" />
-                  ) : (
-                    <DocumentDuplicateIcon className="w-5 h-5 text-gray-400" />
-                  )}
-                  Related Notes
-                </div>
-                <span className="text-sm text-gray-400 font-normal">
-                  {childNotes.length} notes
-                </span>
+          {/* Takeaways Section with AI Agents Button */}
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <DocumentDuplicateIcon className="w-5 h-5 text-gray-400" />
+                Takeaways
+                {childNotes.length > 0 && (
+                  <span className="text-sm text-gray-400 font-normal ml-2">
+                    ({childNotes.length})
+                  </span>
+                )}
               </h3>
-              <div className="space-y-3">
+              {canRunAnyAgents() && content.trim() && (
+                <button
+                  onClick={() => setShowRunAgentsDialog(true)}
+                  disabled={agentsProcessing}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 
+                           disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  <SparklesIcon className="w-5 h-5" />
+                  Run AI Agents
+                </button>
+              )}
+            </div>
+            
+            {childNotes.length > 0 && (
+              <div className="space-y-2">
                 {childNotes
                   .sort((a, b) => b.lastEdited - a.lastEdited)
                   .map((childNote) => (
                     <div 
                       key={childNote.id}
-                      className={`p-4 rounded-lg border cursor-pointer hover:bg-gray-800/50 transition-colors
+                      className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-800/50 transition-colors
                                 ${childNote.type === 'agent' ? 'border-l-4 border-l-primary border-gray-700' : 'border-gray-700'}`}
                       onClick={() => navigate(`/note/${childNote.id}`)}
                     >
@@ -652,54 +658,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                     </div>
                   ))}
               </div>
-            </div>
-          )}
-          
-          {/* AI Takeaways */}
-          {!isAgentNote && takeawayNotes.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-white flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-indigo-400" />
-                  Recent AI Takeaways
-                </div>
-                <span className="text-sm text-gray-400 font-normal">
-                  {takeawayNotes.length} generated
-                </span>
-              </h3>
-              <div className="space-y-3">
-                {takeawayNotes
-                  .sort((a, b) => (b.createdAt || b.created || 0) - (a.createdAt || a.created || 0))
-                  .map((takeaway) => (
-                    <TakeawayCard
-                      key={takeaway.id}
-                      takeaway={takeaway}
-                      onSelect={(id) => navigate(`/note/${id}`)}
-                      onDelete={(id) => deleteNote(id)}
-                    />
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* AI Agents Section Header with Button */}
-          {canRunAnyAgents() && content.trim() && (
-            <div className="flex flex-wrap items-center justify-between gap-3 mt-6">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-indigo-400" />
-                AI Tools
-              </h3>
-              <button
-                onClick={() => setShowRunAgentsDialog(true)}
-                disabled={agentsProcessing}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 
-                         disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-              >
-                <SparklesIcon className="w-5 h-5" />
-                Run AI Agents
-              </button>
-            </div>
-          )}
+            )}
+            
+            {childNotes.length === 0 && !agentsProcessing && (
+              <p className="text-sm text-gray-400 italic">No takeaways yet. Run AI agents to generate insights.</p>
+            )}
+          </div>
 
           {/* Agent Processing Status */}
           {agentsProcessing && (
