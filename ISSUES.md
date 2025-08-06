@@ -141,3 +141,33 @@ In light mode
 - CLicking agent title should open edit. 
 
 - We NEED to capture recording lengths and do it CORRECTLY!! Undefined lengths break playback progress bar!
+
+Need to add a theme toggle to settings. 3 way. defaults to browser pref.
+
+Library header still gets weird gray bg in light when dropdown open. 
+
+Pause is not working? Keeps rolling the clock. 
+Still no way to cancel recording. Getting old. 
+
+On light theme, note detail is still dark (no!). Though text picks up correct fg color.
+
+Agents looks better!
+
+Headers of Agents and Library and Settings are different. All have diff heights.
+Add buttons in headers of Library and Agents have diff colored icons. Agents plus is dark, looks worse.
+Dialog to add agent is good except primary action button text is dark and looks bad. 
+
+also dialogs need to not underlap the tab bar.
+
+Settings is so so. Provider stuff is still dark when it shouldn't be. Remove that test button.
+provider connected info card is off. seems styled for dark. should do both.
+ for rows of provider card:
+ 1: title, type, api key partial, spacer, delete button
+ 2: model info, spacer, last validated
+
+ Transcription model picker is still dark.
+ Data management subsections are still dark.
+ debug info still dark.
+
+
+ still waiting to see sticky section headers in settings and in library.
