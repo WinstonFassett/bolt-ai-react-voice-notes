@@ -4,9 +4,16 @@ import { MicrophoneIcon } from '@heroicons/react/24/solid';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useAudioStore } from '../../stores/audioStore';
 
+// Helper function to format time in MM:SS format
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
 export const RecordScreen: React.FC = () => {
   // Get everything from stores
-  const { isRecording, startRecordingFlow } = useRecordingStore();
+  const { isRecording, isPaused, recordingTime, startRecordingFlow, pauseRecordingFlow, resumeRecordingFlow, stopRecordingFlow } = useRecordingStore();
   const { currentPlayingAudioUrl, closePlayer } = useAudioStore();
   
   // We don't need this function anymore as we've moved the logic to handleStartRecording
@@ -37,6 +44,7 @@ export const RecordScreen: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="safe-area-top py-4 px-4"
       >
+        {/* Header content */}
         <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gradient">AI Voice Recorder</h1>         
@@ -90,8 +98,41 @@ export const RecordScreen: React.FC = () => {
                 </div>
                 <h2 className="text-3xl font-bold text-white">Recording...</h2>
                 <p className="text-gray-400">
-                  Speaking... Use the controls below to pause or stop
+                  {formatTime(recordingTime)} - {isPaused ? 'Paused' : 'Recording'}
                 </p>
+                
+                {/* Recording Controls */}
+                <div className="flex justify-center space-x-6 mt-8">
+                  {/* Pause/Resume Button */}
+                  <motion.button
+                    onClick={isPaused ? resumeRecordingFlow : pauseRecordingFlow}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`w-14 h-14 rounded-full ${isPaused ? 'bg-green-500' : 'bg-yellow-500'} flex items-center justify-center shadow-lg`}
+                  >
+                    {isPaused ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </motion.button>
+                  
+                  {/* Stop Button */}
+                  <motion.button
+                    onClick={stopRecordingFlow}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-14 h-14 rounded-full bg-red-600 flex items-center justify-center shadow-lg"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                    </svg>
+                  </motion.button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

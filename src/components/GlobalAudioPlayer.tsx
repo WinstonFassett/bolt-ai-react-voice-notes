@@ -37,12 +37,24 @@ export const GlobalAudioPlayer: React.FC = () => {
   const currentNote = notes.find(note => note.audioUrl === currentPlayingAudioUrl);
   const displayTitle = currentNote?.title || 'Audio Playback';
   
-  // ALWAYS use the note's stored duration - never let the audio element override it
-  // The note duration is the actual recorded duration and should never change
-  const effectiveDuration = currentNote?.duration || 0;
+  // First try to use the note's stored duration if available
+  // Then fall back to the audio element's duration if valid
+  // Finally default to 0 if neither is available
+  const noteDuration = currentNote?.duration || 0;
+  const audioDuration = isFinite(globalAudioDuration) && globalAudioDuration > 0 ? globalAudioDuration : 0;
   
-  // Only use globalAudioDuration for progress calculation if we don't have a stored duration
-  const progressDuration = effectiveDuration > 0 ? effectiveDuration : globalAudioDuration;
+  // Use note duration if available, otherwise use audio duration
+  const progressDuration = noteDuration > 0 ? noteDuration : audioDuration;
+  
+  // Log duration values for debugging
+  React.useEffect(() => {
+    console.log('Audio durations:', { 
+      noteDuration, 
+      audioDuration, 
+      progressDuration,
+      globalAudioDuration
+    });
+  }, [noteDuration, audioDuration, progressDuration, globalAudioDuration]);
 
   const handleTitleClick = () => {
     if (currentNote) {
@@ -89,13 +101,17 @@ export const GlobalAudioPlayer: React.FC = () => {
     closePlayer();
   };
 
+  // Calculate progress percentage, ensuring we have valid values
+  const currentTime = isFinite(globalAudioCurrentTime) && globalAudioCurrentTime >= 0 ? globalAudioCurrentTime : 0;
+  
+  // Calculate percentage only if we have a valid duration
   const progressPercentage = progressDuration > 0 
-    ? (globalAudioCurrentTime / progressDuration) * 100 
+    ? (currentTime / progressDuration) * 100 
     : 0;
     
-  // Ensure progress percentage is valid
-  const safeProgressPercentage = isFinite(progressPercentage) && progressPercentage >= 0 
-    ? Math.min(100, progressPercentage) 
+  // Ensure progress percentage is valid and clamped between 0-100
+  const safeProgressPercentage = isFinite(progressPercentage) 
+    ? Math.max(0, Math.min(100, progressPercentage)) 
     : 0;
 
   if (!currentPlayingAudioUrl) return null;
