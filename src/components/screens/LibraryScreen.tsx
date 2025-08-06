@@ -124,7 +124,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     const isAgentNote = note.type === 'agent';
     
     return (
-      <div key={note.id} className={level === 0 ? 'mb-4' : 'mb-2'}>
+      <div key={note.id} className={level === 0 ? 'mb-2' : 'mt-2'}>
         <Card 
           className={`cursor-pointer hover:bg-accent/50 transition-all duration-200 hover:shadow-md hover:scale-[1.01] 
                      border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm

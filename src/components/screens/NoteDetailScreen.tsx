@@ -32,7 +32,6 @@ interface NoteDetailScreenProps {
 export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   note,
   onBack,
-  activeTab,
   onTabChange,
 }) => {
   // console.log('NoteDetailScreen', note);
@@ -296,6 +295,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   // Helper function to truncate content while preserving markdown formatting
   const truncateContent = (content: string, maxLength: number = 120) => {
     if (!content) return '';
+    // Simple truncation that preserves markdown - not perfect but functional
     return content.length > maxLength ? content.slice(0, maxLength) + '...' : content;
   };
 
@@ -652,9 +652,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                         )}
                         <h4 className="font-medium text-white">{childNote.title}</h4>
                       </div>
-                      <p className="text-sm text-gray-300 line-clamp-2">
+                      <div className="text-sm text-gray-300 line-clamp-2 prose prose-sm prose-invert max-w-none">
                         {truncateContent(childNote.content, 120)}
-                      </p>
+                      </div>
                     </div>
                   ))}
               </div>
@@ -688,7 +688,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
       {/* Bottom Navigation */}
       {onTabChange && (
-        <BottomNavigation activeTab={activeTab} onTabChange={onTabChange} />
+        <BottomNavigation
+          activeTab="library"
+          onTabChange={onTabChange}
+        />
       )}
 
       {/* Delete Confirmation Modal */}
