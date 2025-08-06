@@ -137,9 +137,27 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   },
   
   stopRecording: () => {
+    const state = get();
+  
+    // Stop the media recorder if it exists
+    if (state.mediaRecorderInstance && state.mediaRecorderInstance.state !== 'inactive') {
+      state.mediaRecorderInstance.stop();
+    }
+  
+    // Stop the timer
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+    }
+  
+    // Release the audio stream
+    if (state.audioStreamInstance) {
+      state.audioStreamInstance.getTracks().forEach(track => track.stop());
+    }
+  
     set({
       isRecording: false,
-      isPaused: false
+      isPaused: false,
+      timerInterval: null
     });
   },
   
@@ -174,9 +192,16 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   },
   
   updateRecordingTime: () => {
-    set((state) => ({
-      recordingTime: state.recordingTime + 1
-    }));
+    // Calculate elapsed time based on start time and paused duration for accuracy
+    // This prevents timer jumps by using the actual elapsed time instead of incrementing
+    const now = Date.now();
+    const state = get();
+    const elapsedMs = now - state.recordingStartTime - state.pausedDuration;
+    const elapsedSeconds = Math.floor(elapsedMs / 1000);
+    
+    set({
+      recordingTime: elapsedSeconds
+    });
   },
   
   calculateFinalDuration: () => {
@@ -201,6 +226,12 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       // These settings optimize for voice recording while reducing file size
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      // Check if mediaDevices is available
+      if (!navigator.mediaDevices) {
+        console.error('❌ RecordingStore: MediaDevices API not available');
+        throw new Error('Media recording is not supported in this browser or context');
+      }
       
       // Audio constraints optimized for voice recording and smaller file size
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -243,11 +274,14 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       
       recorder.addEventListener('dataavailable', (event) => {
         if (event.data.size > 0) {
+          console.log(`🎙️ RecordingStore: Received data chunk of size ${event.data.size} bytes`);
           const currentState = get();
           set({ 
             recordedChunksInternal: [...currentState.recordedChunksInternal, event.data],
             recordedChunks: [...currentState.recordedChunks, event.data]
           });
+        } else {
+          console.warn('🎙️ RecordingStore: Received empty data chunk');
         }
       });
       
@@ -279,9 +313,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         mediaRecorder: recorder
       });
       
-      // Navigate to record tab
-      const { useRoutingStore } = await import('./routingStore');
-      useRoutingStore.getState().setTab('record');
+      // No need to navigate - React Router handles this now
       
     } catch (error) {
       console.error('❌ RecordingStore: Failed to start recording:', error);
@@ -430,11 +462,13 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         tags: []
       };
       
-      // Add to notes store and navigate
+      // Add to notes store
       const { useNotesStore } = await import('./notesStore');
-      const { useRoutingStore } = await import('./routingStore');
       useNotesStore.getState().addNote(newNote);
-      useRoutingStore.getState().navigateToNote(noteId);
+      
+      // Navigate using window.location to ensure compatibility with React Router
+      // This will trigger the router to handle the navigation
+      window.location.href = `/note/${noteId}`;
       
       // Start transcription
       await get().startTranscription(audioBlob, noteId);
