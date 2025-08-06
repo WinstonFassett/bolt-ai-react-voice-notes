@@ -96,13 +96,13 @@ export const AudioManagement: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 space-y-4">
+    <div className="bg-card rounded-lg p-4 space-y-4 border border-border">
       <div className="flex flex-row items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-300">Audio Management</h3>
+        <h3 className="text-sm font-medium">Audio Management</h3>
         <div className="flex flex-row gap-2">
           <button
             onClick={() => isIOS ? setShowSingleExport(!showSingleExport) : handleExportAllAudio()}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors flex items-center justify-center gap-2"
             disabled={exportAudioStatus === 'loading'}
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
@@ -119,7 +119,7 @@ export const AudioManagement: React.FC = () => {
             />
             <label
               htmlFor="import-audio"
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <ArrowUpTrayIcon className="w-5 h-5" />
               Import
@@ -139,7 +139,7 @@ export const AudioManagement: React.FC = () => {
       
       {/* iOS-optimized single file export UI */}
       {showSingleExport && isIOS && notesWithAudio.length > 0 && (
-        <div className="mt-4 bg-gray-700/50 rounded-lg p-3">
+        <div className="mt-4 bg-card/50 rounded-lg p-3">
           <h4 className="text-sm font-medium text-gray-300 mb-2">Export Individual Audio Files</h4>
           <p className="text-xs text-gray-400 mb-3">For iOS devices, export files individually to avoid memory issues</p>
           

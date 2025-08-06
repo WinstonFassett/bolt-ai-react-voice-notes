@@ -134,7 +134,7 @@ export const SettingsManagement: React.FC = () => {
             
             <button
               onClick={() => setShowResetSettingsConfirm(true)}
-              className="px-4 py-2 bg-warning hover:bg-warning/90 text-warning-foreground rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
               disabled={resetSettingsStatus === 'loading'}
             >
               <ArrowPathIcon className="w-5 h-5" />
