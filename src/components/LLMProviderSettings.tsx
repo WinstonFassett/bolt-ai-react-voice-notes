@@ -217,18 +217,18 @@ export const LLMProviderSettings: React.FC = () => {
       {providers.length > 0 && (
         <div className={`p-4 rounded-lg border ${
           hasValidProvider() 
-            ? 'bg-success/10 border-success/30' 
-            : 'bg-warning/10 border-warning/30'
+            ? 'bg-green-500/10 border-green-500/30' 
+            : 'bg-amber-500/10 border-amber-500/30'
         }`}>
           <div className="flex items-center gap-3">
             {hasValidProvider() ? (
-              <CheckCircleIcon className="w-5 h-5 text-success" />
+              <CheckCircleIcon className="w-5 h-5 text-green-500" />
             ) : (
-              <ExclamationTriangleIcon className="w-5 h-5 text-warning" />
+              <ExclamationTriangleIcon className="w-5 h-5 text-amber-500" />
             )}
             <div>
               <div className={`font-medium ${
-                hasValidProvider() ? 'text-success' : 'text-warning'
+                hasValidProvider() ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
               }`}>
                 {hasValidProvider() 
                   ? `${validProviders.length} provider(s) connected`
@@ -236,7 +236,7 @@ export const LLMProviderSettings: React.FC = () => {
                 }
               </div>
               <div className={`text-sm ${
-                hasValidProvider() ? 'text-success/80' : 'text-warning/80'
+                hasValidProvider() ? 'text-green-600/80 dark:text-green-400/80' : 'text-amber-600/80 dark:text-amber-400/80'
               }`}>
                 {hasValidProvider()
                   ? `${availableModels.length} models available`
@@ -322,8 +322,8 @@ export const LLMProviderSettings: React.FC = () => {
                     <h4 className="font-medium">{provider.name}</h4>
                     <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
                       provider.isValid
-                        ? 'bg-success/10 text-success border border-success/30'
-                        : 'bg-destructive/10 text-destructive border border-destructive/30'
+                        ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/30'
+                        : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30'
                     }`}>
                       {provider.isValid ? (
                         <>

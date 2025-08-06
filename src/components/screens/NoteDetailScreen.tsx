@@ -508,13 +508,13 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 relative">
+    <div className="flex flex-col h-full bg-background relative">
       {/* Import status feedback removed - handled elsewhere */}
       {/* Header with Breadcrumb Navigation */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="safe-area-top py-4 px-4 border-b border-gray-800"
+        className="safe-area-top py-4 px-4 border-b border-border"
       >
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col gap-2">
@@ -552,19 +552,19 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           <div className="flex items-center justify-between">
             <button
               onClick={onBack}
-              className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
             >
-              <ArrowLeftIcon className="w-6 h-6 text-white" />
+              <ArrowLeftIcon className="w-6 h-6" />
             </button>
             
             {/* Show source note link for agent notes */}
             {isAgentNote && sourceNote && (
               <button
                 onClick={() => navigate(`/note/${sourceNote.id}`)}
-                className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1 bg-accent hover:bg-accent/80 rounded-lg transition-colors"
               >
-                <span className="text-sm text-gray-300">Source:</span>
-                <span className="text-sm text-white truncate max-w-32">{sourceNote.title}</span>
+                <span className="text-sm text-muted-foreground">Source:</span>
+                <span className="text-sm truncate max-w-32">{sourceNote.title}</span>
               </button>
             )}
           
@@ -573,10 +573,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             {/* Simple delete button */}
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 rounded-lg hover:bg-red-600/20 transition-colors"
+              className="p-2 rounded-lg hover:bg-destructive/20 transition-colors"
               title="Delete note"
             >
-              <TrashIcon className="w-5 h-5 text-red-400" />
+              <TrashIcon className="w-5 h-5 text-destructive" />
             </button>
           </div>
         </div>
@@ -592,13 +592,13 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               type="text"
               value={title}
               onChange={handleTitleChange}
-              className="w-full text-2xl font-bold bg-transparent text-white placeholder-gray-400 
+              className="w-full text-2xl font-bold bg-transparent placeholder-muted-foreground
                        border-none outline-none focus:ring-0"
               placeholder="Note Title"
               disabled={false}
             />
             
-            <div className="flex items-center justify-between text-sm text-gray-400">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div className="flex items-center gap-4">
                 <span>Words: {getWordCount(content)}</span>
                 <span>Characters: {getCharacterCount(content)}</span>

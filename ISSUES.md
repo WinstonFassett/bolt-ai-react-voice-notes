@@ -202,4 +202,6 @@ When showing a player or recorder persistently over a tab area, the tab/tab host
 Player recorder are way too wide. should have a sane max width like lg or even md. 
 
 
+Success color seems to have been lost? Ie 1 provider(s) connected box has no colors.
+
 
