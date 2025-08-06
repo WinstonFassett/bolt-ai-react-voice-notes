@@ -325,7 +325,7 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
               <button
                 type="submit"
                 disabled={!formData.name.trim() || !formData.prompt.trim()}
-                className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 {mode === 'create' ? 'Create Agent' : 'Save Changes'}
               </button>
