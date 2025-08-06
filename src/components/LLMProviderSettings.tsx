@@ -52,14 +52,14 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+        className="bg-background rounded-xl p-6 max-w-md w-full border border-border"
       >
-        <h3 className="text-lg font-semibold text-white mb-4">Add LLM Provider</h3>
+        <h3 className="text-lg font-semibold mb-4">Add LLM Provider</h3>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Provider Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Provider
             </label>
             <div className="space-y-2">
@@ -71,11 +71,11 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
                     value={provider.id}
                     checked={selectedProvider === provider.id}
                     onChange={(e) => setSelectedProvider(e.target.value)}
-                    className="mt-1 w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500"
+                    className="mt-1 w-4 h-4 text-primary bg-background border-input focus:ring-ring"
                   />
                   <div>
-                    <div className="text-white font-medium">{provider.name}</div>
-                    <div className="text-sm text-gray-400">{provider.description}</div>
+                    <div className="font-medium">{provider.name}</div>
+                    <div className="text-sm text-muted-foreground">{provider.description}</div>
                   </div>
                 </label>
               ))}
@@ -84,7 +84,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
 
           {/* API Key */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               API Key
             </label>
             <div className="relative">
@@ -93,13 +93,13 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-..."
-                className="w-full px-3 py-2 pr-10 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-lg placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {showApiKey ? (
                   <EyeSlashIcon className="w-4 h-4" />
@@ -112,18 +112,18 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
 
           {/* Base URL (Optional) */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               Base URL (Optional)
             </label>
             <input
-              type="url"
+              type="text"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://api.openai.com/v1"
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="https://api.example.com"
+              className="w-full px-3 py-2 bg-background border border-input rounded-lg placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Leave empty to use default endpoint
+            <p className="mt-1 text-xs text-muted-foreground">
+              Only needed for custom API endpoints
             </p>
           </div>
 
@@ -132,14 +132,14 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!apiKey.trim()}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-colors"
             >
               Add Provider
             </button>
@@ -206,8 +206,8 @@ export const LLMProviderSettings: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">LLM Providers</h3>
-          <p className="text-sm text-gray-400">
+          <h3 className="text-lg font-semibold">LLM Providers</h3>
+          <p className="text-sm text-muted-foreground">
             Configure AI providers to enable agents
           </p>
         </div>
@@ -217,18 +217,18 @@ export const LLMProviderSettings: React.FC = () => {
       {providers.length > 0 && (
         <div className={`p-4 rounded-lg border ${
           hasValidProvider() 
-            ? 'bg-green-900/20 border-green-700/30' 
-            : 'bg-yellow-900/20 border-yellow-700/30'
+            ? 'bg-success/10 border-success/30' 
+            : 'bg-warning/10 border-warning/30'
         }`}>
           <div className="flex items-center gap-3">
             {hasValidProvider() ? (
-              <CheckCircleIcon className="w-5 h-5 text-green-400" />
+              <CheckCircleIcon className="w-5 h-5 text-success" />
             ) : (
-              <ExclamationTriangleIcon className="w-5 h-5 text-yellow-400" />
+              <ExclamationTriangleIcon className="w-5 h-5 text-warning" />
             )}
             <div>
               <div className={`font-medium ${
-                hasValidProvider() ? 'text-green-300' : 'text-yellow-300'
+                hasValidProvider() ? 'text-success' : 'text-warning'
               }`}>
                 {hasValidProvider() 
                   ? `${validProviders.length} provider(s) connected`
@@ -236,7 +236,7 @@ export const LLMProviderSettings: React.FC = () => {
                 }
               </div>
               <div className={`text-sm ${
-                hasValidProvider() ? 'text-green-400' : 'text-yellow-400'
+                hasValidProvider() ? 'text-success/80' : 'text-warning/80'
               }`}>
                 {hasValidProvider()
                   ? `${availableModels.length} models available`
@@ -249,7 +249,7 @@ export const LLMProviderSettings: React.FC = () => {
             <button
               onClick={handleValidateAll}
               disabled={isValidating}
-              className="mt-3 px-3 py-1 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-700 text-white rounded text-sm transition-colors"
+              className="mt-3 px-3 py-1 bg-muted hover:bg-muted/80 disabled:bg-muted/50 rounded text-sm transition-colors"
             >
               {isValidating ? 'Validating...' : 'Validate All'}
             </button>
@@ -259,12 +259,12 @@ export const LLMProviderSettings: React.FC = () => {
 
       {/* Warning when no default model is set */}
       {hasValidProvider() && !defaultModelId && (
-        <div className="p-4 rounded-lg border bg-yellow-900/20 border-yellow-700/30">
+        <div className="p-4 rounded-lg border bg-warning/10 border-warning/30">
           <div className="flex items-center gap-3">
-            <ExclamationTriangleIcon className="w-5 h-5 text-yellow-400" />
+            <ExclamationTriangleIcon className="w-5 h-5 text-warning" />
             <div>
-              <div className="font-medium text-yellow-300">No Default Model Selected</div>
-              <div className="text-sm text-yellow-400">
+              <div className="font-medium text-warning">No Default Model Selected</div>
+              <div className="text-sm text-warning/80">
                 Please select a default model below to enable AI agents
               </div>
             </div>

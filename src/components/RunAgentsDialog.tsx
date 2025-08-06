@@ -102,24 +102,24 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-white">Run AI Agents</h3>
+            <h3 className="text-lg font-semibold">Run AI Agents</h3>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
             >
-              <XMarkIcon className="w-5 h-5 text-gray-400" />
+              <XMarkIcon className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
 
           {/* Agent Selection */}
           <div className="space-y-4 mb-6">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-300">
+              <span className="text-sm text-muted-foreground">
                 Select agents to run ({selectedAgents.size} of {availableAgents.length})
               </span>
               <button
                 onClick={handleSelectAll}
-                className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                className="text-sm text-primary hover:text-primary/80 transition-colors"
               >
                 {selectedAgents.size === availableAgents.length ? 'Deselect All' : 'Select All'}
               </button>
@@ -135,8 +135,8 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
                     key={agent.id}
                     className={`flex items-center gap-3 p-3 rounded-lg border transition-colors cursor-pointer ${
                       isSelected 
-                        ? 'bg-indigo-900/20 border-indigo-700/30' 
-                        : 'bg-gray-700/30 border-gray-600/30 hover:bg-gray-700/50'
+                        ? 'bg-primary/10 border-primary/30' 
+                        : 'bg-muted/50 border-border hover:bg-muted'
                     }`}
                     onClick={() => handleAgentToggle(agent.id)}
                   >
@@ -145,7 +145,7 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleAgentToggle(agent.id)}
-                        className="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                        className="w-4 h-4 text-primary bg-background border-input rounded focus:ring-ring"
                       />
                       
                       {/* Status indicator */}
@@ -153,22 +153,22 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          className="absolute -top-1 -right-1 w-3 h-3 border border-indigo-500 border-t-transparent rounded-full"
+                          className="absolute -top-1 -right-1 w-3 h-3 border border-primary border-t-transparent rounded-full"
                         />
                       )}
                       {status === 'completed' && (
-                        <CheckIcon className="absolute -top-1 -right-1 w-3 h-3 text-green-400" />
+                        <CheckIcon className="absolute -top-1 -right-1 w-3 h-3 text-success" />
                       )}
                       {status === 'failed' && (
-                        <XMarkIcon className="absolute -top-1 -right-1 w-3 h-3 text-red-400" />
+                        <XMarkIcon className="absolute -top-1 -right-1 w-3 h-3 text-destructive" />
                       )}
                     </div>
 
                     <div className="flex items-center gap-2 flex-1">
                       <span className="text-lg">{agent.avatar}</span>
                       <div>
-                        <div className="font-medium text-white">{agent.name}</div>
-                        <div className="text-xs text-gray-400">
+                        <div className="font-medium">{agent.name}</div>
+                        <div className="text-xs text-muted-foreground">
                           {agent.tags.join(', ')}
                         </div>
                       </div>
@@ -181,14 +181,14 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
 
           {/* Processing Status */}
           {currentlyProcessing && (
-            <div className="mb-4 p-3 bg-indigo-900/20 border border-indigo-700/30 rounded-lg">
+            <div className="mb-4 p-3 bg-primary/10 border border-primary/30 rounded-lg">
               <div className="flex items-center gap-2">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full"
+                  className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full"
                 />
-                <span className="text-sm text-indigo-300">
+                <span className="text-sm text-primary">
                   {processingStatus || 'Processing...'}
                 </span>
               </div>
@@ -199,14 +199,14 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
           <div className="flex justify-end gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
             >
               {completedAgents.size > 0 || failedAgents.size > 0 ? 'Done' : 'Cancel'}
             </button>
             <button
               onClick={handleRunSelected}
               disabled={selectedAgents.size === 0 || isProcessing}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-colors flex items-center gap-2"
             >
               <PlayIcon className="w-4 h-4" />
               Run Selected ({selectedAgents.size})
