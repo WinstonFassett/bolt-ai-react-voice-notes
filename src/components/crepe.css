@@ -1,28 +1,45 @@
 
+:root {
+  --crepe-frame-light-display: none;
+  --crepe-frame-dark-display: block;
+}
+
+.light {
+  --crepe-frame-light-display: block;
+  --crepe-frame-dark-display: none;
+}
+
+.dark .crepe-frame-light {
+  display: none !important;
+}
+
+.light .crepe-frame-dark {
+  display: none !important;
+}
+
 #root .milkdown {
-  /* Use root theme variables for consistency */
-  /* --crepe-color-background: var(--bg-primary); */
+  /* Use theme-aware variables for consistency */
   --crepe-color-background: transparent;
-  --crepe-color-surface: var(--bg-secondary);
-  --crepe-color-surface-low: var(--bg-tertiary);
+  --crepe-color-surface: hsl(var(--card));
+  --crepe-color-surface-low: hsl(var(--muted));
 
-  --crepe-color-on-background: var(--text-primary);
-  --crepe-color-on-surface: var(--text-primary);
-  --crepe-color-on-surface-variant: var(--text-secondary);
+  --crepe-color-on-background: hsl(var(--foreground));
+  --crepe-color-on-surface: hsl(var(--foreground));
+  --crepe-color-on-surface-variant: hsl(var(--muted-foreground));
 
-  --crepe-color-primary: var(--accent-primary);
-  --crepe-color-secondary: var(--accent-secondary);
-  --crepe-color-on-secondary: var(--text-primary);
+  --crepe-color-primary: hsl(var(--primary));
+  --crepe-color-secondary: hsl(var(--secondary));
+  --crepe-color-on-secondary: hsl(var(--secondary-foreground));
 
-  --crepe-color-outline: var(--text-secondary);
-  --crepe-color-inverse: var(--bg-elevated);
-  --crepe-color-on-inverse: var(--text-primary);
-  --crepe-color-inline-code: var(--accent-error);
-  --crepe-color-error: var(--accent-error);
+  --crepe-color-outline: hsl(var(--border));
+  --crepe-color-inverse: hsl(var(--accent));
+  --crepe-color-on-inverse: hsl(var(--accent-foreground));
+  --crepe-color-inline-code: hsl(var(--destructive));
+  --crepe-color-error: hsl(var(--destructive));
 
-  --crepe-color-hover: var(--bg-tertiary);
-  --crepe-color-selected: var(--accent-secondary);
-  --crepe-color-inline-area: var(--bg-secondary);
+  --crepe-color-hover: hsl(var(--accent));
+  --crepe-color-selected: hsl(var(--secondary));
+  --crepe-color-inline-area: hsl(var(--card));
 }
 
 
@@ -65,6 +82,10 @@
 .prose-compact .milkdown .ProseMirror blockquote {
   margin: 0;
   padding-left: 1rem;
-  border-left: 4px solid var(--border);
+  border-left: 4px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  background-color: hsl(var(--muted)/20);
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
 }
 

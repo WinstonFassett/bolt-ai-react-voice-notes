@@ -4,7 +4,9 @@ import {
   DocumentArrowDownIcon,
   InformationCircleIcon,
   CpuChipIcon as RobotIcon,
-  TrashIcon
+  TrashIcon,
+  SunIcon,
+  MoonIcon
 } from '@heroicons/react/24/outline';
 
 // Import components
@@ -22,8 +24,12 @@ import {
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 import { deleteDownloadedModels } from '@/utils/settingsExporter';
+import { useTheme } from '../../hooks/useTheme';
 
 export const SettingsScreen: React.FC = () => {
+  // Get theme settings
+  const { theme, setTheme } = useTheme();
+  
   // Get only what we need from stores using primitive selectors to avoid unnecessary re-renders
   const useOpenAIForSTT = useSettingsStore(state => state.useOpenAIForSTT);
   
@@ -77,6 +83,36 @@ export const SettingsScreen: React.FC = () => {
   }, []);
 
   const settingsGroups = useMemo(() => [
+    {
+      title: 'Appearance',
+      icon: SunIcon,
+      items: [
+        {
+          label: 'Theme',
+          description: 'Choose your preferred color scheme',
+          component: (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setTheme('light')}
+                  className={`p-2 rounded-lg flex items-center gap-2 ${theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                >
+                  <SunIcon className="w-5 h-5" />
+                  Light
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={`p-2 rounded-lg flex items-center gap-2 ${theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                >
+                  <MoonIcon className="w-5 h-5" />
+                  Dark
+                </button>
+              </div>
+            </div>
+          )
+        }
+      ]
+    },
     {
       title: 'AI Agents',
       icon: RobotIcon,

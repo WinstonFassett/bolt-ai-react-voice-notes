@@ -616,17 +616,17 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               <div className="flex items-center gap-4">
                 <button
                   onClick={handlePlayAudio}
-                  className="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center transition-colors"
+                  className="w-12 h-12 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center transition-colors"
                 >
                   {isCurrentlyPlaying ? (
-                    <PauseIcon className="w-5 h-5 text-white" />
+                    <PauseIcon className="w-5 h-5 text-primary-foreground" />
                   ) : (
-                    <PlayIcon className="w-5 h-5 text-white ml-0.5" />
+                    <PlayIcon className="w-5 h-5 text-primary-foreground ml-0.5" />
                   )}
                 </button>
                 <div>
-                  <div className="text-sm text-gray-300">Audio Recording</div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-sm">Audio Recording</div>
+                  <div className="text-xs text-muted-foreground">
                     {isCurrentlyPlaying ? (
                       `${formatTime(globalAudioCurrentTime)} / ${formatTime(progressDuration)}`
                     ) : (
@@ -642,15 +642,15 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                   {!isTranscribing && (
                     <button
                       onClick={() => setShowRetranscribeConfirm(true)}
-                      className="p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors"
+                      className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors"
                       title="Re-transcribe audio"
                     >
-                      <SparklesIcon className="w-4 h-4 text-indigo-400" />
+                      <SparklesIcon className="w-4 h-4 text-primary" />
                     </button>
                   )}
                   <button 
                     onClick={handleDownloadAudio}
-                    className="p-2 text-gray-400 hover:text-indigo-500 transition-colors ml-auto"
+                    className="p-2 text-muted-foreground hover:text-primary transition-colors ml-auto"
                     aria-label="Download audio"
                     title="Download audio"
                   >
@@ -661,7 +661,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                   {typeof navigator !== 'undefined' && 'share' in navigator && (
                     <button 
                       onClick={handleShareAudio}
-                      className="p-2 text-gray-400 hover:text-indigo-500 transition-colors"
+                      className="p-2 text-muted-foreground hover:text-primary transition-colors"
                       aria-label="Share audio"
                       title="Share audio"
                     >
@@ -671,7 +671,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                   
                   <button
                     onClick={handleDeleteAudio}
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors"
                     aria-label="Delete audio"
                     title="Delete audio recording"
                   >
@@ -697,9 +697,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"
+                      className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full"
                     />
-                    <span className="text-sm text-indigo-300 font-medium">
+                    <span className="text-sm text-primary/80 font-medium">
                       {transcriptionStatus || 'Processing...'}
                     </span>
                   </div>
@@ -715,8 +715,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 <span 
                   key={tag} 
                   className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
-                           bg-primary/20 text-primary border border-primary/30 
-                           cursor-pointer hover:bg-primary/30"
+                           bg-card text-card-foreground border border-border 
+                           cursor-pointer hover:bg-accent/20"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/library?q=${encodeURIComponent(tag)}`);
@@ -729,7 +729,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                       e.stopPropagation(); // Prevent tag click navigation
                       handleRemoveTag(tag);
                     }}
-                    className="ml-1 text-primary hover:text-primary/70"
+                    className="ml-1 text-muted-foreground hover:text-foreground"
                   >
                     ×
                   </button>
@@ -744,9 +744,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               onChange={(e) => setTagInput(e.target.value)}
               onKeyPress={handleAddTag}
               placeholder="Add tags (press Enter)"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg 
-                       text-white placeholder-gray-400 focus:outline-none focus:ring-2 
-                       focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-input border border-input rounded-lg 
+                       placeholder-muted-foreground focus:outline-none focus:ring-2 
+                       focus:ring-ring focus:border-transparent"
             />
             )}
           </div>
