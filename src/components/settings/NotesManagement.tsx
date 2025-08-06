@@ -89,10 +89,10 @@ export const NotesManagement: React.FC = () => {
   }, [clearAllNotes]);
 
   return (
-    <div className="bg-card  rounded-lg p-4 space-y-4 border border-border">
-      <div className="flex flex-row items-center justify-between">
-        <h3 className="text-sm font-medium">Notes Management</h3>
-        <div className="flex flex-row gap-2">
+    <div className="bg-card  rounded-lg space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-sm font-medium mb-2">Notes Management</h3>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
           <button
             onClick={handleExportNotes}
             className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors flex items-center justify-center gap-2"
