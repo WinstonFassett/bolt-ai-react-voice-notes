@@ -78,3 +78,10 @@ The user knows that the fuckign plot was lost but does not know where. Claude MU
 
 ALSO you may have already FUCKED THIS CURRENT BRANCH TO HELL so don't look at THIS code to see the RIGHT way to fucking do things. MAIN branch has the fucking PRODUCTION APPLICATION you shit.
 
+Ok you fucking asshole. This fucking IDE just restarted. User is getting fucking pissed. Tighten your shit up.
+
+Remember to use git but if you want to fucking change branches you need fucking permission. You are not fucking in charge of this project. You are fucking a sidekick.
+
+You can show stuff on main without checking it the fuck out and ruining shit. It makes little fucking diff to you. 
+
+The whole fucking inspo branch is in fucking git because you can't fucking see it if it's fucking ignored so an extra fuck you to windsurf for that fuckery.
