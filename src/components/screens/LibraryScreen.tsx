@@ -12,10 +12,10 @@ import { useAudioStore } from '../../stores/audioStore';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Plus, Search, Play, Pause, Trash2, Bot } from 'lucide-react';
+import { Plus, Search, Play, Pause, Trash2, Bot, FileText } from 'lucide-react';
 import { AppHeader } from '../Layout/AppHeader';
 import { AddButton } from '../AddButton';
+import { cn } from '../../lib/utils';
 
 interface LibraryScreenProps {
   onUploadFile: () => void;
@@ -100,11 +100,21 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     return groups;
   }, [filteredNotes]);
 
-  // Helper function to truncate content while preserving markdown formatting
-  const truncateContent = (content: string, maxLength: number = 120) => {
+  // Helper function to format content for display
+  const formatContent = (content: string, maxLength: number = 120) => {
     if (!content) return '';
-    // Don't strip markdown formatting, just truncate
-    return content.length > maxLength ? content.slice(0, maxLength) + '...' : content;
+    
+    // Format markdown for display
+    const formatted = content
+      .replace(/^#+\s+/gm, '') // Remove headers
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links but keep text
+      .trim();
+    
+    // Get first paragraph and truncate if needed
+    const firstParagraph = formatted.split('\n')[0];
+    return firstParagraph.length > maxLength ? firstParagraph.slice(0, maxLength) + '...' : firstParagraph;
   };
 
   // Get child notes for a given parent note
@@ -122,85 +132,29 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     const formattedDate = formatDistanceToNow(new Date(note.lastEdited), { addSuffix: true });
     const childNotes = getChildNotes(note.id);
     const isAgentNote = note.type === 'agent';
+    const hasAudio = note.audioUrl !== null && note.audioUrl !== undefined;
+    const formattedDuration = note.duration ? 
+      `${Math.floor(note.duration / 60)}:${(note.duration % 60).toString().padStart(2, '0')}` : 
+      null;
     
     return (
       <div key={note.id} className={level === 0 ? 'mb-2' : 'mt-2'}>
         <Card 
-          className={`cursor-pointer hover:bg-accent/50 transition-all duration-200 hover:shadow-md hover:scale-[1.01] 
-                     border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm
-                     ${isAgentNote ? 'border-l-4 border-l-primary' : ''}`}
+          className={cn(
+            "cursor-pointer hover:bg-accent/50 transition-all duration-200",
+            isAgentNote && "border-l-4 border-l-primary"
+          )}
           onClick={() => navigate(`/note/${note.id}`)}
           style={{ marginLeft: `${level * 16}px` }}
         >
           <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                {level > 0 && (
-                  <div className="text-xs text-muted-foreground mb-1">
-                    {'└─ '.repeat(level)}{isAgentNote ? 'AI Analysis' : 'Child Note'}
-                  </div>
-                )}
-                <h3 className="font-medium truncate mb-1 flex items-center gap-2">
-                  {isAgentNote && <Bot className="h-4 w-4 text-primary" />}
-                  {note.title || 'Untitled Note'}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {truncateContent(note.content)}
-                </p>
-                
-                {note.tags && note.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {note.tags.slice(0, 3).map(tag => (
-                      <Badge 
-                        key={tag} 
-                        variant="secondary" 
-                        className="text-xs cursor-pointer hover:bg-primary/20"
-                        onClick={(e) => {
-                          e.preventDefault(); // Prevent default behavior
-                          e.stopPropagation(); // Prevent card click
-                          // Update search query state
-                          setSearchQuery(tag);
-                          // Update URL with search query parameter
-                          const url = new URL(window.location.href);
-                          url.searchParams.set('q', tag);
-                          window.history.pushState({}, '', url);
-                        }}
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                    {note.tags.length > 3 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{note.tags.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {formattedDate}
-                  </span>
-                  
-                  {note.duration && (
-                    <span className="text-xs text-muted-foreground">
-                      {Math.floor(note.duration / 60)}:{(note.duration % 60).toString().padStart(2, '0')}
-                    </span>
-                  )}
-                  
-                  {childNotes.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      {childNotes.length} child note{childNotes.length !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-2">
-                {note.audioUrl && (
+            <div className="flex items-start gap-3">
+              {/* Left column for play button or icon */}
+              <div className="flex-shrink-0">
+                {hasAudio ? (
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="secondary"
+                    size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (note.audioUrl) {
@@ -211,28 +165,92 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                         }
                       }
                     }}
-                    className="h-8 w-8 p-0"
+                    className="h-12 w-12 rounded-full"
                   >
                     {isCurrentlyPlaying ? (
-                      <Pause className="h-4 w-4" />
+                      <Pause className="h-5 w-5" />
                     ) : (
-                      <Play className="h-4 w-4" />
+                      <Play className="h-5 w-5" />
                     )}
                   </Button>
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
+                    {isAgentNote ? (
+                      <Bot className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                {/* Title row with delete button */}
+                <div className="flex items-start justify-between mb-1 relative">
+                  <h3 className="font-medium pr-8 line-clamp-2">
+                    {note.title || 'Untitled Note'}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNoteToDelete(note);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="h-6 w-6 p-0 absolute top-0 right-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* Content preview */}
+                {note.content && (
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                    {formatContent(note.content)}
+                  </p>
                 )}
                 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setNoteToDelete(note);
-                    setShowDeleteConfirm(true);
-                  }}
-                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {/* Info row - date, duration, child count */}
+                <div className="flex items-center text-xs text-muted-foreground mb-2">
+                  <span>{formattedDate}</span>
+                  {formattedDuration && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <span>{formattedDuration}</span>
+                    </>
+                  )}
+                  {childNotes.length > 0 && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <span>{childNotes.length} child note{childNotes.length !== 1 ? 's' : ''}</span>
+                    </>
+                  )}
+                </div>
+                
+                {/* Tags row - always at the bottom */}
+                {note.tags && note.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {note.tags.map(tag => (
+                      <span
+                        key={tag}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSearchQuery(tag);
+                          const url = new URL(window.location.href);
+                          url.searchParams.set('q', tag);
+                          window.history.pushState({}, '', url);
+                        }}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
+                                 bg-primary/20 text-primary border border-primary/30 
+                                 cursor-pointer hover:bg-primary/30"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

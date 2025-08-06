@@ -53,7 +53,7 @@
 
 # CRITICAL User CORRECTIONS That Came AFTER All THE above
 
-Spacing between parent and child is NOT fixed. Claude just added MORE spacing below top-level notes
+Spacing between parent and child was NOT fixed. Claude just added MORE spacing below top-level notes
 But their children are apparently INSIDE them and so you need spacing on first child, proably bettter to have prefix spacing on descendants, suffix spacing on roots. User fixed with `level === 0 ? 'mb-2' : 'mt-2'`.
 
 The Library tab does NOT stay highlighted when viewing note details. 

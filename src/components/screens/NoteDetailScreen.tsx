@@ -12,6 +12,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'share-api-polyfill';
+import { formatDistanceToNow } from 'date-fns';
 import { useAgentsStore } from '../../stores/agentsStore';
 import { useAudioStore } from '../../stores/audioStore';
 import { resolveStorageUrl } from '../../utils/audioStorage';
@@ -21,6 +22,9 @@ import { BottomNavigation } from '../BottomNavigation';
 import { CrepeEditorWrapper } from '../CrepeEditor';
 import { RunAgentsDialog } from '../RunAgentsDialog';
 import { ModelLoadingProgress } from '../ModelLoadingProgress';
+import { Button } from '../ui/button';
+import { Card, CardContent } from '../ui/card';
+import { cn } from '../../lib/utils';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -42,7 +46,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     globalIsPlaying, 
     globalAudioDuration, 
     globalAudioCurrentTime,
-    setIsUserInteracting 
+    setIsUserInteracting,
+    togglePlayPause
   } = useAudioStore();
   
   const { 
@@ -73,6 +78,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRetranscribeConfirm, setShowRetranscribeConfirm] = useState(false);
   const [showRunAgentsDialog, setShowRunAgentsDialog] = useState(false);
+
+  // Note: sourceNote is already defined below
 
   // Import functionality removed as it's handled elsewhere
 
@@ -292,11 +299,18 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   
-  // Helper function to truncate content while preserving markdown formatting
-  const truncateContent = (content: string, maxLength: number = 120) => {
+  // Helper function to format content by stripping markdown syntax
+  const formatContent = (content: string) => {
     if (!content) return '';
-    // Simple truncation that preserves markdown - not perfect but functional
-    return content.length > maxLength ? content.slice(0, maxLength) + '...' : content;
+    // Strip markdown formatting but preserve text
+    return content
+      .replace(/#{1,6}\s/g, '') // Remove headings
+      .replace(/\*\*|__/g, '') // Remove bold
+      .replace(/\*|_/g, '') // Remove italic
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Replace links with just the text
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/`([^`]+)`/g, '$1') // Remove inline code
+      .trim();
   };
 
   const handleDeleteNote = () => {
@@ -380,43 +394,75 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   return (
     <div className="flex flex-col h-full bg-gray-900 relative">
       {/* Import status feedback removed - handled elsewhere */}
-      {/* Header */}
+      {/* Header with Breadcrumb Navigation */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="safe-area-top py-4 px-4 border-b border-gray-800"
       >
         <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <ArrowLeftIcon className="w-6 h-6 text-white" />
-          </button>
-          
-          {/* Show source note link for agent notes */}
-          {isAgentNote && sourceNote && (
+          <div className="flex flex-col gap-2">
+            {/* Breadcrumb Navigation */}
+            <div className="flex items-center text-sm overflow-x-auto pb-2 scrollbar-hide">
+              <button
+                onClick={() => navigate('/library')}
+                className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+              >
+                Library
+              </button>
+              
+              {/* Show source note breadcrumb for agent notes */}
+              {isAgentNote && sourceNote && (
+                <>
+                  <span className="mx-2 text-muted-foreground">/</span>
+                  <button
+                    onClick={() => navigate(`/note/${sourceNote.id}`)}
+                    className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[150px]"
+                    title={sourceNote.title || 'Untitled Note'}
+                  >
+                    {sourceNote.title || 'Untitled Note'}
+                  </button>
+                </>
+              )}
+              
+              {/* Current note */}
+              <span className="mx-2 text-muted-foreground">/</span>
+              <span className="text-foreground truncate max-w-[200px]" title={note.title || 'Untitled Note'}>
+                {note.title || 'Untitled Note'}
+              </span>
+            </div>
+          </div>
+          {/* Actions row */}
+          <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate(`/note/${sourceNote.id}`)}
-              className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+              onClick={onBack}
+              className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
             >
-              <span className="text-sm text-gray-300">Source:</span>
-              <span className="text-sm text-white truncate max-w-32">{sourceNote.title}</span>
+              <ArrowLeftIcon className="w-6 h-6 text-white" />
             </button>
-          )}
+            
+            {/* Show source note link for agent notes */}
+            {isAgentNote && sourceNote && (
+              <button
+                onClick={() => navigate(`/note/${sourceNote.id}`)}
+                className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <span className="text-sm text-gray-300">Source:</span>
+                <span className="text-sm text-white truncate max-w-32">{sourceNote.title}</span>
+              </button>
+            )}
           
-          {/* No edit toggle needed - always in edit mode */}
-          
-          {/* Simple delete button */}
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="p-2 rounded-lg hover:bg-red-600/20 transition-colors"
-            title="Delete note"
-          >
-            <TrashIcon className="w-5 h-5 text-red-400" />
-          </button>
-        </div>
+            {/* No edit toggle needed - always in edit mode */}
+            
+            {/* Simple delete button */}
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2 rounded-lg hover:bg-red-600/20 transition-colors"
+              title="Delete note"
+            >
+              <TrashIcon className="w-5 h-5 text-red-400" />
+            </button>
+          </div>
         </div>
       </motion.header>
 
@@ -552,14 +598,22 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               {note.tags.map(tag => (
                 <span 
                   key={tag} 
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-600/20 text-indigo-300 
-                           rounded-full text-sm border border-indigo-600/30"
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
+                           bg-primary/20 text-primary border border-primary/30 
+                           cursor-pointer hover:bg-primary/30"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/library?q=${encodeURIComponent(tag)}`);
+                  }}
                 >
                   {tag}
                   {!isAgentNote && (
                   <button
-                    onClick={() => handleRemoveTag(tag)}
-                    className="ml-1 text-indigo-400 hover:text-indigo-200"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent tag click navigation
+                      handleRemoveTag(tag);
+                    }}
+                    className="ml-1 text-primary hover:text-primary/70"
                   >
                     ×
                   </button>
@@ -611,11 +665,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           {/* Takeaways Section with AI Agents Button */}
           <div className="mt-6">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                <DocumentDuplicateIcon className="w-5 h-5 text-gray-400" />
-                Takeaways
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <DocumentDuplicateIcon className="w-5 h-5 text-muted-foreground" />
+                Descendants
                 {childNotes.length > 0 && (
-                  <span className="text-sm text-gray-400 font-normal ml-2">
+                  <span className="text-sm text-muted-foreground font-normal ml-2">
                     ({childNotes.length})
                   </span>
                 )}
@@ -624,8 +678,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 <button
                   onClick={() => setShowRunAgentsDialog(true)}
                   disabled={agentsProcessing}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 
-                           disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 
+                           disabled:bg-muted disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-colors"
                 >
                   <SparklesIcon className="w-5 h-5" />
                   Run AI Agents
@@ -637,26 +691,106 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               <div className="space-y-2">
                 {childNotes
                   .sort((a, b) => b.lastEdited - a.lastEdited)
-                  .map((childNote) => (
-                    <div 
-                      key={childNote.id}
-                      className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-800/50 transition-colors
-                                ${childNote.type === 'agent' ? 'border-l-4 border-l-primary border-gray-700' : 'border-gray-700'}`}
-                      onClick={() => navigate(`/note/${childNote.id}`)}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        {childNote.type === 'agent' ? (
-                          <SparklesIcon className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                        ) : (
-                          <DocumentDuplicateIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        )}
-                        <h4 className="font-medium text-white">{childNote.title}</h4>
+                  .map((childNote) => {
+                    const isAgentNote = childNote.type === 'agent';
+                    const hasAudio = childNote.audioUrl !== null && childNote.audioUrl !== undefined;
+                    const isCurrentlyPlaying = currentPlayingAudioUrl === childNote.audioUrl && globalIsPlaying;
+                    const formattedDate = formatDistanceToNow(new Date(childNote.lastEdited), { addSuffix: true });
+                    
+                    return (
+                      <div key={childNote.id} className="mt-2">
+                        <Card 
+                          className={cn(
+                            "cursor-pointer hover:bg-accent/50 transition-all duration-200",
+                            isAgentNote && "border-l-4 border-l-primary"
+                          )}
+                          onClick={() => navigate(`/note/${childNote.id}`)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              {/* Left column for play button or icon */}
+                              <div className="flex-shrink-0">
+                                {hasAudio ? (
+                                  <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (childNote.audioUrl) {
+                                        if (currentPlayingAudioUrl === childNote.audioUrl && globalIsPlaying) {
+                                          togglePlayPause();
+                                        } else {
+                                          playAudio(childNote.audioUrl);
+                                        }
+                                      }
+                                    }}
+                                    className="h-12 w-12 rounded-full"
+                                  >
+                                    {isCurrentlyPlaying ? (
+                                      <PauseIcon className="h-5 w-5" />
+                                    ) : (
+                                      <PlayIcon className="h-5 w-5" />
+                                    )}
+                                  </Button>
+                                ) : (
+                                  <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
+                                    {isAgentNote ? (
+                                      <SparklesIcon className="h-5 w-5 text-muted-foreground" />
+                                    ) : (
+                                      <DocumentDuplicateIcon className="h-5 w-5 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Main content */}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium pr-8 line-clamp-2">{childNote.title || 'Untitled Note'}</h4>
+                                
+                                {/* Content preview */}
+                                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                                  {formatContent(childNote.content)}
+                                </p>
+                                
+                                {/* Info row */}
+                                <div className="flex items-center text-xs text-muted-foreground mb-2">
+                                  <span>{formattedDate}</span>
+                                  {childNote.duration && (
+                                    <>
+                                      <span className="mx-1">•</span>
+                                      <span>
+                                        {Math.floor(childNote.duration / 60)}:{(childNote.duration % 60).toString().padStart(2, '0')}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                                
+                                {/* Tags */}
+                                {childNote.tags && childNote.tags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {childNote.tags.map(tag => (
+                                      <span
+                                        key={tag}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/library?q=${encodeURIComponent(tag)}`);
+                                        }}
+                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
+                                                bg-primary/20 text-primary border border-primary/30 
+                                                cursor-pointer hover:bg-primary/30"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
                       </div>
-                      <div className="text-sm text-gray-300 line-clamp-2 prose prose-sm prose-invert max-w-none">
-                        {truncateContent(childNote.content, 120)}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             )}
             
