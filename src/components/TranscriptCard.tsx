@@ -156,14 +156,13 @@ export const TranscriptCard: React.FC<TranscriptCardProps> = ({
   
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="card hover:bg-gray-800/50 transition-all duration-200 cursor-pointer group max-w-full overflow-hidden"
+      className="card hover:bg-gray-800/50 transition-all duration-200 cursor-pointer group max-w-full overflow-hidden h-[120px]"
     >
       <div className="flex items-start gap-4 mb-3">
         {/* AI Note Indicator */}

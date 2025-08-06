@@ -1,15 +1,22 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useDebugStore } from '../../stores/debugStore';
 
 const DebugInfo: React.FC = () => {
-  const { debugInfo, clearDebugInfo } = useDebugStore();
+  // Use primitive selectors to avoid unnecessary re-renders
+  const debugInfo = useDebugStore(state => state.debugInfo);
+  const clearDebugInfo = useDebugStore(state => state.clearDebugInfo);
+  
+  // Memoize the clear function to prevent unnecessary re-renders
+  const handleClearDebugInfo = useCallback(() => {
+    clearDebugInfo();
+  }, [clearDebugInfo]);
   
   return (
     <div className="bg-gray-800 rounded-lg p-4 space-y-4">
       <div className="flex flex-row items-center justify-between">
         <h3 className="text-sm font-medium text-gray-300">Debug Information</h3>
         <button
-          onClick={clearDebugInfo}
+          onClick={handleClearDebugInfo}
           className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
         >
           Clear Log

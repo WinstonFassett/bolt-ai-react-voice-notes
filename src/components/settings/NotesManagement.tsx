@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useNotesStore } from '../../stores/notesStore';
 
 export const NotesManagement: React.FC = () => {
-  const { exportNotes, importNotes, clearAllNotes } = useNotesStore();
+  // Use primitive selectors to avoid unnecessary re-renders
+  const exportNotes = useNotesStore(state => state.exportNotes);
+  const importNotes = useNotesStore(state => state.importNotes);
+  const clearAllNotes = useNotesStore(state => state.clearAllNotes);
   
   // UI state
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -13,8 +16,8 @@ export const NotesManagement: React.FC = () => {
   const [importMessage, setImportMessage] = useState('');
   const [clearMessage, setClearMessage] = useState('');
 
-  // Handlers
-  const handleExportNotes = () => {
+  // Handlers - memoized to prevent unnecessary re-renders
+  const handleExportNotes = useCallback(() => {
     setExportStatus('loading');
     try {
       exportNotes();
@@ -25,9 +28,9 @@ export const NotesManagement: React.FC = () => {
       setExportStatus('error');
       setTimeout(() => setExportStatus('idle'), 4000);
     }
-  };
+  }, [exportNotes]);
 
-  const handleImportNotes = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportNotes = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setImportStatus('loading');
     setImportMessage('Importing notes...');
     
@@ -64,9 +67,9 @@ export const NotesManagement: React.FC = () => {
       }, 4000);
     };
     reader.readAsText(file);
-  };
+  }, [importNotes]);
 
-  const handleClearNotes = () => {
+  const handleClearNotes = useCallback(() => {
     setClearStatus('loading');
     setClearMessage('Clearing notes...');
     
@@ -83,7 +86,7 @@ export const NotesManagement: React.FC = () => {
       setClearStatus('idle'); 
       setClearMessage(''); 
     }, 4000);
-  };
+  }, [clearAllNotes]);
 
   return (
     <div className="bg-gray-800 rounded-lg p-4 space-y-4">

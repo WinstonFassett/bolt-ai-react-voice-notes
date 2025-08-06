@@ -92,8 +92,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     : null;
   
   // Get transcription status for this specific note
-  const isTranscribing = isNoteProcessing(note.id);
-  const transcriptionStatus = getNoteProcessingStatus(note.id);
+  const isTranscribing = note ? isNoteProcessing(note.id) : false;
+  const transcriptionStatus = note ? getNoteProcessingStatus(note.id) : '';
 
   // Update local state when note prop changes (for reactive updates)
   useEffect(() => {

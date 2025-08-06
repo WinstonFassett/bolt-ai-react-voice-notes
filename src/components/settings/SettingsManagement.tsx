@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export const SettingsManagement: React.FC = () => {
-  const { exportSettings, importSettings, resetSettings } = useSettingsStore();
+  // Use primitive selectors to avoid unnecessary re-renders
+  const exportSettings = useSettingsStore(state => state.exportSettings);
+  const importSettings = useSettingsStore(state => state.importSettings);
+  const resetSettings = useSettingsStore(state => state.resetSettings);
   
   // UI state
   const [exportSettingsStatus, setExportSettingsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -16,8 +19,8 @@ export const SettingsManagement: React.FC = () => {
   
   const [showResetSettingsConfirm, setShowResetSettingsConfirm] = useState(false);
 
-  // Handlers
-  const handleExportSettings = () => {
+  // Handlers - memoized to prevent unnecessary re-renders
+  const handleExportSettings = useCallback(() => {
     setExportSettingsStatus('loading');
     try {
       exportSettings();
@@ -28,9 +31,9 @@ export const SettingsManagement: React.FC = () => {
       setExportSettingsStatus('error');
       setTimeout(() => setExportSettingsStatus('idle'), 4000);
     }
-  };
+  }, [exportSettings]);
 
-  const handleImportSettings = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportSettings = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     setImportSettingsStatus('loading');
     setImportSettingsMessage('Importing settings...');
     
@@ -68,9 +71,9 @@ export const SettingsManagement: React.FC = () => {
       }, 4000);
     };
     reader.readAsText(file);
-  };
+  }, [importSettings]);
 
-  const handleResetSettings = () => {
+  const handleResetSettings = useCallback(() => {
     setResetSettingsStatus('loading');
     setResetSettingsMessage('Resetting settings...');
     
@@ -95,7 +98,7 @@ export const SettingsManagement: React.FC = () => {
       setResetSettingsStatus('idle'); 
       setResetSettingsMessage(''); 
     }, 4000);
-  };
+  }, [resetSettings, setShowResetSettingsConfirm]);
 
   return (
     <>

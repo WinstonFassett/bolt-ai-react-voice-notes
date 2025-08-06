@@ -1,5 +1,4 @@
 import React, { useMemo } from 'react';
-import { shallow } from 'zustand/shallow';
 import { 
   CpuChipIcon,
   DocumentArrowDownIcon,
@@ -23,11 +22,8 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 
 export const SettingsScreen: React.FC = () => {
-  // Get only what we need from stores using shallow comparison for performance
-  const { model, useOpenAIForSTT } = useSettingsStore(state => ({
-    model: state.model,
-    useOpenAIForSTT: state.useOpenAIForSTT
-  }), shallow);
+  // Get only what we need from stores using primitive selectors to avoid unnecessary re-renders
+  const useOpenAIForSTT = useSettingsStore(state => state.useOpenAIForSTT);
   
   // Check if we have a valid OpenAI provider for STT option
   const hasOpenAIProvider = useLLMProvidersStore(state => 
@@ -35,6 +31,21 @@ export const SettingsScreen: React.FC = () => {
   );
 
   // Define the settings groups structure with their components
+  // Using stable references to prevent infinite loops
+  const modelSelectorComponent = useMemo(() => <ModelSelector className="w-full" />, []);
+  const llmProviderSettingsComponent = useMemo(() => <LLMProviderSettings />, []);
+  const settingsManagementComponent = useMemo(() => <SettingsManagement />, []);
+  const notesManagementComponent = useMemo(() => <NotesManagement />, []);
+  const audioManagementComponent = useMemo(() => <AudioManagement />, []);
+  const dangerZoneComponent = useMemo(() => <DangerZone />, []);
+  const debugInfoComponent = useMemo(() => <DebugInfo />, []);
+
+  const memoizedAudioManagement = useMemo(() => <AudioManagement />, []);
+  const memoizedNotesManagement = useMemo(() => <NotesManagement />, []);
+  const memoizedSettingsManagement = useMemo(() => <SettingsManagement />, []);
+  const memoizedDebugInfo = useMemo(() => <DebugInfo />, []);
+  const memoizedDangerZone = useMemo(() => <DangerZone />, []);
+
   const settingsGroups = useMemo(() => [
     {
       title: 'AI Agents',
@@ -45,7 +56,7 @@ export const SettingsScreen: React.FC = () => {
           description: 'Configure AI providers for intelligent agents',
           component: (
             <div className="w-full">
-              <LLMProviderSettings />
+              {llmProviderSettingsComponent}
             </div>
           )
         }
@@ -71,7 +82,7 @@ export const SettingsScreen: React.FC = () => {
                   />
                 </div>
               )}
-              <ModelSelector className="w-full" />
+              {modelSelectorComponent}
             </div>
           )
         }
@@ -87,16 +98,16 @@ export const SettingsScreen: React.FC = () => {
           component: (
             <div className="space-y-6 w-full">
               {/* Settings Management UI */}
-              <SettingsManagement />
+              {memoizedSettingsManagement}
               
               {/* Notes Management UI */}
-              <NotesManagement />
+              {memoizedNotesManagement}
               
               {/* Audio Management UI */}
-              <AudioManagement />
+              {memoizedAudioManagement}
               
               {/* Danger Zone */}
-              <DangerZone />
+              {memoizedDangerZone}
             </div>
           )
         }
@@ -111,7 +122,7 @@ export const SettingsScreen: React.FC = () => {
           description: 'View technical information about the app',
           component: (
             <div className="w-full">
-              <DebugInfo />
+              {debugInfoComponent}
             </div>
           )
         }

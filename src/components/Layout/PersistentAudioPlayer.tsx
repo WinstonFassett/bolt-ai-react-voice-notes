@@ -1,10 +1,10 @@
 import { Play, Pause, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { useAudioStore } from '@/stores/audioStore'
-import { useNotesStore } from '@/stores/notesStore'
-import { formatTime } from '@/utils/formatTime'
+import { Button } from '../ui/button'
+import { Card, CardContent } from '../ui/card'
+import { Progress } from '../ui/progress'
+import { useAudioStore } from '../../stores/audioStore'
+import { useNotesStore } from '../../stores/notesStore'
+import { formatTime } from '../../utils/formatTime'
 
 export function PersistentAudioPlayer() {
   const { 

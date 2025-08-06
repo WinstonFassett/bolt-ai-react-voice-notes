@@ -1,9 +1,9 @@
 import { Mic, Square, Pause, Play } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { useRecordingStore } from '@/stores/recordingStore'
-import { cn } from '@/lib/utils'
-import { formatTime } from '@/utils/formatTime'
+import { Button } from '../ui/button'
+import { Card, CardContent } from '../ui/card'
+import { useRecordingStore } from '../../stores/recordingStore'
+import { cn } from '../../lib/utils'
+import { formatTime } from '../../utils/formatTime'
 
 export function PersistentRecordingWidget() {
   const { 

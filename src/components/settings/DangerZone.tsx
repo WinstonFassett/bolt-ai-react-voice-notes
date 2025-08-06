@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { deleteDownloadedModels } from '../../utils/settingsExporter';
 
 export const DangerZone: React.FC = () => {
-  const { clearAllData } = useSettingsStore();
+  // Use primitive selector to avoid unnecessary re-renders
+  const clearAllData = useSettingsStore(state => state.clearAllData);
   
   // UI state
   const [clearDataStatus, setClearDataStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -14,8 +15,8 @@ export const DangerZone: React.FC = () => {
   const [clearModelsStatus, setClearModelsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [clearModelsMessage, setClearModelsMessage] = useState('');
 
-  // Handlers
-  const handleClearAllData = async () => {
+  // Handlers - memoized to prevent unnecessary re-renders
+  const handleClearAllData = useCallback(async () => {
     setClearDataStatus('loading');
     setClearDataMessage('Clearing all data...');
     
@@ -49,9 +50,9 @@ export const DangerZone: React.FC = () => {
         setClearDataMessage(''); 
       }, 4000);
     }
-  };
+  }, [clearAllData, setShowClearAllDataConfirm]);
 
-  const handleClearModels = async () => {
+  const handleClearModels = useCallback(async () => {
     setClearModelsStatus('loading');
     setClearModelsMessage('Deleting downloaded models...');
     
@@ -79,7 +80,7 @@ export const DangerZone: React.FC = () => {
         setClearModelsMessage(''); 
       }, 4000);
     }
-  };
+  }, []);
 
   return (
     <div>

@@ -1,20 +1,31 @@
-import React, { useState } from 'react';
-import { ArrowDownTrayIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
+import React, { useState, useCallback, useMemo } from 'react';
+import { ArrowDownTrayIcon, ArrowUpTrayIcon, TrashIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { useNotesStore } from '../../stores/notesStore';
 
 export const AudioManagement: React.FC = () => {
-  const { downloadAllAudio, importAudio, clearAllRecordings } = useNotesStore();
+  const { downloadAllAudio, downloadSingleAudio, importAudio, clearAllRecordings, notes } = useNotesStore();
   
   // UI state
   const [exportAudioStatus, setExportAudioStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [importAudioStatus, setImportAudioStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [clearAudioStatus, setClearAudioStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [showSingleExport, setShowSingleExport] = useState(false);
   
   const [importAudioMessage, setImportAudioMessage] = useState('');
   const [clearAudioMessage, setClearAudioMessage] = useState('');
+  
+  // Get notes with audio for single export (iOS optimization)
+  const notesWithAudio = useMemo(() => {
+    return notes.filter(note => note.audioUrl).sort((a, b) => b.created - a.created);
+  }, [notes]);
+
+  // Detect iOS device for optimized audio handling
+  const isIOS = useMemo(() => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  }, []);
 
   // Handlers
-  const handleExportAllAudio = () => {
+  const handleExportAllAudio = useCallback(() => {
     setExportAudioStatus('loading');
     try {
       downloadAllAudio();
@@ -25,7 +36,16 @@ export const AudioManagement: React.FC = () => {
       setExportAudioStatus('error');
       setTimeout(() => setExportAudioStatus('idle'), 4000);
     }
-  };
+  }, [downloadAllAudio]);
+  
+  // Handler for single audio export (iOS optimization)
+  const handleExportSingleAudio = useCallback((noteId: string) => {
+    try {
+      downloadSingleAudio(noteId);
+    } catch (error) {
+      console.error('Error exporting single audio:', error);
+    }
+  }, [downloadSingleAudio]);
 
   const handleImportAudio = (event: React.ChangeEvent<HTMLInputElement>) => {
     setImportAudioStatus('loading');
@@ -81,12 +101,12 @@ export const AudioManagement: React.FC = () => {
         <h3 className="text-sm font-medium text-gray-300">Audio Management</h3>
         <div className="flex flex-row gap-2">
           <button
-            onClick={handleExportAllAudio}
+            onClick={() => isIOS ? setShowSingleExport(!showSingleExport) : handleExportAllAudio()}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             disabled={exportAudioStatus === 'loading'}
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
-            Export All
+            {isIOS ? 'Export Options' : 'Export All'}
           </button>
           
           <div className="relative">
@@ -116,6 +136,31 @@ export const AudioManagement: React.FC = () => {
           </button>
         </div>
       </div>
+      
+      {/* iOS-optimized single file export UI */}
+      {showSingleExport && isIOS && notesWithAudio.length > 0 && (
+        <div className="mt-4 bg-gray-700/50 rounded-lg p-3">
+          <h4 className="text-sm font-medium text-gray-300 mb-2">Export Individual Audio Files</h4>
+          <p className="text-xs text-gray-400 mb-3">For iOS devices, export files individually to avoid memory issues</p>
+          
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {notesWithAudio.map(note => (
+              <div key={note.id} className="flex items-center justify-between bg-gray-800/50 p-2 rounded">
+                <div className="truncate flex-1">
+                  <p className="text-sm text-gray-300 truncate">{note.title || 'Untitled Recording'}</p>
+                  <p className="text-xs text-gray-500">{new Date(note.created).toLocaleDateString()}</p>
+                </div>
+                <button
+                  onClick={() => handleExportSingleAudio(note.id)}
+                  className="ml-2 p-2 bg-indigo-600/80 hover:bg-indigo-600 rounded-full"
+                >
+                  <ShareIcon className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       {importAudioMessage && (
         <div className={`text-sm ${importAudioStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>

@@ -1,17 +1,30 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MicrophoneIcon } from '@heroicons/react/24/solid';
 import { useRecordingStore } from '../../stores/recordingStore';
-import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { useAudioStore } from '../../stores/audioStore';
-import { ModelLoadingProgress } from '../ModelLoadingProgress';
+import { useNavigate } from 'react-router-dom';
 
 export const RecordScreen: React.FC = () => {
   // Get everything from stores
   const { isRecording, startRecordingFlow } = useRecordingStore();
   const { currentPlayingAudioUrl } = useAudioStore();
+  const navigate = useNavigate();
+  
+  // Handle recording start with proper navigation
+  const handleStartRecording = useCallback(async () => {
+    try {
+      await startRecordingFlow();
+      // Note: Navigation to note detail will be handled by the recording store
+      // when it creates a note from the recording
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      // Show error message to user
+    }
+  }, [startRecordingFlow]);
 
-  const showBigRecordButton = currentPlayingAudioUrl !== null;
+  // Show the big record button when no audio is playing
+  const showBigRecordButton = currentPlayingAudioUrl === null;
   
   return (
     <div className="flex flex-col h-full">
@@ -52,7 +65,7 @@ export const RecordScreen: React.FC = () => {
                 {/* Big Record Button for Record Screen - Only show when global button is hidden */}
                 {showBigRecordButton && (
                   <motion.button
-                    onClick={startRecordingFlow}
+                    onClick={handleStartRecording}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className="w-24 h-24 rounded-full bg-red-500 hover:bg-red-400 flex items-center justify-center transition-all duration-300 shadow-xl mx-auto"

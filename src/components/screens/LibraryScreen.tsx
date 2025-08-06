@@ -102,7 +102,10 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
               onStartRecording={startRecordingFlow}
               onUploadFile={onUploadFile}
               onFromUrl={onFromUrl}
-              onCreateNote={createNote}
+              onCreateNote={() => {
+                const newNoteId = createNote();
+                navigate(`/note/${newNoteId}`);
+              }}
             />
           </div>
         </div>
