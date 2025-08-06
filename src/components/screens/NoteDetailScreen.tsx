@@ -93,10 +93,133 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const isTranscribing = note ? isNoteProcessing(note.id) : false;
   const transcriptionStatus = note ? getNoteProcessingStatus(note.id) : '';
   
-  // Get all child notes (both regular child notes and AI takeaways)
+  // Get child notes for this note
   const childNotes = notes.filter(n => 
-    n.sourceNoteIds?.includes(note.id) || note.takeaways?.includes(n.id)
+    n.sourceNoteIds && n.sourceNoteIds.includes(note.id)
   );
+  
+  // Get child notes for a given parent note
+  const getChildNotes = (parentId: string): Note[] => {
+    if (!parentId) return [];
+    return notes.filter(note => 
+      note && note.sourceNoteIds && note.sourceNoteIds.includes(parentId)
+    ).sort((a, b) => b.lastEdited - a.lastEdited);
+  };
+
+  // Recursive function to render a note with its children
+  const renderNoteWithChildren = (note: Note, level: number = 0) => {
+    if (!note) return null;
+    const isCurrentlyPlaying = currentPlayingAudioUrl === note.audioUrl && globalIsPlaying;
+    const formattedDate = formatDistanceToNow(new Date(note.lastEdited), { addSuffix: true });
+    const childNotes = getChildNotes(note.id);
+    const isAgentNote = note.type === 'agent';
+    const hasAudio = note.audioUrl !== null && note.audioUrl !== undefined;
+    const formattedDuration = note.duration ? 
+      `${Math.floor(note.duration / 60)}:${(note.duration % 60).toString().padStart(2, '0')}` : 
+      null;
+    
+    return (
+      <div key={note.id} className={level === 0 ? 'mb-2' : 'mt-2'}>
+        <Card 
+          className={cn(
+            "cursor-pointer hover:bg-accent/50 transition-all duration-200",
+            isAgentNote && "border-l-4 border-l-primary"
+          )}
+          onClick={() => navigate(`/note/${note.id}`)}
+          style={{ marginLeft: `${level * 16}px` }}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              {/* Left column for play button or icon */}
+              <div className="flex-shrink-0">
+                {hasAudio ? (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (note.audioUrl) {
+                        if (currentPlayingAudioUrl === note.audioUrl && globalIsPlaying) {
+                          togglePlayPause();
+                        } else {
+                          playAudio(note.audioUrl);
+                        }
+                      }
+                    }}
+                    className="h-12 w-12 rounded-full"
+                  >
+                    {isCurrentlyPlaying ? (
+                      <PauseIcon className="h-5 w-5" />
+                    ) : (
+                      <PlayIcon className="h-5 w-5" />
+                    )}
+                  </Button>
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
+                    {isAgentNote ? (
+                      <SparklesIcon className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <DocumentDuplicateIcon className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium pr-8 line-clamp-2">{note.title || 'Untitled Note'}</h4>
+                
+                {/* Content preview */}
+                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                  {getContentPreview(note.content)}
+                </p>
+                
+                {/* Info row */}
+                <div className="flex items-center text-xs text-muted-foreground mb-2">
+                  <span>{formattedDate}</span>
+                  {formattedDuration && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <span>{formattedDuration}</span>
+                    </>
+                  )}
+                  {childNotes.length > 0 && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <span>{childNotes.length} child note{childNotes.length !== 1 ? 's' : ''}</span>
+                    </>
+                  )}
+                </div>
+                
+                {/* Tags */}
+                {note.tags && note.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {note.tags.map(tag => (
+                      <span
+                        key={tag}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/library?q=${encodeURIComponent(tag)}`);
+                        }}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
+                                bg-primary/20 text-primary border border-primary/30 
+                                cursor-pointer hover:bg-primary/30"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Render child notes */}
+        {childNotes.length > 0 && childNotes.map(childNote => renderNoteWithChildren(childNote, level + 1))}
+      </div>
+    );
+  };
 
   // Update local state when note prop changes (for reactive updates)
   useEffect(() => {
@@ -299,18 +422,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   
-  // Helper function to format content by stripping markdown syntax
-  const formatContent = (content: string) => {
+  // Helper function to get a plain text preview of content for cards
+  const getContentPreview = (content: string) => {
     if (!content) return '';
-    // Strip markdown formatting but preserve text
-    return content
-      .replace(/#{1,6}\s/g, '') // Remove headings
-      .replace(/\*\*|__/g, '') // Remove bold
-      .replace(/\*|_/g, '') // Remove italic
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Replace links with just the text
-      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
-      .replace(/`([^`]+)`/g, '$1') // Remove inline code
-      .trim();
+    // Get first 150 characters of content, preserving the raw text
+    return content.substring(0, 150).trim() + (content.length > 150 ? '...' : '');
   };
 
   const handleDeleteNote = () => {
@@ -689,108 +805,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             
             {childNotes.length > 0 && (
               <div className="space-y-2">
+                {/* Use the same recursive rendering pattern as LibraryScreen */}
                 {childNotes
+                  .filter(note => !note.sourceNoteIds || note.sourceNoteIds.length === 0 || !note.sourceNoteIds.some(id => childNotes.some(n => n.id === id)))
                   .sort((a, b) => b.lastEdited - a.lastEdited)
-                  .map((childNote) => {
-                    const isAgentNote = childNote.type === 'agent';
-                    const hasAudio = childNote.audioUrl !== null && childNote.audioUrl !== undefined;
-                    const isCurrentlyPlaying = currentPlayingAudioUrl === childNote.audioUrl && globalIsPlaying;
-                    const formattedDate = formatDistanceToNow(new Date(childNote.lastEdited), { addSuffix: true });
-                    
-                    return (
-                      <div key={childNote.id} className="mt-2">
-                        <Card 
-                          className={cn(
-                            "cursor-pointer hover:bg-accent/50 transition-all duration-200",
-                            isAgentNote && "border-l-4 border-l-primary"
-                          )}
-                          onClick={() => navigate(`/note/${childNote.id}`)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              {/* Left column for play button or icon */}
-                              <div className="flex-shrink-0">
-                                {hasAudio ? (
-                                  <Button
-                                    variant="secondary"
-                                    size="icon"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (childNote.audioUrl) {
-                                        if (currentPlayingAudioUrl === childNote.audioUrl && globalIsPlaying) {
-                                          togglePlayPause();
-                                        } else {
-                                          playAudio(childNote.audioUrl);
-                                        }
-                                      }
-                                    }}
-                                    className="h-12 w-12 rounded-full"
-                                  >
-                                    {isCurrentlyPlaying ? (
-                                      <PauseIcon className="h-5 w-5" />
-                                    ) : (
-                                      <PlayIcon className="h-5 w-5" />
-                                    )}
-                                  </Button>
-                                ) : (
-                                  <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
-                                    {isAgentNote ? (
-                                      <SparklesIcon className="h-5 w-5 text-muted-foreground" />
-                                    ) : (
-                                      <DocumentDuplicateIcon className="h-5 w-5 text-muted-foreground" />
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Main content */}
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium pr-8 line-clamp-2">{childNote.title || 'Untitled Note'}</h4>
-                                
-                                {/* Content preview */}
-                                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                                  {formatContent(childNote.content)}
-                                </p>
-                                
-                                {/* Info row */}
-                                <div className="flex items-center text-xs text-muted-foreground mb-2">
-                                  <span>{formattedDate}</span>
-                                  {childNote.duration && (
-                                    <>
-                                      <span className="mx-1">•</span>
-                                      <span>
-                                        {Math.floor(childNote.duration / 60)}:{(childNote.duration % 60).toString().padStart(2, '0')}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                                
-                                {/* Tags */}
-                                {childNote.tags && childNote.tags.length > 0 && (
-                                  <div className="flex flex-wrap gap-1">
-                                    {childNote.tags.map(tag => (
-                                      <span
-                                        key={tag}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          navigate(`/library?q=${encodeURIComponent(tag)}`);
-                                        }}
-                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
-                                                bg-primary/20 text-primary border border-primary/30 
-                                                cursor-pointer hover:bg-primary/30"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    );
-                  })}
+                  .map((childNote) => renderNoteWithChildren(childNote, 0))}
               </div>
             )}
             

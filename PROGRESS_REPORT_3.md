@@ -84,4 +84,4 @@ Remember to use git but if you want to fucking change branches you need fucking 
 
 You can show stuff on main without checking it the fuck out and ruining shit. It makes little fucking diff to you. 
 
-The whole fucking inspo branch is in fucking git because you can't fucking see it if it's fucking ignored so an extra fuck you to windsurf for that fuckery.
+The whole fucking inspo branch is in fucking git because you can't fucking see it if it's fucking ignored so an extra fuck you to windsurf for that fuckery. Anyway I need to remember to revert that shit once this fuckery is unfucked.

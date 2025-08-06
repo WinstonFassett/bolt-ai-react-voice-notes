@@ -100,20 +100,12 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     return groups;
   }, [filteredNotes]);
 
-  // Helper function to format content for display
-  const formatContent = (content: string, maxLength: number = 120) => {
+  // Helper function to get a plain text preview of content for cards
+  const getContentPreview = (content: string, maxLength: number = 120) => {
     if (!content) return '';
     
-    // Format markdown for display
-    const formatted = content
-      .replace(/^#+\s+/gm, '') // Remove headers
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-      .replace(/\*(.*?)\*/g, '$1') // Remove italic
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links but keep text
-      .trim();
-    
     // Get first paragraph and truncate if needed
-    const firstParagraph = formatted.split('\n')[0];
+    const firstParagraph = content.split('\n')[0];
     return firstParagraph.length > maxLength ? firstParagraph.slice(0, maxLength) + '...' : firstParagraph;
   };
 
@@ -208,7 +200,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                 {/* Content preview */}
                 {note.content && (
                   <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {formatContent(note.content)}
+                    {getContentPreview(note.content)}
                   </p>
                 )}
                 
