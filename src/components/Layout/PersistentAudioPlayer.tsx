@@ -2,43 +2,36 @@ import { Play, Pause, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { useAppStore } from '@/store/appStore'
+import { useAudioStore } from '@/stores/audioStore'
+import { useNotesStore } from '@/stores/notesStore'
+import { formatTime } from '@/utils/formatTime'
 
 export function PersistentAudioPlayer() {
   const { 
     currentPlayingAudioUrl,
-    isPlaying,
-    audioDuration,
-    audioCurrentTime,
-    pauseAudio,
-    playAudio,
+    globalIsPlaying: isPlaying,
+    globalAudioDuration: audioDuration,
+    globalAudioCurrentTime: audioCurrentTime,
+    togglePlayPause,
     seekAudio,
-    notes
-  } = useAppStore()
+    closePlayer
+  } = useAudioStore()
+  
+  const { notes } = useNotesStore()
 
   if (!currentPlayingAudioUrl) return null
 
   const currentNote = notes.find(note => note.audioUrl === currentPlayingAudioUrl)
   const progress = audioDuration ? (audioCurrentTime / audioDuration) * 100 : 0
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
+  // Using imported formatTime utility
 
   const handleTogglePlay = () => {
-    if (isPlaying) {
-      pauseAudio()
-    } else {
-      playAudio(currentPlayingAudioUrl)
-    }
+    togglePlayPause()
   }
 
   const handleClose = () => {
-    pauseAudio()
-    // Clear the current playing audio
-    useAppStore.setState({ currentPlayingAudioUrl: undefined })
+    closePlayer()
   }
 
   return (

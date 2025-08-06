@@ -1,8 +1,9 @@
 import { Mic, Square, Pause, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { useAppStore } from '@/store/appStore'
+import { useRecordingStore } from '@/stores/recordingStore'
 import { cn } from '@/lib/utils'
+import { formatTime } from '@/utils/formatTime'
 
 export function PersistentRecordingWidget() {
   const { 
@@ -12,15 +13,11 @@ export function PersistentRecordingWidget() {
     pauseRecording, 
     resumeRecording, 
     stopRecording 
-  } = useAppStore()
+  } = useRecordingStore()
 
   if (!isRecording) return null
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
+  // Using imported formatTime utility
 
   const handleToggle = () => {
     if (isPaused) {

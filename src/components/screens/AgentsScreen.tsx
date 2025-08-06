@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   PlusIcon,
   ExclamationTriangleIcon,
@@ -14,7 +15,6 @@ import { useAgentsStore } from '../../stores/agentsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 import { AgentEditor } from '../AgentEditor';
 import { useAppStore } from '../../stores/appStore';
-import { useRoutingStore } from '../../stores/routingStore';
 
 export const AgentsScreen: React.FC = () => {
   const {
@@ -37,7 +37,7 @@ export const AgentsScreen: React.FC = () => {
     validateAllProviders
   } = useLLMProvidersStore();
 
-  const { setTab } = useRoutingStore();
+  const navigate = useNavigate();
 
   const [dependencyCheck, setDependencyCheck] = useState<{ valid: boolean; issues: string[] }>({ valid: true, issues: [] });
   const [showAgentEditor, setShowAgentEditor] = useState(false);
@@ -75,8 +75,7 @@ export const AgentsScreen: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    const { setTab } = useRoutingStore();
-    setTab('settings');
+    navigate('/settings');
   };
   const handleCreateAgent = () => {
     setEditingAgent(null);

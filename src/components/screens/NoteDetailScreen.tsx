@@ -10,12 +10,12 @@ import {
 } from '@heroicons/react/24/outline';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import 'share-api-polyfill';
 import { useAgentsStore } from '../../stores/agentsStore';
 import { useAudioStore } from '../../stores/audioStore';
 import { isStorageUrl, resolveStorageUrl } from '../../utils/audioStorage';
 import { Note, useNotesStore } from '../../stores/notesStore';
-import { useRoutingStore } from '../../stores/routingStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
 import { BottomNavigation } from '../BottomNavigation';
 import { CrepeEditorWrapper } from '../CrepeEditor';
@@ -70,7 +70,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     getNoteProcessingStatus,
     getNoteProgressItems
   } = useTranscriptionStore();
-  const { navigateToNote } = useRoutingStore();
+  const navigate = useNavigate();
   
   // Simplified state management - no separate editing state
   const [title, setTitle] = useState(note?.title || '');
@@ -420,7 +420,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           {/* Show source note link for agent notes */}
           {isAgentNote && sourceNote && (
             <button
-              onClick={() => navigateToNote(sourceNote.id)}
+              onClick={() => navigate(`/note/${sourceNote.id}`)}
               className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
             >
               <span className="text-sm text-gray-300">Source:</span>
@@ -634,7 +634,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                     <TakeawayCard
                       key={takeaway.id}
                       takeaway={takeaway}
-                      onSelect={(id) => navigateToNote(id)}
+                      onSelect={(id) => navigate(`/note/${id}`)}
                       onDelete={(id) => deleteNote(id)}
                     />
                 ))}

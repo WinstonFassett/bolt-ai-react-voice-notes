@@ -9,7 +9,7 @@ import {
 } from '@heroicons/react/24/solid';
 import { useAudioStore } from '../stores/audioStore';
 import { useNotesStore } from '../stores/notesStore';
-import { useRoutingStore } from '../stores/routingStore';
+import { useNavigate } from 'react-router-dom';
 
 export const GlobalAudioPlayer: React.FC = () => {
   // Get everything from stores
@@ -24,7 +24,7 @@ export const GlobalAudioPlayer: React.FC = () => {
     setIsUserInteracting 
   } = useAudioStore();
   const { notes } = useNotesStore();
-  const { navigateToNote } = useRoutingStore();
+  const navigate = useNavigate();
 
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
@@ -46,7 +46,7 @@ export const GlobalAudioPlayer: React.FC = () => {
 
   const handleTitleClick = () => {
     if (currentNote) {
-      navigateToNote(currentNote.id);
+      navigate(`/note/${currentNote.id}`);
     }
   };
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {

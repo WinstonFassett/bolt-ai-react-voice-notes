@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-import { useAppStore } from '@/store/appStore'
+import { useRecordingStore } from '@/stores/recordingStore'
 import { useTheme } from '@/hooks/useTheme'
 import { RecordScreen } from '@/screens/RecordScreen'
 import { LibraryScreen } from '@/screens/LibraryScreen'
@@ -14,7 +14,7 @@ import { Toaster } from '@/components/ui/sonner'
 
 function AppContent() {
   const navigate = useNavigate()
-  const { isRecording, initializeSampleData } = useAppStore()
+  const { isRecording } = useRecordingStore()
   
   // Initialize theme
   useTheme()
@@ -23,11 +23,6 @@ function AppContent() {
   useEffect(() => {
     (window as any).navigate = navigate
   }, [navigate])
-  
-  // Initialize sample data on first load
-  useEffect(() => {
-    initializeSampleData()
-  }, [])
 
   return (
     <div className="h-screen bg-background text-foreground overflow-hidden">

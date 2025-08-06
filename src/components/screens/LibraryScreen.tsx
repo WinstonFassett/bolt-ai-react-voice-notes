@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { TranscriptCard } from '../TranscriptCard';
 import { AddButton } from '../AddButton';
 import { useNotesStore } from '../../stores/notesStore';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useAudioStore } from '../../stores/audioStore';
-import { useRoutingStore } from '../../stores/routingStore';
 import { 
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
@@ -21,7 +21,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   const { notes, deleteNote, createNote } = useNotesStore();
   const { startRecordingFlow } = useRecordingStore();
   const { playAudio, currentPlayingAudioUrl, globalIsPlaying, setShowUrlModal } = useAudioStore();
-  const { navigateToNote } = useRoutingStore();
+  const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -168,11 +168,11 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                       audioUrl={note.audioUrl}
                       duration={note.duration}
                       takeaways={note.takeaways}
-                     onClick={() => navigateToNote(note.id)}
+                      onClick={() => navigate(`/note/${note.id}`)}
                       onDeleteClick={() => handleDeleteClick(note)}
-                    onPlayAudio={playAudio}
-                    currentPlayingAudioUrl={currentPlayingAudioUrl}
-                    globalIsPlaying={globalIsPlaying}
+                      onPlayAudio={playAudio}
+                      currentPlayingAudioUrl={currentPlayingAudioUrl}
+                      globalIsPlaying={globalIsPlaying}
                     />
                   ))}
                 </div>

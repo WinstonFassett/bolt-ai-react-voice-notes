@@ -4,7 +4,7 @@ import { MicrophoneIcon, StopIcon, PauseIcon, PlayIcon, XMarkIcon } from '@heroi
 import { WaveformVisualizer } from './WaveformVisualizer';
 import { useAudioStore } from '../stores/audioStore';
 import { useRecordingStore } from '../stores/recordingStore';
-import { useRoutingStore } from '../stores/routingStore';
+import { useLocation } from 'react-router-dom';
 
 export const RecordButton: React.FC = () => {
   // Get everything from stores
@@ -20,10 +20,23 @@ export const RecordButton: React.FC = () => {
     stopRecordingFlow,
     cancelRecordingFlow
   } = useRecordingStore();
-  const { currentRoute } = useRoutingStore();
+  const location = useLocation();
 
   const isGloballyPlaying = currentPlayingAudioUrl !== null;
-  const activeTab = currentRoute.tab;
+  
+  // Determine active tab from location pathname
+  const pathname = location.pathname;
+  let activeTab = 'record';
+  
+  if (pathname === '/') {
+    activeTab = 'record';
+  } else if (pathname.startsWith('/library') || pathname.startsWith('/note/')) {
+    activeTab = 'library';
+  } else if (pathname.startsWith('/agents')) {
+    activeTab = 'agents';
+  } else if (pathname.startsWith('/settings')) {
+    activeTab = 'settings';
+  }
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
