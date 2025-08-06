@@ -136,6 +136,7 @@ In light mode
 - agents is light, looks weird though. not correct. no borders. weird hover bg shows no padding. agents read panel similar weirdness.
 - Edit agent dialog is dark. needs to do both. 
 - Settings remained dark. needs to do both. 
+- Also provider dialog is dark. Needs to do both.
 
 - CLicking agent title should open edit. 
 

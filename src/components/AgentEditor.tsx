@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   XMarkIcon,
-  PlusIcon,
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { useAgentsStore } from '../stores/agentsStore';
@@ -154,72 +153,79 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-gray-800 rounded-xl p-6 max-w-2xl w-full border border-gray-700 max-h-[90vh] overflow-y-auto"
+          className="bg-background rounded-xl p-6 max-w-2xl w-full border border-border max-h-[90vh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-white">
+            <h3 className="text-lg font-semibold">
               {mode === 'create' ? 'Create Agent' : 'Edit Agent'}
             </h3>
             <div className="flex items-center gap-2">
-              {mode === 'edit' && agent && !agent.isBuiltIn && (
+              {mode === 'edit' && !agent?.isBuiltIn && (
                 <button
+                  type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="p-2 rounded-lg hover:bg-destructive/20 text-destructive hover:text-destructive/80 transition-colors"
                   title="Delete agent"
                 >
                   <TrashIcon className="w-5 h-5" />
                 </button>
               )}
               <button
+                type="button"
                 onClick={onClose}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                title="Close"
               >
-                <XMarkIcon className="w-5 h-5 text-gray-400" />
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+          <form onSubmit={handleSubmit}>
+            {/* Name & Avatar */}
+            <div className="flex gap-4 mb-4">
+              <div className="w-16 h-16 flex items-center justify-center text-3xl bg-muted rounded-lg border border-border">
+                {formData.avatar}
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Name
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                   placeholder="Agent name"
                   required
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Avatar
-                </label>
-                <input
-                  type="text"
-                  value={formData.avatar}
-                  onChange={(e) => setFormData(prev => ({ ...prev, avatar: e.target.value }))}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  placeholder="🤖"
-                />
-              </div>
+            {/* Avatar */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                Avatar
+              </label>
+              <input
+                type="text"
+                value={formData.avatar}
+                onChange={(e) => setFormData(prev => ({ ...prev, avatar: e.target.value }))}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                placeholder="🤖"
+              />
             </div>
 
             {/* Model Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Model (optional - uses default if not specified)
               </label>
               <select
                 value={formData.modelId}
                 onChange={(e) => setFormData(prev => ({ ...prev, modelId: e.target.value }))}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               >
                 <option value="">Use default model</option>
                 {availableModels.map((model) => (
@@ -231,36 +237,36 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
             </div>
 
             {/* Prompt */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 System Prompt
               </label>
               <textarea
                 value={formData.prompt}
                 onChange={(e) => setFormData(prev => ({ ...prev, prompt: e.target.value }))}
                 rows={8}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent resize-none"
                 placeholder="Enter the system prompt that defines how this agent should process content..."
                 required
               />
             </div>
 
             {/* Tags */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Tags
               </label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {formData.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-600/20 text-indigo-300 rounded-full text-sm border border-indigo-600/30"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded-full text-sm border border-primary/30"
                   >
                     {tag}
                     <button
                       type="button"
                       onClick={() => handleRemoveTag(tag)}
-                      className="text-indigo-400 hover:text-indigo-200"
+                      className="text-primary hover:text-primary/80"
                     >
                       ×
                     </button>
@@ -272,21 +278,21 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleAddTag}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 placeholder="Add tags (press Enter)"
               />
             </div>
 
             {/* Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Output Format
                 </label>
                 <select
                   value={formData.outputFormat}
                   onChange={(e) => setFormData(prev => ({ ...prev, outputFormat: e.target.value as AgentFormData['outputFormat'] }))}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 >
                   <option value="markdown">Markdown</option>
                   <option value="text">Plain Text</option>
@@ -300,9 +306,9 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
                     type="checkbox"
                     checked={formData.autoRun}
                     onChange={(e) => setFormData(prev => ({ ...prev, autoRun: e.target.checked }))}
-                    className="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 bg-background border-input text-primary focus:ring-ring rounded"
                   />
-                  <span className="text-sm text-gray-300">Auto-run on new transcripts</span>
+                  <span className="text-sm">Auto-run on new transcripts</span>
                 </label>
               </div>
             </div>
@@ -312,14 +318,14 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!formData.name.trim() || !formData.prompt.trim()}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 {mode === 'create' ? 'Create Agent' : 'Save Changes'}
               </button>
@@ -339,22 +345,22 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+                  className="bg-background rounded-xl p-6 max-w-md w-full border border-border"
                 >
-                  <h4 className="text-lg font-semibold text-white mb-4">Delete Agent</h4>
-                  <p className="text-gray-300 mb-6">
+                  <h4 className="text-lg font-semibold mb-4">Delete Agent</h4>
+                  <p className="text-muted-foreground mb-6">
                     Are you sure you want to delete "{agent?.name}"? This action cannot be undone.
                   </p>
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
-                      className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                      className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                      className="px-4 py-2 bg-destructive hover:bg-destructive/90 rounded-lg transition-colors"
                     >
                       Delete Agent
                     </button>

@@ -98,7 +98,7 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700 max-h-[80vh] overflow-y-auto"
+          className="bg-background rounded-xl p-6 max-w-md w-full border border-border max-h-[80vh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
