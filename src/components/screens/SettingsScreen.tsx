@@ -92,7 +92,7 @@ export const SettingsScreen: React.FC = () => {
           label: 'Theme',
           
           component: (
-            <div className="flex flex-col sm:flex-row space-x-4 items-center">
+            <div className="flex flex-col sm:flex-row sm:space-x-4 sm:items-center">
               <div className="w-full sm:w-1/2">
                 <p className="text-xs text-muted-foreground">Choose your preferred color scheme</p>
               </div>
