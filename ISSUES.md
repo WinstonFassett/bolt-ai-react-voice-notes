@@ -1,7 +1,8 @@
 # The Rules
 
 Don't fucking rewrite shit that is working. 
-
+The user HATES it when you run the dev server and consumer their ports because they are ALWAYS running the dev server and testing and WAITING on you.
+Instead tell the user what to test and don't be fluffy. 
 Do not sweat TS warnings about unused things. Come on. The goal is to make things work. This is the real world. Be expedient.
 
 
