@@ -12,8 +12,10 @@
    - Added proper event handling to prevent navigation when clicking tags
 
 3. **Markdown Formatting**
-   - Added proper markdown rendering for note content in takeaways section
-   - Used prose classes for consistent markdown styling
+   - Replaced `formatContent` function with `getContentPreview` that preserves markdown formatting
+   - Created comprehensive Markdown Handling Design Document (MARKDOWN_HANDLING.md)
+   - Used CrepeEditorWrapper for full markdown rendering with proper prose styling
+   - Ensured previews show truncated markdown without stripping formatting
 
 4. **Navigation Tab Highlighting**
    - Fixed library tab to stay highlighted when viewing note details
@@ -21,33 +23,38 @@
 
 5. **Vertical Spacing**
    - Improved spacing between parent and child notes in LibraryScreen
+   - Applied consistent spacing in NoteDetailScreen descendants section
+
+6. **Hierarchical Note Tree**
+   - Implemented recursive `renderNoteWithChildren` function in NoteDetailScreen
+   - Ensured descendants section renders a hierarchical note tree exactly like LibraryScreen
+   - Applied proper indentation and spacing logic based on note level
+
+7. **UI Consistency**
+   - Updated SettingsScreen with sticky header matching other screens
+   - Fixed HTML structure with proper main/header elements
+   - Removed unused variable declarations to fix lint warnings
 
 ## Remaining Issues
 
-1. **Tag Consistency**
-   - Tag clicking behavior needs to be consistent in all places where tags are displayed
-   - Need to implement the same tag handling in NoteDetailScreen as in LibraryScreen
+1. **Settings Screen Content**
+   - LLM providers section still needs reorganization
+   - Some UI components may need further refinement
 
-2. **Duplicate Headers**
-   - Some duplicate headers may still exist in the NoteDetailScreen
-   - Need to verify all duplicate sections are removed
+2. **Testing**
+   - Need thorough testing of markdown rendering across all screen sizes
+   - Verify descendants section renders correctly with deep hierarchies
 
-3. **Settings Screen**
-   - Settings screen needs UI consistency improvements
-   - Section headers should be sticky
-   - LLM providers section needs reorganization
-
-4. **AI Agents Screen**
-   - Needs UI consistency with other screens
-   - Headers should match library and detail screens
+3. **Lint Warnings**
+   - Some minor lint warnings may remain but don't affect functionality
 
 ## Next Steps
 
-1. Implement consistent tag handling in NoteDetailScreen to match LibraryScreen behavior
-2. Verify and remove any remaining duplicate headers in NoteDetailScreen
-3. Improve Settings screen UI consistency and organization
-4. Update AI Agents screen headers to match library and detail screens
-5. Test all fixes thoroughly across different screen sizes
+1. Test all fixes thoroughly across different screen sizes and user flows
+2. Verify markdown rendering consistency in all contexts (read-only vs editable)
+3. Confirm tag clicking works uniformly across all screens
+4. Address any remaining lint warnings that affect code quality
+5. Consider further UI improvements for Settings and AI Agents screens
 6. Address any remaining lint warnings only if they affect functionality
 
 
