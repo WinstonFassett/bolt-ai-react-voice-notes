@@ -68,12 +68,12 @@ export const SettingsScreen: React.FC = () => {
             <div className="w-full space-y-6">
               {hasOpenAIProvider && (
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-300">Use OpenAI for STT whenever possible</label>
+                  <label className="text-sm font-medium">Use OpenAI for STT whenever possible</label>
                   <input
                     type="checkbox"
                     checked={useOpenAIForSTT}
                     onChange={e => useSettingsStore.getState().setUseOpenAIForSTT(e.target.checked)}
-                    className="w-5 h-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500"
+                    className="w-5 h-5 text-primary bg-background border-border rounded focus:ring-primary"
                   />
                 </div>
               )}
@@ -126,12 +126,12 @@ export const SettingsScreen: React.FC = () => {
   ], [hasOpenAIProvider, useOpenAIForSTT]);
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 relative">
+    <div className="flex flex-col h-full bg-background relative">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="safe-area-top py-4 px-4">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold text-white">Settings</h1>
+            <h1 className="text-2xl font-bold">Settings</h1>
           </div>
         </div>
       </header>
@@ -142,18 +142,18 @@ export const SettingsScreen: React.FC = () => {
         {settingsGroups.map((group, index) => (
           <div key={index} className="mb-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600/20 flex items-center justify-center">
-                <group.icon className="w-5 h-5 text-indigo-400" />
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <group.icon className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-lg font-semibold text-white">{group.title}</h2>
+              <h2 className="text-lg font-semibold">{group.title}</h2>
             </div>
             
             <div className="space-y-6">
               {group.items.map((item, itemIndex) => (
-                <div key={itemIndex} className="bg-gray-900/50 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-300 mb-2">{item.label}</h3>
+                <div key={itemIndex} className="bg-card rounded-lg border border-border p-4">
+                  <h3 className="text-sm font-medium mb-2">{item.label}</h3>
                   {item.description && (
-                    <p className="text-sm text-gray-400 mb-4">{item.description}</p>
+                    <p className="text-sm text-muted-foreground mb-4">{item.description}</p>
                   )}
                   {item.component}
                 </div>

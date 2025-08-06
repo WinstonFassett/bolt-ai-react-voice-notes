@@ -1,4 +1,4 @@
-import { Mic, Square, Pause, Play } from 'lucide-react'
+import { Square, Pause, Play } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Card, CardContent } from '../ui/card'
 import { useRecordingStore } from '../../stores/recordingStore'

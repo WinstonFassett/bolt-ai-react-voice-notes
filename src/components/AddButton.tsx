@@ -83,7 +83,7 @@ export const AddButton: React.FC<AddButtonProps> = ({
             initial={{ opacity: 0, scale: 0.8, y: -20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: -20 }}
-            className="absolute top-full right-0 mt-4 bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl z-50 min-w-[200px] overflow-hidden"
+            className="absolute top-full right-0 mt-4 bg-background rounded-2xl border border-border shadow-2xl z-50 min-w-[200px] overflow-hidden"
           >
             {options.map((option, index) => (
               <motion.button
@@ -92,10 +92,10 @@ export const AddButton: React.FC<AddButtonProps> = ({
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={option.action}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-700 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors text-left"
               >
                 <option.icon className={`w-5 h-5 ${option.color}`} />
-                <span className="text-white font-medium">{option.label}</span>
+                <span className="font-medium">{option.label}</span>
               </motion.button>
             ))}
           </motion.div>
@@ -107,7 +107,7 @@ export const AddButton: React.FC<AddButtonProps> = ({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 bg-indigo-600 hover:bg-indigo-700 rounded-full flex items-center justify-center shadow-lg transition-colors"
+        className="w-10 h-10 bg-primary hover:bg-primary/90 rounded-full flex items-center justify-center shadow-lg transition-colors"
       >
         <motion.div
           animate={{ rotate: isOpen ? 45 : 0 }}

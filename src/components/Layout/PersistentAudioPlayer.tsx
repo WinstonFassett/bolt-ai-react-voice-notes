@@ -35,7 +35,7 @@ export function PersistentAudioPlayer() {
   }
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-40 shadow-lg">
+    <Card className="fixed bottom-20 left-4 right-4 z-40 shadow-lg bg-background/95 backdrop-blur-sm">
       <CardContent className="p-3">
         <div className="flex items-center gap-3">
           <Button
