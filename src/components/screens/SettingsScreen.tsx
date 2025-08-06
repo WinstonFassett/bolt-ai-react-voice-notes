@@ -25,6 +25,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 import { deleteDownloadedModels } from '@/utils/settingsExporter';
 import { useTheme } from '../../hooks/useTheme';
+import { cn } from '@/lib/utils';
 
 export const SettingsScreen: React.FC = () => {
   // Get theme settings
@@ -89,20 +90,31 @@ export const SettingsScreen: React.FC = () => {
       items: [
         {
           label: 'Theme',
-          description: 'Choose your preferred color scheme',
+          
           component: (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row space-x-4 items-center">
+              <div className="w-full sm:w-1/2">
+                <p className="text-xs text-muted-foreground">Choose your preferred color scheme</p>
+              </div>
+              <div className="w-full sm:w-1/2 flex items-center justify-end gap-2">
                 <button
                   onClick={() => setTheme('light')}
-                  className={`p-2 rounded-lg flex items-center gap-2 ${theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                  className={cn(
+                    'p-2 rounded-lg flex items-center gap-2',
+                    theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted',
+                  )}
+                  style={{ verticalAlign: 'middle' }}
                 >
                   <SunIcon className="w-5 h-5" />
                   Light
                 </button>
                 <button
                   onClick={() => setTheme('dark')}
-                  className={`p-2 rounded-lg flex items-center gap-2 ${theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                  className={cn(
+                    'p-2 rounded-lg flex items-center gap-2',
+                    theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted',
+                  )}
+                  style={{ verticalAlign: 'middle' }}
                 >
                   <MoonIcon className="w-5 h-5" />
                   Dark
