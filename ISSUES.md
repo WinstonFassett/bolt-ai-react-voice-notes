@@ -116,3 +116,27 @@ General testing:
 Nav flow is ok, responsive design is ok. Func is ok. 
 
 Remember to format markdown snippets. We weren't doing it consistently so where we aren't, like in the library card view, fix it, based on where we ARE doing it, like in the detail view listing child notes.
+
+# Inbox
+
+There is no was to cancel a recording anymore. Restore it. Was present on main. 
+
+Testing with a light desktop theme know, I can see theming needs work
+It's inconsistent.
+In light mode
+- Record tab  tab is ok
+- But record widget is dark. Needs to do both.
+- Library looks Ok but create note dropdown is dark. needs to do both.
+- create note button is too big has no space around it in header.
+- library header looks weird when dropdown open
+- Note detail is dark. Needs to do both. Needs to be consistent.
+- Card tree on note detail is light (correct)
+- Footer nav is weird. white on inside and buttons but translucent around that, so sides
+- Run AI Agents dialog remained dark 
+- agents is light, looks weird though. not correct. no borders. weird hover bg shows no padding. agents read panel similar weirdness.
+- Edit agent dialog is dark. needs to do both. 
+- Settings remained dark. needs to do both. 
+
+- CLicking agent title should open edit. 
+
+- We NEED to capture recording lengths and do it CORRECTLY!! Undefined lengths break playback progress bar!
