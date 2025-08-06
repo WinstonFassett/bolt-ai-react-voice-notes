@@ -16,7 +16,7 @@ export function BottomNavigation() {
   const currentPath = location.pathname
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 max-w-4xl mx-auto">
       <div className="flex items-center justify-around py-2">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button

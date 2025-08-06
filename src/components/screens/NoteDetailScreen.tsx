@@ -94,6 +94,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   // Get transcription status for this specific note
   const isTranscribing = note ? isNoteProcessing(note.id) : false;
   const transcriptionStatus = note ? getNoteProcessingStatus(note.id) : '';
+  
+  // Get child notes (notes that have this note as their source)
+  const childNotes = notes.filter(n => 
+    n.sourceNoteIds?.includes(note.id)
+  );
 
   // Update local state when note prop changes (for reactive updates)
   useEffect(() => {
@@ -297,6 +302,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Helper function to truncate content while preserving markdown formatting
+  const truncateContent = (content: string, maxLength: number = 120) => {
+    if (!content) return '';
+    return content.length > maxLength ? content.slice(0, maxLength) + '...' : content;
   };
 
   const handleDeleteNote = () => {
@@ -611,10 +622,57 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               placeholder="Start writing your note..."
             />
           </div>
-          <div>
-            {isAgentNote ? 'Agent Note' : 'User Note'}
-          </div>
+          {/* Agent note indicator with icon instead of text */}
+          {isAgentNote && (
+            <div className="flex items-center gap-2 text-sm text-indigo-400">
+              <SparklesIcon className="w-4 h-4" />
+              <span>AI Generated Content</span>
+            </div>
+          )}
          
+          {/* Child Notes */}
+          {childNotes.length > 0 && (
+            <div className="space-y-3 mt-6">
+              <h3 className="text-lg font-semibold text-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isAgentNote ? (
+                    <SparklesIcon className="w-5 h-5 text-indigo-400" />
+                  ) : (
+                    <DocumentDuplicateIcon className="w-5 h-5 text-gray-400" />
+                  )}
+                  Related Notes
+                </div>
+                <span className="text-sm text-gray-400 font-normal">
+                  {childNotes.length} notes
+                </span>
+              </h3>
+              <div className="space-y-3">
+                {childNotes
+                  .sort((a, b) => b.lastEdited - a.lastEdited)
+                  .map((childNote) => (
+                    <div 
+                      key={childNote.id}
+                      className={`p-4 rounded-lg border cursor-pointer hover:bg-gray-800/50 transition-colors
+                                ${childNote.type === 'agent' ? 'border-l-4 border-l-primary border-gray-700' : 'border-gray-700'}`}
+                      onClick={() => navigate(`/note/${childNote.id}`)}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        {childNote.type === 'agent' ? (
+                          <SparklesIcon className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                        ) : (
+                          <DocumentDuplicateIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        )}
+                        <h4 className="font-medium text-white">{childNote.title}</h4>
+                      </div>
+                      <p className="text-sm text-gray-300 line-clamp-2">
+                        {truncateContent(childNote.content, 120)}
+                      </p>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+          
           {/* AI Takeaways */}
           {!isAgentNote && takeawayNotes.length > 0 && (
             <div className="space-y-3">

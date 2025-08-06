@@ -85,11 +85,11 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     return groups;
   }, [filteredNotes]);
 
-  // Helper function to truncate content
+  // Helper function to truncate content while preserving markdown formatting
   const truncateContent = (content: string, maxLength: number = 120) => {
     if (!content) return '';
-    const plainText = content.replace(/[#*`]/g, '').trim();
-    return plainText.length > maxLength ? plainText.slice(0, maxLength) + '...' : plainText;
+    // Don't strip markdown formatting, just truncate
+    return content.length > maxLength ? content.slice(0, maxLength) + '...' : content;
   };
 
   // Get child notes for a given parent note
@@ -113,7 +113,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
         <Card 
           className={`cursor-pointer hover:bg-accent/50 transition-all duration-200 hover:shadow-md hover:scale-[1.01] 
                      border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm
-                     ${isAgentNote ? 'border-l-4 border-l-blue-500' : ''}`}
+                     ${isAgentNote ? 'border-l-4 border-l-primary' : ''}`}
           onClick={() => navigate(`/note/${note.id}`)}
           style={{ marginLeft: `${level * 16}px` }}
         >
