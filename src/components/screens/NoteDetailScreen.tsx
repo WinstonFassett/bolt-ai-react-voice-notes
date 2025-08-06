@@ -752,7 +752,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           </div>
 
           {/* Editor with floating copy button */}
-          <div className="border border-gray-700 rounded-lg bg-gray-800 p-4 relative">
+          <div className="border border-border rounded-lg p-4 relative">
             {/* Floating copy button */}
             <button
               onClick={handleCopyToClipboard}
