@@ -184,7 +184,7 @@ export const SettingsManagement: React.FC = () => {
                 </button>
                 <button
                   onClick={handleResetSettings}
-                  className="px-4 py-2 bg-warning hover:bg-warning/90 text-warning-foreground rounded-lg transition-colors"
+                  className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg transition-colors"
                 >
                   Reset Settings
                 </button>

@@ -860,22 +860,22 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-background rounded-xl p-6 max-w-md w-full border border-border shadow-lg"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Delete Note</h3>
-              <p className="text-gray-300 mb-6">
+              <h3 className="text-lg font-semibold text-destructive mb-4">Delete Note</h3>
+              <p className="text-muted-foreground mb-6">
                 Are you sure you want to delete this note? This action cannot be undone.
               </p>
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteNote}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg transition-colors"
                 >
                   Delete
                 </button>
@@ -898,22 +898,22 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-background rounded-xl p-6 max-w-md w-full border border-border shadow-lg"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Re-transcribe Audio</h3>
-              <p className="text-gray-300 mb-6">
+              <h3 className="text-lg font-semibold mb-4">Re-transcribe Audio</h3>
+              <p className="text-muted-foreground mb-6">
                 This will replace the current content with a new transcription. This action cannot be undone.
               </p>
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setShowRetranscribeConfirm(false)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleRetranscribe}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
                 >
                   Re-transcribe
                 </button>
@@ -951,22 +951,22 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-background rounded-xl p-6 max-w-md w-full border border-border shadow-lg"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Delete Audio Recording</h3>
-              <p className="text-gray-300 mb-6">
+              <h3 className="text-lg font-semibold text-destructive mb-4">Delete Audio Recording</h3>
+              <p className="text-muted-foreground mb-6">
                 Are you sure you want to delete the audio recording? The text content will be preserved.
               </p>
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setShowDeleteAudioConfirm(false)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmDeleteAudio}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg transition-colors"
                 >
                   Delete Audio
                 </button>

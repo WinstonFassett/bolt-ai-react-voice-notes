@@ -136,8 +136,7 @@ export const SettingsScreen: React.FC = () => {
               {/* Audio Management UI */}
               {memoizedAudioManagement}
               
-              {/* Danger Zone */}
-              {memoizedDangerZone}
+              
             </div>
           )
         },
@@ -162,6 +161,12 @@ export const SettingsScreen: React.FC = () => {
               </div>
             )}
           </div>
+          )
+        }, {
+          label: <span className="text-red-500">Danger Zone</span>,
+          description: 'Be careful!',
+          component: (
+            memoizedDangerZone
           )
         }
       ]

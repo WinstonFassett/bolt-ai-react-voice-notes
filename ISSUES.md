@@ -196,3 +196,10 @@ Breadcrumb is a little choppy. Seems like it jumps levels. Need to show all leve
 Notes search should be part of fixed top area attached to header
 
 Section labels should be sticky. 
+
+When showing a player or recorder persistently over a tab area, the tab/tab host area should know so that it can adjust with bottom spacing. currently my library cards are stuck behind the player / recorder. 
+
+Player recorder are way too wide. should have a sane max width like lg or even md. 
+
+
+
