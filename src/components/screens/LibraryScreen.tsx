@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,9 +29,24 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   const { playAudio, togglePlayPause, currentPlayingAudioUrl, globalIsPlaying } = useAudioStore();
   const navigate = useNavigate();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  // Initialize search query from URL parameters if present
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('q') || '';
+  });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  
+  // Update URL when search query changes
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (searchQuery) {
+      url.searchParams.set('q', searchQuery);
+    } else {
+      url.searchParams.delete('q');
+    }
+    window.history.pushState({}, '', url);
+  }, [searchQuery]);
 
   // Filter notes to only show top-level notes (no parent)
   const topLevelNotes = useMemo(() => {
@@ -109,7 +124,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     const isAgentNote = note.type === 'agent';
     
     return (
-      <div key={note.id} className="mb-3">
+      <div key={note.id} className={level === 0 ? 'mb-4' : 'mb-2'}>
         <Card 
           className={`cursor-pointer hover:bg-accent/50 transition-all duration-200 hover:shadow-md hover:scale-[1.01] 
                      border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm
@@ -136,7 +151,19 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                 {note.tags && note.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-2">
                     {note.tags.slice(0, 3).map(tag => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
+                      <Badge 
+                        key={tag} 
+                        variant="secondary" 
+                        className="text-xs cursor-pointer hover:bg-primary/20"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent card click
+                          setSearchQuery(tag);
+                          // Update URL with search query parameter
+                          const url = new URL(window.location.href);
+                          url.searchParams.set('q', tag);
+                          window.history.pushState({}, '', url);
+                        }}
+                      >
                         {tag}
                       </Badge>
                     ))}
