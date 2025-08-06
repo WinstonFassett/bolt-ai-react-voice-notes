@@ -92,18 +92,31 @@ export const SettingsScreen: React.FC = () => {
           label: 'Theme',
           
           component: (
-            <div className="flex flex-col sm:flex-row sm:space-x-4 sm:items-center">
-              <div className="w-full sm:w-1/2">
-                <p className="text-xs text-muted-foreground">Choose your preferred color scheme</p>
+            <div className="flex flex-col space-y-4">
+              <div className="w-full">
+                <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
               </div>
-              <div className="w-full sm:w-1/2 flex items-center justify-end gap-2">
+              <div className="w-full grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setTheme('system')}
+                  className={cn(
+                    'p-2 rounded-lg flex items-center justify-center gap-2',
+                    theme === 'system' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
+                  )}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <rect x="2" y="3" width="20" height="14" rx="2" />
+                    <line x1="8" x2="16" y1="21" y2="21" />
+                    <line x1="12" x2="12" y1="17" y2="21" />
+                  </svg>
+                  System
+                </button>
                 <button
                   onClick={() => setTheme('light')}
                   className={cn(
-                    'p-2 rounded-lg flex items-center gap-2',
-                    theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted',
+                    'p-2 rounded-lg flex items-center justify-center gap-2',
+                    theme === 'light' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
                   )}
-                  style={{ verticalAlign: 'middle' }}
                 >
                   <SunIcon className="w-5 h-5" />
                   Light
@@ -111,10 +124,9 @@ export const SettingsScreen: React.FC = () => {
                 <button
                   onClick={() => setTheme('dark')}
                   className={cn(
-                    'p-2 rounded-lg flex items-center gap-2',
-                    theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted',
+                    'p-2 rounded-lg flex items-center justify-center gap-2',
+                    theme === 'dark' ? 'bg-primary text-primary-foreground' : 'bg-muted hover:bg-muted/80',
                   )}
-                  style={{ verticalAlign: 'middle' }}
                 >
                   <MoonIcon className="w-5 h-5" />
                   Dark
