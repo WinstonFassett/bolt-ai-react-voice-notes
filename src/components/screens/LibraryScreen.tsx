@@ -13,10 +13,10 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Plus, Search, Play, Pause, Trash2 } from 'lucide-react';
+import { Plus, Search, Play, Pause, Trash2, ChevronRight, ChevronDown, ArrowLeft } from 'lucide-react';
 import { AddButton } from '../AddButton';
 import { AppHeader } from '../Layout/AppHeader';
-import { MagnifyingGlassIcon } from '@radix-ui/react-icons';
+import { cn } from '../../lib/utils';
 
 interface LibraryScreenProps {
   onUploadFile: () => void;
@@ -27,23 +27,46 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   // Get everything from stores
   const { notes, deleteNote, createNote } = useNotesStore();
   const { startRecordingFlow } = useRecordingStore();
-  const { playAudio, pauseAudio, currentPlayingAudioUrl, isPlaying } = useAudioStore();
+  const { playAudio, togglePlayPause, currentPlayingAudioUrl, globalIsPlaying } = useAudioStore();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
 
-  // Filter and sort notes based on search query
+  // Filter and sort top-level notes based on search query
   const filteredNotes = useMemo(() => {
     const searchLower = searchQuery.toLowerCase();
-    return notes.filter(note => {
-      return (
+    
+    // Helper function to check if note or any of its children match the search
+    const noteMatchesSearch = (note: Note): boolean => {
+      // Check if this note matches
+      const thisNoteMatches = (
         note.title.toLowerCase().includes(searchLower) ||
         note.content.toLowerCase().includes(searchLower) ||
         note.tags.some(tag => tag.toLowerCase().includes(searchLower))
       );
-    }).sort((a, b) => b.lastEdited - a.lastEdited);
+      
+      if (thisNoteMatches) return true;
+      
+      // Check if any child notes match
+      if (note.takeaways?.length) {
+        for (const takeawayId of note.takeaways) {
+          const childNote = notes.find(n => n.id === takeawayId);
+          if (childNote && noteMatchesSearch(childNote)) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    };
+    
+    // Filter top-level notes (notes without sourceNoteIds or with empty sourceNoteIds)
+    return notes
+      .filter(note => !note.sourceNoteIds?.length && noteMatchesSearch(note))
+      .sort((a, b) => b.lastEdited - a.lastEdited);
   }, [notes, searchQuery]);
 
   // Group notes by date categories
@@ -91,12 +114,19 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   const handleAudioToggle = useCallback((audioUrl: string | undefined) => {
     if (!audioUrl) return;
     
-    if (currentPlayingAudioUrl === audioUrl && isPlaying) {
-      pauseAudio();
+    if (currentPlayingAudioUrl === audioUrl && globalIsPlaying) {
+      togglePlayPause();
     } else {
       playAudio(audioUrl);
     }
-  }, [currentPlayingAudioUrl, isPlaying, pauseAudio, playAudio]);
+  }, [currentPlayingAudioUrl, globalIsPlaying, togglePlayPause, playAudio]);
+
+  const toggleExpandNote = useCallback((noteId: string) => {
+    setExpandedNotes(prev => ({
+      ...prev,
+      [noteId]: !prev[noteId]
+    }));
+  }, []);
 
   // Helper function to truncate content
   const truncateContent = (content: string, maxLength: number = 120) => {
@@ -104,90 +134,148 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
     return plainText.length > maxLength ? plainText.slice(0, maxLength) + '...' : plainText;
   };
 
+  // Get child notes for a given parent note
+  const getChildNotes = useCallback((parentId: string): Note[] => {
+    return notes.filter(note => 
+      note.sourceNoteIds?.includes(parentId)
+    ).sort((a, b) => b.lastEdited - a.lastEdited);
+  }, [notes]);
+
   // Render a note card with redesigned UI
-  const renderNoteCard = (note: Note) => {
-    const isCurrentlyPlaying = currentPlayingAudioUrl === note.audioUrl && isPlaying;
+  const renderNoteCard = useCallback((note: Note, depth: number = 0) => {
+    const isCurrentlyPlaying = currentPlayingAudioUrl === note.audioUrl && globalIsPlaying;
     const formattedDate = formatDistanceToNow(new Date(note.lastEdited), { addSuffix: true });
+    const childNotes = getChildNotes(note.id);
+    const hasChildren = childNotes.length > 0;
+    const isExpanded = expandedNotes[note.id];
+    const isAgentNote = note.type === 'agent';
     
     return (
-      <Card 
-        key={note.id}
-        className="cursor-pointer hover:bg-accent/50 transition-all duration-200 hover:shadow-md hover:scale-[1.01] 
-                 border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
-        onClick={() => navigate(`/note/${note.id}`)}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium truncate mb-1">{note.title}</h3>
-              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                {truncateContent(note.content)}
-              </p>
-              
-              {note.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {note.tags.slice(0, 3).map(tag => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                  {note.tags.length > 3 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{note.tags.length - 3}
-                    </Badge>
+      <div key={note.id} className={cn("mb-3", depth > 0 && "ml-4 pl-2 border-l-2 border-muted")}>
+        <Card 
+          className={cn(
+            "cursor-pointer hover:bg-accent/50 transition-all duration-200 hover:shadow-md",
+            "border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm",
+            isAgentNote && "border-l-4 border-l-blue-500"
+          )}
+          onClick={() => navigate(`/note/${note.id}`)}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  {hasChildren && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpandNote(note.id);
+                      }}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                  <h3 className="font-medium truncate">{note.title}</h3>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                  {truncateContent(note.content)}
+                </p>
+                
+                {note.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {note.tags.slice(0, 3).map(tag => (
+                      <Badge key={tag} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                    {note.tags.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{note.tags.length - 3}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {formattedDate}
+                  </span>
+                  
+                  {note.duration && (
+                    <span className="text-xs text-muted-foreground">
+                      {Math.floor(note.duration / 60)}:{(note.duration % 60).toString().padStart(2, '0')}
+                    </span>
                   )}
                 </div>
-              )}
-              
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {formattedDate}
-                </span>
                 
-                {note.duration && (
-                  <span className="text-xs text-muted-foreground">
-                    {Math.floor(note.duration / 60)}:{(note.duration % 60).toString().padStart(2, '0')}
-                  </span>
+                {note.sourceNoteIds && note.sourceNoteIds.length > 0 && (
+                  <div className="mt-2">
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-xs text-muted-foreground hover:text-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/note/${note.sourceNoteIds && note.sourceNoteIds[0]}`);
+                      }}
+                    >
+                      <ArrowLeft className="h-3 w-3 mr-1" />
+                      Source Recording
+                    </Button>
+                  </div>
                 )}
               </div>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              {note.audioUrl && (
+              
+              <div className="flex flex-col gap-2">
+                {note.audioUrl && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAudioToggle(note.audioUrl);
+                    }}
+                    className="h-8 w-8 p-0"
+                  >
+                    {isCurrentlyPlaying ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleAudioToggle(note.audioUrl);
+                    handleDeleteClick(note);
                   }}
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                 >
-                  {isCurrentlyPlaying ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
+                  <Trash2 className="h-4 w-4" />
                 </Button>
-              )}
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteClick(note);
-                }}
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+        
+        {/* Render child notes if expanded */}
+        {isExpanded && hasChildren && (
+          <div className="mt-2">
+            {childNotes.map(childNote => renderNoteCard(childNote, depth + 1))}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     );
-  };
+  }, [currentPlayingAudioUrl, globalIsPlaying, expandedNotes, getChildNotes, handleAudioToggle, handleDeleteClick, navigate, toggleExpandNote]);
 
   return (
     <div className="h-full flex flex-col">
@@ -235,11 +323,11 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
           ) : (
             <div className="space-y-6">
               {Object.entries(groupedNotes).map(([groupName, groupNotes]) => (
-                <div key={groupName} className="space-y-3">
-                  <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                <div key={groupName} className="space-y-1">
+                  <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
                     {groupName}
                   </h2>
-                  <div className="space-y-3">
+                  <div>
                     {groupNotes.map(note => renderNoteCard(note))}
                   </div>
                 </div>
