@@ -12,7 +12,6 @@ import { BottomNavigation } from './components/Layout/BottomNavigation'
 import { PersistentRecordingWidget } from './components/Layout/PersistentRecordingWidget'
 import { PersistentAudioPlayer } from './components/Layout/PersistentAudioPlayer'
 import { Toaster } from './components/ui/sonner'
-import { ConfirmationProvider } from './components/ConfirmationProvider'
 
 function AppContent() {
   const navigate = useNavigate()
@@ -58,9 +57,7 @@ function AppContent() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ConfirmationProvider>
-        <AppContent />
-      </ConfirmationProvider>
+      <AppContent />
     </BrowserRouter>
   )
 }
