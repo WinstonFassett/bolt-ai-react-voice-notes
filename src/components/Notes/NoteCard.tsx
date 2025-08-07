@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAppStore } from '@/store/appStore'
-import type { Note } from '@/store/appStore'
+import type { Note } from '@/stores/notesStore'
 
 interface NoteCardProps {
   note: Note

@@ -225,7 +225,7 @@ export const useAppStore = create<AppState>()(
             audioUrl,
             duration: recordingTime,
             tags: [],
-            agentOutputs: []
+            childNotes: []
           })
           
           // Navigate immediately to note editor
@@ -499,7 +499,7 @@ export const useAppStore = create<AppState>()(
       audio.play()
       
       set((state) => {
-        state.audioElement = audio
+        state.audioElement = audio as any
         state.currentPlayingAudioUrl = url
         state.isPlaying = true
         state.audioCurrentTime = 0

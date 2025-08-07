@@ -52,7 +52,6 @@ export function AgentCard({ agent, isBuiltIn = false }: AgentCardProps) {
               <Switch
                 checked={agent.autoRun}
                 onCheckedChange={handleAutoRunToggle}
-                size="sm"
               />
             </div>
             
