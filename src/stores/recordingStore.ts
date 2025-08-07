@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { audioStorage } from '../utils/audioStorage';
-import { generateSmartTitle } from '../utils/titleGenerator';
 
 interface RecordingState {
   // Recording state
@@ -137,9 +136,27 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   },
   
   stopRecording: () => {
+    const state = get();
+  
+    // Stop the media recorder if it exists
+    if (state.mediaRecorderInstance && state.mediaRecorderInstance.state !== 'inactive') {
+      state.mediaRecorderInstance.stop();
+    }
+  
+    // Stop the timer
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+    }
+  
+    // Release the audio stream
+    if (state.audioStreamInstance) {
+      state.audioStreamInstance.getTracks().forEach(track => track.stop());
+    }
+  
     set({
       isRecording: false,
-      isPaused: false
+      isPaused: false,
+      timerInterval: null
     });
   },
   
@@ -174,9 +191,16 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   },
   
   updateRecordingTime: () => {
-    set((state) => ({
-      recordingTime: state.recordingTime + 1
-    }));
+    // Calculate elapsed time based on start time and paused duration for accuracy
+    // This prevents timer jumps by using the actual elapsed time instead of incrementing
+    const now = Date.now();
+    const state = get();
+    const elapsedMs = now - state.recordingStartTime - state.pausedDuration;
+    const elapsedSeconds = Math.floor(elapsedMs / 1000);
+    
+    set({
+      recordingTime: elapsedSeconds
+    });
   },
   
   calculateFinalDuration: () => {
@@ -189,8 +213,6 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   
   // High-level flows that handle everything
   startRecordingFlow: async () => {
-    const state = get();
-    
     try {
       console.log('🎙️ RecordingStore: Starting recording flow');
       
@@ -201,6 +223,12 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       // These settings optimize for voice recording while reducing file size
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      // Check if mediaDevices is available
+      if (!navigator.mediaDevices) {
+        console.error('❌ RecordingStore: MediaDevices API not available');
+        throw new Error('Media recording is not supported in this browser or context');
+      }
       
       // Audio constraints optimized for voice recording and smaller file size
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -243,19 +271,24 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       
       recorder.addEventListener('dataavailable', (event) => {
         if (event.data.size > 0) {
+          console.log(`🎙️ RecordingStore: Received data chunk of size ${event.data.size} bytes`);
           const currentState = get();
           set({ 
             recordedChunksInternal: [...currentState.recordedChunksInternal, event.data],
             recordedChunks: [...currentState.recordedChunks, event.data]
           });
+        } else {
+          console.warn('🎙️ RecordingStore: Received empty data chunk');
         }
       });
       
       recorder.addEventListener('stop', () => {
+        console.log('🎙️ RecordingStore: MediaRecorder stop event fired');
         get().handleRecordingStop();
       });
       
-      recorder.start(1000);
+      // Use a smaller timeslice for more frequent chunks, which helps with reliability
+      recorder.start(500);
       
       // Start timer
       const interval = window.setInterval(() => {
@@ -279,9 +312,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         mediaRecorder: recorder
       });
       
-      // Navigate to record tab
-      const { useRoutingStore } = await import('./routingStore');
-      useRoutingStore.getState().setTab('record');
+      // No need to navigate - React Router handles this now
       
     } catch (error) {
       console.error('❌ RecordingStore: Failed to start recording:', error);
@@ -291,39 +322,87 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   
   pauseRecordingFlow: () => {
     const state = get();
-    if (state.mediaRecorderInstance && state.isRecording && !state.isPaused) {
-      state.mediaRecorderInstance.pause();
-      const now = Date.now();
-      set({
-        isPaused: true,
-        pauseStartTime: now
-      });
-      
-      if (state.timerInterval) {
-        clearInterval(state.timerInterval);
-        set({ timerInterval: null });
+    console.log('🎙️ RecordingStore: Attempting to pause recording');
+    
+    if (!state.isRecording || state.isPaused) {
+      console.log('🎙️ RecordingStore: Cannot pause - not recording or already paused');
+      return;
+    }
+    
+    if (state.mediaRecorderInstance) {
+      try {
+        // Request data before pausing to ensure we have the latest chunks
+        state.mediaRecorderInstance.requestData();
+        
+        // Check if pause is supported in this browser
+        if (typeof state.mediaRecorderInstance.pause === 'function') {
+          state.mediaRecorderInstance.pause();
+          console.log('🎙️ RecordingStore: MediaRecorder paused');
+        } else {
+          console.warn('🎙️ RecordingStore: MediaRecorder pause not supported, stopping instead');
+          // If pause isn't supported, we'll need to stop and restart later
+          // For now, just mark as paused in the UI
+        }
+        
+        const now = Date.now();
+        set({
+          isPaused: true,
+          pauseStartTime: now
+        });
+        
+        // Stop the timer
+        if (state.timerInterval) {
+          clearInterval(state.timerInterval);
+          set({ timerInterval: null });
+        }
+      } catch (error) {
+        console.error('❌ RecordingStore: Error pausing recording:', error);
       }
+    } else {
+      console.error('❌ RecordingStore: Cannot pause - no MediaRecorder instance');
     }
   },
   
   resumeRecordingFlow: () => {
     const state = get();
-    if (state.mediaRecorderInstance && state.isRecording && state.isPaused) {
-      state.mediaRecorderInstance.resume();
-      const now = Date.now();
-      const additionalPausedTime = state.pauseStartTime > 0 ? now - state.pauseStartTime : 0;
-      
-      // Restart timer
-      const interval = window.setInterval(() => {
-        get().updateRecordingTime();
-      }, 1000);
-      
-      set({
-        isPaused: false,
-        pausedDuration: state.pausedDuration + additionalPausedTime,
-        pauseStartTime: 0,
-        timerInterval: interval
-      });
+    console.log('🎙️ RecordingStore: Attempting to resume recording');
+    
+    if (!state.isRecording || !state.isPaused) {
+      console.log('🎙️ RecordingStore: Cannot resume - not recording or not paused');
+      return;
+    }
+    
+    if (state.mediaRecorderInstance) {
+      try {
+        // Check if resume is supported in this browser
+        if (typeof state.mediaRecorderInstance.resume === 'function') {
+          state.mediaRecorderInstance.resume();
+          console.log('🎙️ RecordingStore: MediaRecorder resumed');
+        } else {
+          console.warn('🎙️ RecordingStore: MediaRecorder resume not supported');
+          // If resume isn't supported, we'd need to restart recording
+          // For now, just update the UI state
+        }
+        
+        const now = Date.now();
+        const additionalPausedTime = state.pauseStartTime > 0 ? now - state.pauseStartTime : 0;
+        
+        // Restart timer
+        const interval = window.setInterval(() => {
+          get().updateRecordingTime();
+        }, 1000);
+        
+        set({
+          isPaused: false,
+          pausedDuration: state.pausedDuration + additionalPausedTime,
+          pauseStartTime: 0,
+          timerInterval: interval
+        });
+      } catch (error) {
+        console.error('❌ RecordingStore: Error resuming recording:', error);
+      }
+    } else {
+      console.error('❌ RecordingStore: Cannot resume - no MediaRecorder instance');
     }
   },
   
@@ -331,12 +410,55 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
     const state = get();
     console.log('🎙️ RecordingStore: Stopping recording flow');
     
-    if (state.mediaRecorderInstance && (state.isRecording || state.isPaused)) {
-      state.mediaRecorderInstance.stop();
+    // First set processing state to show user something is happening
+    set({ 
+      isProcessing: true,
+      processingStatus: 'Finalizing recording...'
+    });
+    
+    // Make sure we're not already stopped
+    if (state.mediaRecorderInstance && state.mediaRecorderInstance.state !== 'inactive') {
+      console.log('🎙️ RecordingStore: Stopping MediaRecorder');
+      try {
+        // Request a final chunk before stopping
+        if (state.mediaRecorderInstance.state === 'recording' || state.mediaRecorderInstance.state === 'paused') {
+          console.log('🎙️ RecordingStore: Requesting final data chunk');
+          state.mediaRecorderInstance.requestData();
+          
+          // Add a small delay to ensure the dataavailable event has time to fire
+          setTimeout(() => {
+            try {
+              // Then stop the recorder - this will trigger the 'stop' event
+              if (state.mediaRecorderInstance) {
+                state.mediaRecorderInstance.stop();
+                console.log('🎙️ RecordingStore: MediaRecorder stopped after final data request');
+              }
+            } catch (innerError) {
+              console.error('❌ RecordingStore: Error in delayed stop:', innerError);
+              get().handleRecordingStop();
+            }
+          }, 300);
+        } else {
+          // If not recording or paused, just stop
+          state.mediaRecorderInstance.stop();
+          console.log('🎙️ RecordingStore: MediaRecorder stopped directly');
+        }
+      } catch (error) {
+        console.error('❌ RecordingStore: Error stopping MediaRecorder:', error);
+        // If there's an error, manually trigger the stop handler
+        get().handleRecordingStop();
+      }
+    } else {
+      console.log('🎙️ RecordingStore: MediaRecorder already inactive, handling stop directly');
+      // If recorder is already stopped, manually trigger the stop handler
+      get().handleRecordingStop();
     }
     
-    get().cleanup();
-    set({ isRecording: false, isPaused: false });
+    // Update UI state immediately
+    set({ 
+      isRecording: false, 
+      isPaused: false 
+    });
   },
   
   cancelRecordingFlow: () => {
@@ -389,15 +511,34 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       return;
     }
     
-    console.log('🎙️ RecordingStore: Recording stopped, creating note');
+    console.log('🎙️ RecordingStore: Recording stopped, chunks collected:', state.recordedChunksInternal.length);
+    
+    // If we don't have any chunks yet, try to wait a bit for them to arrive
+    if (state.recordedChunksInternal.length === 0) {
+      console.log('🎙️ RecordingStore: No chunks yet, waiting briefly for chunks to arrive...');
+      
+      // Wait a short time for chunks to arrive (dataavailable events might be delayed)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check again after waiting
+      const updatedState = get();
+      console.log('🎙️ RecordingStore: After waiting, chunks:', updatedState.recordedChunksInternal.length);
+    }
+    
     await get().createNoteFromRecording();
   },
   
   createNoteFromRecording: async (): Promise<void> => {
     const state = get();
     
+    console.log('🎙️ RecordingStore: Creating note from recording, chunks:', state.recordedChunksInternal.length);
+    
     if (state.recordedChunksInternal.length === 0) {
-      console.log('❌ RecordingStore: No chunks to process');
+      console.error('❌ RecordingStore: No chunks to process');
+      set({
+        isProcessing: false,
+        processingStatus: 'Error: No audio data recorded'
+      });
       return;
     }
 
@@ -405,15 +546,47 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       const now = Date.now();
       const noteId = now.toString();
       
-      // Create audio blob
-      const audioBlob = new Blob(state.recordedChunksInternal, { type: 'audio/webm' });
+      // Determine the correct MIME type based on browser
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      // Select appropriate MIME type for the blob
+      let mimeType = 'audio/webm';
+      let fileExtension = 'webm';
+      
+      if (isIOS || isSafari) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+          fileExtension = 'mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+          mimeType = 'audio/aac';
+          fileExtension = 'aac';
+        }
+      }
+      
+      console.log(`🎙️ RecordingStore: Creating blob with MIME type ${mimeType}`);
+      
+      // Create audio blob with the appropriate MIME type
+      const audioBlob = new Blob(state.recordedChunksInternal, { type: mimeType });
+      console.log(`🎙️ RecordingStore: Created blob of size ${audioBlob.size} bytes`);
+      
+      if (audioBlob.size < 100) {
+        console.error('❌ RecordingStore: Audio blob is too small, likely no audio was recorded');
+        set({
+          isProcessing: false,
+          processingStatus: 'Error: Recording failed'
+        });
+        return;
+      }
       
       // Calculate duration
       const actualDuration = get().calculateFinalDuration();
+      console.log(`🎙️ RecordingStore: Recording duration: ${actualDuration} seconds`);
       
-      // Save audio
-      const audioFileName = `recording_${noteId}.webm`;
+      // Save audio with appropriate file extension
+      const audioFileName = `recording_${noteId}.${fileExtension}`;
       const audioUrl = await audioStorage.saveAudio(audioBlob, audioFileName);
+      console.log(`🎙️ RecordingStore: Saved audio to ${audioUrl}`);
       
       // Create note
       const newNote = {
@@ -430,11 +603,35 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         tags: []
       };
       
-      // Add to notes store and navigate
+      // Add to notes store
       const { useNotesStore } = await import('./notesStore');
-      const { useRoutingStore } = await import('./routingStore');
       useNotesStore.getState().addNote(newNote);
-      useRoutingStore.getState().navigateToNote(noteId);
+      console.log(`🎙️ RecordingStore: Added note to store with ID ${noteId}`);
+      
+      // Reset processing state
+      set({
+        isProcessing: false,
+        processingStatus: ''
+      });
+      
+      // Use React Router for navigation without page reload
+      console.log(`🎙️ RecordingStore: Navigating to note detail page for ${noteId}`);
+      
+      // Use React Router for navigation to avoid page reloads
+      // Import dynamically to avoid circular dependencies
+      try {
+        // Use the history API directly to avoid circular imports
+        // This will use the React Router context without requiring imports
+        window.history.pushState({}, '', `/note/${noteId}`);
+        
+        // Dispatch a navigation event to notify React Router of the change
+        const navigationEvent = new PopStateEvent('popstate');
+        window.dispatchEvent(navigationEvent);
+        
+        console.log(`🎙️ RecordingStore: Navigated to note ${noteId} using history API`);
+      } catch (error) {
+        console.error('❌ RecordingStore: Error navigating with history API:', error);
+      }
       
       // Start transcription
       await get().startTranscription(audioBlob, noteId);

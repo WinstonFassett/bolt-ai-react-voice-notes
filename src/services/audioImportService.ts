@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { Note } from '../stores/notesStore';
 import { audioStorage } from '../utils/audioStorage';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * Service for importing audio files into notes
@@ -30,7 +31,11 @@ export async function importAudioFiles(
 ): Promise<void> {
   // Check if it's a zip file
   if (file.type !== 'application/zip' && !file.name.endsWith('.zip')) {
-    alert('Please select a zip file containing audio recordings');
+    toast({
+      title: 'Invalid File',
+      description: 'Please select a zip file containing audio recordings',
+      variant: 'destructive'
+    });
     return;
   }
   
@@ -56,7 +61,11 @@ export async function importAudioFiles(
     );
     
     if (audioFiles.length === 0) {
-      alert('No audio files found in the zip file');
+      toast({
+        title: 'Import Failed',
+        description: 'No audio files found in the zip file',
+        variant: 'destructive'
+      });
       onStatusChange(false);
       onProgress('');
       return;
@@ -148,17 +157,29 @@ export async function importAudioFiles(
       setTimeout(() => {
         onStatusChange(false);
         onProgress('');
-        alert(`Successfully imported ${successCount} audio files.`);
+        toast({
+          title: 'Import Complete',
+          description: `Successfully imported ${successCount} audio files.`,
+          variant: 'default'
+        });
       }, 1000);
     } else {
       onStatusChange(false);
       onProgress('');
-      alert('No audio files could be imported.');
+      toast({
+        title: 'Import Failed',
+        description: 'No audio files could be imported.',
+        variant: 'destructive'
+      });
     }
   } catch (error) {
     console.error('Error importing audio files:', error);
     onStatusChange(false);
     onProgress('');
-    alert('Error importing audio files: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    toast({
+      title: 'Import Error',
+      description: 'Error importing audio files: ' + (error instanceof Error ? error.message : 'Unknown error'),
+      variant: 'destructive'
+    });
   }
 }

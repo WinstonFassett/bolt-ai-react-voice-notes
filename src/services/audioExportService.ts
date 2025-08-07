@@ -1,5 +1,6 @@
 import { Note } from '../stores/notesStore';
 import { resolveStorageUrl } from '../utils/audioStorage';
+import { toast } from '@/hooks/use-toast';
 
 /**
  * Service for exporting audio files from notes
@@ -27,7 +28,11 @@ export async function exportAudioFiles(
   
   try {
     if (notesWithAudio.length === 0) {
-      alert('No audio recordings found to export.');
+      toast({
+        title: 'Export Failed',
+        description: 'No audio recordings found to export.',
+        variant: 'destructive'
+      });
       onStatus(false);
       onProgress('');
       return;
@@ -247,11 +252,19 @@ export async function exportAudioFiles(
     // Show success message
     onStatus(false);
     onProgress('');
-    alert('Audio export complete!');
+    toast({
+      title: 'Export Complete',
+      description: 'Audio export completed successfully!',
+      variant: 'default'
+    });
   } catch (error) {
     console.error('Error exporting audio:', error);
     onStatus(false);
     onProgress('');
-    alert(`Error exporting audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    toast({
+      title: 'Export Error',
+      description: `Error exporting audio: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      variant: 'destructive'
+    });
   }
 }

@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { audioStorage } from '../utils/audioStorage';
 import { exportAudioFiles } from '../services/audioExportService';
 import { importAudioFiles } from '../services/audioImportService';
+import { toast } from '@/hooks/use-toast';
 
 export interface NoteVersion {
   content: string;
@@ -197,41 +198,100 @@ export const useNotesStore = create<NotesState>()(
         set({ notes: migratedNotes });
       },
       
-      clearAllNotes: () => {
+      clearAllNotes: async () => {
         const { notes } = get();
         if (notes.length === 0) return;
         
-        const confirmed = window.confirm('Are you sure you want to delete all notes? This action cannot be undone.');
-        if (!confirmed) return;
-        
-        set({ notes: [] });
-        
-        // Clear audio storage
-        audioStorage.getAllAudioIds().then(ids => {
-          ids.forEach(id => audioStorage.deleteAudio(id));
-        });
+        // We'll use the confirmation dialog through a global function
+        // This function will be called from components that have access to the useConfirmationDialog hook
+        if ((window as any).confirmAction) {
+          const confirmed = await (window as any).confirmAction({
+            title: 'Delete All Notes',
+            description: 'Are you sure you want to delete all notes? This action cannot be undone.',
+            confirmText: 'Delete All',
+            variant: 'destructive'
+          });
+          
+          if (!confirmed) return;
+          
+          set({ notes: [] });
+          
+          // Clear audio storage
+          audioStorage.getAllAudioIds().then(ids => {
+            ids.forEach(id => audioStorage.deleteAudio(id));
+          });
+          
+          // Show success toast
+          toast({
+            title: 'Notes Deleted',
+            description: 'All notes have been permanently deleted.',
+          });
+        } else {
+          // Fallback to window.confirm if confirmAction is not available
+          const confirmed = window.confirm('Are you sure you want to delete all notes? This action cannot be undone.');
+          if (!confirmed) return;
+          
+          set({ notes: [] });
+          
+          // Clear audio storage
+          audioStorage.getAllAudioIds().then(ids => {
+            ids.forEach(id => audioStorage.deleteAudio(id));
+          });
+        }
       },
       
-      clearAllRecordings: () => {
+      clearAllRecordings: async () => {
         const { notes } = get();
         const recordingsCount = notes.filter(note => note.audioUrl).length;
         if (recordingsCount === 0) return;
         
-        const confirmed = window.confirm('Are you sure you want to delete all audio recordings? The text content will be preserved.');
-        if (!confirmed) return;
-        
-        const updatedNotes = notes.map(note => ({
-          ...note,
-          audioUrl: undefined,
-          duration: undefined
-        }));
-        
-        set({ notes: updatedNotes });
-        
-        // Clear audio storage
-        audioStorage.getAllAudioIds().then(ids => {
-          ids.forEach(id => audioStorage.deleteAudio(id));
-        });
+        // Use the confirmation dialog if available
+        if ((window as any).confirmAction) {
+          const confirmed = await (window as any).confirmAction({
+            title: 'Delete All Recordings',
+            description: 'Are you sure you want to delete all audio recordings? The text content will be preserved.',
+            confirmText: 'Delete All',
+            variant: 'destructive'
+          });
+          
+          if (!confirmed) return;
+          
+          const updatedNotes = notes.map(note => ({
+            ...note,
+            audioUrl: undefined,
+            duration: undefined
+          }));
+          
+          set({ notes: updatedNotes });
+          
+          // Clear audio storage
+          audioStorage.getAllAudioIds().then(ids => {
+            ids.forEach(id => audioStorage.deleteAudio(id));
+          });
+          
+          // Show success toast
+          toast({
+            title: 'Recordings Deleted',
+            description: 'All audio recordings have been permanently deleted.',
+          });
+        } else {
+          // Fallback to window.confirm
+          const confirmed = window.confirm('Are you sure you want to delete all audio recordings? The text content will be preserved.');
+          if (!confirmed) return;
+          
+          const updatedNotes = notes.map(note => ({
+            ...note,
+            audioUrl: undefined,
+            duration: undefined
+          }));
+          
+          set({ notes: updatedNotes });
+          
+          // Clear audio storage
+          audioStorage.getAllAudioIds().then(ids => {
+            ids.forEach(id => audioStorage.deleteAudio(id));
+          });
+        }
       },
       
       // Reset export state on app initialization or errors
