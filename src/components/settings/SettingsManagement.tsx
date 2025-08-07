@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import Button from '@/components/ui/button';
+import {Button} from '@/components/ui/button';
 
 export const SettingsManagement: React.FC = () => {
   // Use primitive selectors to avoid unnecessary re-renders
