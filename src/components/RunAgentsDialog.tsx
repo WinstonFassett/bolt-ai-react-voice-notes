@@ -6,6 +6,7 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline';
 import { useAgentsStore } from '../stores/agentsStore';
+import { Button } from './ui/button';
 
 interface RunAgentsDialogProps {
   isOpen: boolean;
@@ -103,12 +104,14 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold">Run AI Agents</h3>
-            <button
+            <Button
               onClick={onClose}
-              className="p-2 hover:bg-accent rounded-lg transition-colors"
+              variant="ghost"
+              size="icon"
+              className="rounded-lg"
             >
               <XMarkIcon className="w-5 h-5 text-muted-foreground" />
-            </button>
+            </Button>
           </div>
 
           {/* Agent Selection */}
@@ -117,12 +120,13 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
               <span className="text-sm text-muted-foreground">
                 Select agents to run ({selectedAgents.size} of {availableAgents.length})
               </span>
-              <button
+              <Button
                 onClick={handleSelectAll}
-                className="text-sm text-primary hover:text-primary/80 transition-colors"
+                variant="link"
+                className="text-sm"
               >
                 {selectedAgents.size === availableAgents.length ? 'Deselect All' : 'Select All'}
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -197,20 +201,20 @@ export const RunAgentsDialog: React.FC<RunAgentsDialogProps> = ({
 
           {/* Actions */}
           <div className="flex justify-end gap-2">
-            <button
+            <Button
               onClick={onClose}
-              className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+              variant="outline"
             >
               {completedAgents.size > 0 || failedAgents.size > 0 ? 'Done' : 'Cancel'}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleRunSelected}
               disabled={selectedAgents.size === 0 || isProcessing}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-colors flex items-center gap-2"
+              className="flex items-center gap-2"
             >
               <PlayIcon className="w-4 h-4" />
               Run Selected ({selectedAgents.size})
-            </button>
+            </Button>
           </div>
         </motion.div>
       </motion.div>

@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Button } from "../ui/button";
 
 // Import stores
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -205,14 +206,15 @@ export const SettingsScreen: React.FC = () => {
           component: (
           <div>
             <h4 className="text-sm text-gray-400 mb-2">Downloaded Models</h4>
-            <button
+            <Button
               onClick={handleClearModels}
-              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 w-full"
+              variant="destructive"
+              className="w-full flex items-center justify-center gap-2"
               disabled={clearModelsStatus === 'loading'}
             >
               <TrashIcon className="w-5 h-5" />
               Delete Downloaded Models
-            </button>
+            </Button>
             
             {clearModelsMessage && (
               <div className={`text-sm mt-2 ${clearModelsStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>

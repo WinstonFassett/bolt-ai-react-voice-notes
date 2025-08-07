@@ -6,6 +6,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAgentsStore } from '../stores/agentsStore';
 import { useLLMProvidersStore } from '../stores/llmProvidersStore';
+import { Button } from './ui/button';
 
 interface AgentFormData {
   name: string;
@@ -161,24 +162,24 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
               {mode === 'create' ? 'Create Agent' : 'Edit Agent'}
             </h3>
             <div className="flex items-center gap-2">
+              <Button
+                onClick={onClose}
+                variant="ghost"
+                size="icon"
+                className="rounded-lg"
+              >
+                <XMarkIcon className="w-5 h-5 text-muted-foreground" />
+              </Button>
               {mode === 'edit' && !agent?.isBuiltIn && (
-                <button
-                  type="button"
+                <Button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-2 rounded-lg hover:bg-destructive/20 text-destructive hover:text-destructive/80 transition-colors"
-                  title="Delete agent"
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg"
                 >
                   <TrashIcon className="w-5 h-5" />
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                title="Close"
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
             </div>
           </div>
 
@@ -263,13 +264,14 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
                     className="inline-flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded-full text-sm border border-primary/30"
                   >
                     {tag}
-                    <button
-                      type="button"
+                    <Button
                       onClick={() => handleRemoveTag(tag)}
-                      className="text-primary hover:text-primary/80"
+                      variant="ghost"
+                      size="icon"
+                      className="inline-flex h-4 w-4 items-center justify-center rounded-full text-xs"
                     >
                       ×
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -315,20 +317,19 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
 
             {/* Actions */}
             <div className="flex justify-end gap-2 pt-4">
-              <button
+              <Button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                variant="outline"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={!formData.name.trim() || !formData.prompt.trim()}
-                className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 {mode === 'create' ? 'Create Agent' : 'Save Changes'}
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -352,18 +353,18 @@ export const AgentEditor: React.FC<AgentEditorProps> = ({
                     Are you sure you want to delete "{agent?.name}"? This action cannot be undone.
                   </p>
                   <div className="flex justify-end gap-2">
-                    <button
+                    <Button
                       onClick={() => setShowDeleteConfirm(false)}
-                      className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                      variant="outline"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={handleDelete}
-                      className="px-4 py-2 bg-destructive hover:bg-destructive/90 rounded-lg transition-colors"
+                      variant="destructive"
                     >
                       Delete Agent
-                    </button>
+                    </Button>
                   </div>
                 </motion.div>
               </motion.div>

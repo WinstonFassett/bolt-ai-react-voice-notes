@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, TrashIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { useNotesStore } from '../../stores/notesStore';
+import { Button } from '../ui/button';
 
 export const AudioManagement: React.FC = () => {
   const { downloadAllAudio, downloadSingleAudio, importAudio, clearAllRecordings, notes } = useNotesStore();
@@ -100,14 +101,15 @@ export const AudioManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-sm font-medium mb-2">Audio Management</h3>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-          <button
+          <Button
             onClick={() => isIOS ? setShowSingleExport(!showSingleExport) : handleExportAllAudio()}
-            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors flex items-center justify-center gap-2"
+            variant="default"
+            className="flex items-center justify-center gap-2"
             disabled={exportAudioStatus === 'loading'}
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
             {isIOS ? 'Export Options' : 'Export All'}
-          </button>
+          </Button>
           
           <div className="relative">
             <input
@@ -117,23 +119,30 @@ export const AudioManagement: React.FC = () => {
               onChange={handleImportAudio}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <label
-              htmlFor="import-audio"
-              className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            <Button
+              asChild
+              variant="secondary"
+              className="flex items-center justify-center gap-2"
             >
-              <ArrowUpTrayIcon className="w-5 h-5" />
-              Import
-            </label>
+              <label
+                htmlFor="import-audio"
+                className="cursor-pointer"
+              >
+                <ArrowUpTrayIcon className="w-5 h-5" />
+                Import
+              </label>
+            </Button>
           </div>
           
-          <button
+          <Button
             onClick={handleClearAllRecordings}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+            variant="destructive"
+            className="flex items-center justify-center gap-2"
             disabled={clearAudioStatus === 'loading'}
           >
             <TrashIcon className="w-5 h-5" />
             Clear All
-          </button>
+          </Button>
         </div>
       </div>
       
@@ -150,12 +159,14 @@ export const AudioManagement: React.FC = () => {
                   <p className="text-sm text-gray-300 truncate">{note.title || 'Untitled Recording'}</p>
                   <p className="text-xs text-gray-500">{new Date(note.created).toLocaleDateString()}</p>
                 </div>
-                <button
+                <Button
                   onClick={() => handleExportSingleAudio(note.id)}
-                  className="ml-2 p-2 bg-indigo-600/80 hover:bg-indigo-600 rounded-full"
+                  variant="secondary"
+                  size="icon"
+                  className="ml-2"
                 >
-                  <ShareIcon className="w-4 h-4 text-white" />
-                </button>
+                  <ShareIcon className="w-4 h-4" />
+                </Button>
               </div>
             ))}
           </div>

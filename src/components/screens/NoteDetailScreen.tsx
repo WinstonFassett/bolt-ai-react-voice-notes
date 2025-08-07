@@ -604,13 +604,14 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             {/* No edit toggle needed - always in edit mode */}
             
             {/* Simple delete button */}
-            <button
+            <Button
               onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 rounded-lg hover:bg-destructive/20 transition-colors"
+              variant="destructive"
+              className="p-2 rounded-lg"
               title="Delete note"
             >
-              <TrashIcon className="w-5 h-5 text-destructive" />
-            </button>
+              <TrashIcon className="w-5 h-5" />
+            </Button>
           </div>
         </div>
       </motion.header>
@@ -647,16 +648,17 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           {note.audioUrl && (
             <div className="card">
               <div className="flex items-center gap-4">
-                <button
+                <Button
                   onClick={handlePlayAudio}
-                  className="w-12 h-12 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center transition-colors"
+                  variant="secondary"
+                  className="w-12 h-12 rounded-full"
                 >
                   {isCurrentlyPlaying ? (
-                    <PauseIcon className="w-5 h-5 text-primary-foreground" />
+                    <PauseIcon className="w-5 h-5" />
                   ) : (
-                    <PlayIcon className="w-5 h-5 text-primary-foreground ml-0.5" />
+                    <PlayIcon className="w-5 h-5" />
                   )}
-                </button>
+                </Button>
                 <div>
                   <div className="text-sm">Audio Recording</div>
                   <div className="text-xs text-muted-foreground">
@@ -673,43 +675,47 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 <div className="flex items-center gap-1">
                   {/* Retranscribe button */}
                   {!isTranscribing && (
-                    <button
+                    <Button
                       onClick={() => setShowRetranscribeConfirm(true)}
-                      className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors"
+                      variant="secondary"
+                      className="p-2 rounded-lg"
                       title="Re-transcribe audio"
                     >
-                      <SparklesIcon className="w-4 h-4 text-primary" />
-                    </button>
+                      <SparklesIcon className="w-4 h-4" />
+                    </Button>
                   )}
-                  <button 
+                  <Button 
                     onClick={handleDownloadAudio}
-                    className="p-2 text-muted-foreground hover:text-primary transition-colors ml-auto"
+                    variant="secondary"
+                    className="p-2"
                     aria-label="Download audio"
                     title="Download audio"
                   >
                     <ArrowDownTrayIcon className="h-5 w-5" />
-                  </button>
+                  </Button>
                   
                   {/* Only show share button if Web Share API is supported */}
                   {typeof navigator !== 'undefined' && 'share' in navigator && (
-                    <button 
+                    <Button 
                       onClick={handleShareAudio}
-                      className="p-2 text-muted-foreground hover:text-primary transition-colors"
+                      variant="secondary"
+                      className="p-2"
                       aria-label="Share audio"
                       title="Share audio"
                     >
                       <ShareIcon className="h-5 w-5" />
-                    </button>
+                    </Button>
                   )}
                   
-                  <button
+                  <Button
                     onClick={handleDeleteAudio}
-                    className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                    variant="destructive"
+                    className="p-2"
                     aria-label="Delete audio"
                     title="Delete audio recording"
                   >
                     <TrashIcon className="h-5 w-5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -757,15 +763,16 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 >
                   {tag}
                   {!isAgentNote && (
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation(); // Prevent tag click navigation
                       handleRemoveTag(tag);
                     }}
-                    className="ml-1 text-muted-foreground hover:text-foreground"
+                    variant="secondary"
+                    className="ml-1"
                   >
                     ×
-                  </button>
+                  </Button>
                   )}
                 </span>
               ))}
@@ -787,15 +794,16 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           {/* Editor with floating copy button */}
           <div className="border border-border rounded-lg p-4 relative">
             {/* Floating copy button */}
-            <button
+            <Button
               onClick={handleCopyToClipboard}
+              variant="secondary"
               className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-1 bg-gray-700/80 hover:bg-gray-600/80 
                         text-white text-sm rounded-lg transition-colors shadow-md"
               title="Copy content"
             >
               <DocumentDuplicateIcon className="w-4 h-4" />
               Copy
-            </button>
+            </Button>
             
             <CrepeEditorWrapper
               content={content}
@@ -824,15 +832,15 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 )}
               </h3>
               {canRunAnyAgents() && content.trim() && (
-                <button
+                <Button
                   onClick={() => setShowRunAgentsDialog(true)}
                   disabled={agentsProcessing}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 
-                           disabled:bg-primary/50 disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-colors"
+                  variant="default"
+                  className="flex items-center gap-2 px-4 py-2"
                 >
                   <SparklesIcon className="w-5 h-5" />
                   Run AI Agents
-                </button>
+                </Button>
               )}
             </div>
             
@@ -900,18 +908,18 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 Are you sure you want to delete this note? This action cannot be undone.
               </p>
               <div className="flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleDeleteNote}
-                  className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg transition-colors"
+                  variant="destructive"
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>
@@ -938,18 +946,18 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 This will replace the current content with a new transcription. This action cannot be undone.
               </p>
               <div className="flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => setShowRetranscribeConfirm(false)}
-                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleRetranscribe}
-                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+                  variant="default"
                 >
                   Re-transcribe
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>
@@ -991,18 +999,18 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 Are you sure you want to delete the audio recording? The text content will be preserved.
               </p>
               <div className="flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => setShowDeleteAudioConfirm(false)}
-                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleConfirmDeleteAudio}
-                  className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg transition-colors"
+                  variant="destructive"
                 >
                   Delete Audio
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>

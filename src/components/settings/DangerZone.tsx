@@ -3,6 +3,7 @@ import { ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useSettingsStore } from '../../stores/settingsStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { deleteDownloadedModels } from '../../utils/settingsExporter';
+import { Button } from '../ui/button';
 
 export const DangerZone: React.FC = () => {
   // Use primitive selector to avoid unnecessary re-renders
@@ -61,14 +62,15 @@ export const DangerZone: React.FC = () => {
           <p className="text-sm text-gray-500 mb-2">
             Deletes all app data, including notes, audio, settings, providers, agents, and cached models.
           </p>
-          <button
+          <Button
             onClick={() => setShowClearAllDataConfirm(true)}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 w-full"
+            variant="destructive"
+            className="w-full flex items-center justify-center gap-2"
             disabled={clearDataStatus === 'loading'}
           >
             <ExclamationTriangleIcon className="w-5 h-5" />
             Clear All App Data
-          </button>
+          </Button>
           
           {clearDataMessage && (
             <div className={`text-sm mt-2 ${clearDataStatus === 'success' ? 'text-green-400' : 'text-red-400'}`}>
@@ -114,18 +116,18 @@ export const DangerZone: React.FC = () => {
               </p>      
 
               <div className="flex justify-end gap-2 mt-4">
-                <button
+                <Button
                   onClick={() => setShowClearAllDataConfirm(false)}
-                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleClearAllData}
-                  className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg transition-colors"
+                  variant="destructive"
                 >
                   Clear All Data
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>

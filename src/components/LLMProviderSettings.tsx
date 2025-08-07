@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useLLMProvidersStore } from '../stores/llmProvidersStore';
 import { useAgentsStore } from '../stores/agentsStore';
+import { Button } from './ui/button';
 
 interface AddProviderModalProps {
   isOpen: boolean;
@@ -96,9 +97,11 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
                 className="w-full px-3 py-2 pr-10 bg-background border border-input rounded-lg placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                 required
               />
-              <button
+              <Button
                 type="button"
                 onClick={() => setShowApiKey(!showApiKey)}
+                variant="ghost"
+                size="icon"
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {showApiKey ? (
@@ -106,7 +109,7 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
                 ) : (
                   <EyeIcon className="w-4 h-4" />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -128,21 +131,20 @@ const AddProviderModal: React.FC<AddProviderModalProps> = ({ isOpen, onClose }) 
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
-            <button
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+              variant="outline"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={!apiKey.trim()}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-primary-foreground rounded-lg transition-colors"
             >
               Add Provider
-            </button>
+            </Button>
           </div>
         </form>
       </motion.div>
@@ -246,13 +248,14 @@ export const LLMProviderSettings: React.FC = () => {
             </div>
           </div>
           {providers.length > 1 && (
-            <button
+            <Button
               onClick={handleValidateAll}
               disabled={isValidating}
-              className="mt-3 px-3 py-1 bg-muted hover:bg-muted/80 disabled:bg-muted/50 rounded text-sm transition-colors"
+              variant="outline"
+              size="sm"
             >
               {isValidating ? 'Validating...' : 'Validate All'}
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -301,13 +304,13 @@ export const LLMProviderSettings: React.FC = () => {
       {providers.length > 0 ? (
         <div className="space-y-3">
           {/* Add Provider Button at top of list */}
-          <button
+          <Button
             onClick={() => setShowAddModal(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2"
           >
             <PlusIcon className="w-4 h-4" />
             Add Provider
-          </button>
+          </Button>
           
           {providers.map((provider) => (
             <motion.div
@@ -350,19 +353,22 @@ export const LLMProviderSettings: React.FC = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     onClick={() => handleValidateProvider(provider.id)}
                     disabled={validatingProvider === provider.id}
-                    className="px-3 py-1 bg-muted hover:bg-muted/80 disabled:bg-muted/50 rounded text-sm transition-colors"
+                    variant="outline"
+                    size="sm"
                   >
                     {validatingProvider === provider.id ? 'Testing...' : 'Test'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => deleteProvider(provider.id)}
-                    className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded transition-colors"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                   >
                     <TrashIcon className="w-4 h-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>
@@ -374,13 +380,13 @@ export const LLMProviderSettings: React.FC = () => {
           <p className="text-muted-foreground mb-4">
             Add an LLM provider to enable AI agents
           </p>
-          <button
+          <Button
             onClick={() => setShowAddModal(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2"
           >
             <PlusIcon className="w-4 h-4" />
             Add Provider
-          </button>
+          </Button>
         </div>
       )}
 

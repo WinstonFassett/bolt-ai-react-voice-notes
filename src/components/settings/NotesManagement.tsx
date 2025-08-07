@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useNotesStore } from '../../stores/notesStore';
+import { Button } from '../ui/button';
 
 export const NotesManagement: React.FC = () => {
   // Use primitive selectors to avoid unnecessary re-renders
@@ -93,14 +94,15 @@ export const NotesManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-sm font-medium mb-2">Notes Management</h3>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-          <button
+          <Button
             onClick={handleExportNotes}
-            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors flex items-center justify-center gap-2"
+            variant="default"
+            className="flex items-center justify-center gap-2"
             disabled={exportStatus === 'loading'}
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
             Export
-          </button>
+          </Button>
           
           <div className="relative">
             <input
@@ -110,23 +112,30 @@ export const NotesManagement: React.FC = () => {
               onChange={handleImportNotes}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <label
-              htmlFor="import-notes"
-              className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            <Button
+              asChild
+              variant="secondary"
+              className="flex items-center justify-center gap-2"
             >
-              <ArrowUpTrayIcon className="w-5 h-5" />
-              Import
-            </label>
+              <label
+                htmlFor="import-notes"
+                className="cursor-pointer"
+              >
+                <ArrowUpTrayIcon className="w-5 h-5" />
+                Import
+              </label>
+            </Button>
           </div>
           
-          <button
+          <Button
             onClick={handleClearNotes}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+            variant="destructive"
+            className="flex items-center justify-center gap-2"
             disabled={clearStatus === 'loading'}
           >
             <TrashIcon className="w-5 h-5" />
             Clear
-          </button>
+          </Button>
         </div>
       </div>
       
