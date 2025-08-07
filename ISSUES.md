@@ -205,3 +205,43 @@ Player recorder are way too wide. should have a sane max width like lg or even m
 Success color seems to have been lost? Ie 1 provider(s) connected box has no colors.
 
 
+# Progress Report 2023-08-06
+
+## Outstanding Issues
+
+1. **Dark UI Elements in Light Mode:**
+   - Data management settings section still has dark elements
+   - Clear All Data dialog still uses dark theme styling
+   - JavaScript confirms need replacement with themed modal dialogs
+   - Agents Add button plus icon is still dark in light theme
+
+2. **Layout and Navigation Issues:**
+   - Sticky headers not implemented yet
+   - Library header height inconsistent with other headers
+   - Footer tabs have styling issues in light theme (white boxes in translucent gray row)
+   - Breadcrumb navigation is choppy and needs proper ellipsis logic
+   - Notes search should be fixed to top area attached to header
+   - Section labels should be sticky
+   - Player/recorder overlaps with content (library cards get hidden behind)
+   - Player/recorder too wide (needs max-width constraint)
+
+3. **Milkdown Editor Issues:**
+   - Crepe CSS was completely removed instead of properly updated
+   - Need to verify editor appearance in both light and dark modes
+
+4. **Color Inconsistencies:**
+   - Success color appears to be missing in provider connection status
+
+# User Updates AFTER the above was written
+
+The fucking milkdown theme is broken (light) on dark mode. You should have looked at what we did and then adapted it to both light and dark modes.
+
+clear All uses some theme appropriate styling.
+
+Every fucking window.confirm needs to be replaced with a themed modal dialog.
+
+Every alert should be replaced with something. Probably an appropriately themed / semantically presented toast. We have toast now. But not really using it yet. Fix that.
+
+User theme choice needs to FUCKING PERSIST.
+
+This store persists all kinds of things. It should persist. 
