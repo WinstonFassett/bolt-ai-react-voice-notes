@@ -25,6 +25,7 @@ import { ModelLoadingProgress } from '../ModelLoadingProgress';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '../../lib/utils';
+import { toast } from '../../hooks/use-toast';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -286,13 +287,21 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
   const handleShareAudio = async () => {
     if (!note.audioUrl) {
-      alert('No audio available to share');
+      toast({
+        title: 'Share Failed',
+        description: 'No audio available to share',
+        variant: 'destructive'
+      });
       return;
     }
 
     // Check if Web Share API is supported at all
     if (!('share' in navigator)) {
-      alert('Sharing is not supported on this browser');
+      toast({
+        title: 'Share Failed',
+        description: 'Sharing is not supported on this browser',
+        variant: 'destructive'
+      });
       return;
     }
 
@@ -309,7 +318,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           // Resolve the storage URL to get the actual blob URL
           const resolvedAudio = await resolveStorageUrl(note.audioUrl);
           if (!resolvedAudio) {
-            alert('Could not access the audio file');
+            toast({
+              title: 'Share Failed',
+              description: 'Could not access the audio file',
+              variant: 'destructive'
+            });
             return;
           }
 
@@ -359,7 +372,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       }
     } catch (error) {
       console.error('Error sharing audio:', error);
-      alert('Could not share the audio file');
+      toast({
+        title: 'Share Failed',
+        description: 'Could not share the audio file',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -390,7 +407,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     if (!note.audioUrl) {
       // Show user-friendly error instead of silent failure
       console.error('❌ NoteDetailScreen: No audio URL available');
-      alert('❌ No audio recording available for this note');
+      toast({
+        title: 'Playback Error',
+        description: 'No audio recording available for this note',
+        variant: 'destructive'
+      });
       return;
     }
     playAudio(note.audioUrl);
@@ -440,7 +461,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
   const handleDownloadAudio = async () => {
     if (!note.audioUrl) {
-      alert('No audio available to download');
+      toast({
+        title: 'Download Failed',
+        description: 'No audio available to download',
+        variant: 'destructive'
+      });
       return;
     }
 
@@ -448,7 +473,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       // Resolve the storage URL to get the actual blob URL
       const resolvedAudio = await resolveStorageUrl(note.audioUrl);
       if (!resolvedAudio) {
-        alert('Could not access the audio file');
+        toast({
+          title: 'Download Failed',
+          description: 'Could not access the audio file',
+          variant: 'destructive'
+        });
         return;
       }
 
@@ -469,7 +498,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       console.log('Audio download initiated');
     } catch (error) {
       console.error('Error downloading audio:', error);
-      alert('Could not download the audio file');
+      toast({
+        title: 'Download Failed',
+        description: 'Could not download the audio file',
+        variant: 'destructive'
+      });
     }
   };
 

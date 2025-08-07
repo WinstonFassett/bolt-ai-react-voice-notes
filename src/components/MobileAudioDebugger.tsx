@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XMarkIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
+import { toast } from '../hooks/use-toast';
 
 interface AudioDebugInfo {
   timestamp: string;
@@ -208,7 +209,11 @@ export const MobileAudioDebugger: React.FC<MobileAudioDebuggerProps> = ({
     
     if (navigator.clipboard) {
       navigator.clipboard.writeText(reportText).then(() => {
-        alert('Debug report copied to clipboard!');
+        toast({
+          title: 'Debug Report',
+          description: 'Debug report copied to clipboard!',
+          variant: 'default'
+        });
       }).catch(() => {
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
@@ -217,7 +222,11 @@ export const MobileAudioDebugger: React.FC<MobileAudioDebuggerProps> = ({
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        alert('Debug report copied to clipboard!');
+        toast({
+          title: 'Debug Report',
+          description: 'Debug report copied to clipboard!',
+          variant: 'default'
+        });
       });
     }
   };

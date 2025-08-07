@@ -261,6 +261,10 @@ export async function exportAudioFiles(
     console.error('Error exporting audio:', error);
     onStatus(false);
     onProgress('');
-    alert(`Error exporting audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    toast({
+      title: 'Export Error',
+      description: `Error exporting audio: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      variant: 'destructive'
+    });
   }
 }
