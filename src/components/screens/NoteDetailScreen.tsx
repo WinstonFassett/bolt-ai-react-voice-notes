@@ -553,24 +553,26 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           <div className="flex flex-col gap-2">
             {/* Breadcrumb Navigation */}
             <div className="flex items-center text-sm overflow-x-auto pb-2 scrollbar-hide">
-              <button
+              <Button
                 onClick={() => navigate('/library')}
-                className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+                variant="link"
+                className="text-muted-foreground hover:text-foreground p-0 h-auto"
               >
                 Library
-              </button>
+              </Button>
               
               {/* Show source note breadcrumb for agent notes */}
               {isAgentNote && sourceNote && (
                 <>
                   <span className="mx-2 text-muted-foreground">/</span>
-                  <button
+                  <Button
                     onClick={() => navigate(`/note/${sourceNote.id}`)}
-                    className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[150px]"
+                    variant="link"
+                    className="text-muted-foreground hover:text-foreground p-0 h-auto truncate max-w-[150px]"
                     title={sourceNote.title || 'Untitled Note'}
                   >
                     {sourceNote.title || 'Untitled Note'}
-                  </button>
+                  </Button>
                 </>
               )}
               
@@ -583,22 +585,25 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           </div>
           {/* Actions row */}
           <div className="flex items-center justify-between">
-            <button
+            <Button
               onClick={onBack}
-              className="p-2 rounded-lg hover:bg-accent transition-colors"
+              variant="ghost"
+              size="icon"
+              className="rounded-lg"
             >
               <ArrowLeftIcon className="w-6 h-6" />
-            </button>
+            </Button>
             
             {/* Show source note link for agent notes */}
             {isAgentNote && sourceNote && (
-              <button
+              <Button
                 onClick={() => navigate(`/note/${sourceNote.id}`)}
-                className="flex items-center gap-2 px-3 py-1 bg-accent hover:bg-accent/80 rounded-lg transition-colors"
+                variant="secondary"
+                className="flex items-center gap-2 px-3 py-1 h-auto"
               >
                 <span className="text-sm text-muted-foreground">Source:</span>
                 <span className="text-sm truncate max-w-32">{sourceNote.title}</span>
-              </button>
+              </Button>
             )}
           
             {/* No edit toggle needed - always in edit mode */}

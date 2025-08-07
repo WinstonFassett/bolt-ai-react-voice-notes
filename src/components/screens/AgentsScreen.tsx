@@ -13,6 +13,7 @@ import {
 import { useAgentsStore } from '../../stores/agentsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
 import { AgentEditor } from '../AgentEditor';
+import { Button } from '../ui/button';
 
 export const AgentsScreen: React.FC = () => {
   const {
@@ -135,18 +136,20 @@ export const AgentsScreen: React.FC = () => {
               ))}
             </div>
             <div className="flex gap-2 mt-4">
-              <button
+              <Button
                 onClick={handleValidateProviders}
-                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 rounded text-sm transition-colors"
+                variant="default"
+                className="text-sm"
               >
                 Retry Connection
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleOpenSettings}
-                className="px-3 py-1 bg-muted hover:bg-muted/80 rounded text-sm transition-colors"
+                variant="outline"
+                className="text-sm"
               >
                 Open Settings
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -202,34 +205,29 @@ export const AgentsScreen: React.FC = () => {
           {agent.autoRun && (
             <BoltIcon className="w-4 h-4 text-amber-500" title="Auto-run enabled" />
           )}
-          <button
+          <Button
             onClick={(e) => {
               e.stopPropagation();
               handleEditAgent(agent);
             }}
             disabled={!canRun}
-            className={`p-2 rounded-lg transition-colors ${
-              canRun
-                ? 'hover:bg-accent text-muted-foreground hover:text-foreground'
-                : 'text-muted-foreground/50 cursor-not-allowed'
-            }`}
+            variant="ghost"
+            size="icon"
+            className={canRun ? "" : "cursor-not-allowed"}
             title="Edit agent"
           >
             <PencilIcon className="w-4 h-4" />
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={(e) => {
               e.stopPropagation();
               toggleAgentAutoRun(agent.id);
             }}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              agent.autoRun
-                ? 'bg-amber-600 hover:bg-amber-700'
-                : 'bg-muted hover:bg-muted/80'
-            }`}
+            variant={agent.autoRun ? "default" : "secondary"}
+            className="text-sm px-3 py-1 h-auto"
           >
             {agent.autoRun ? 'Auto-Run: ON' : 'Auto-Run: OFF'}
-          </button>
+          </Button>
         </div>
       </div>
     </motion.div>
@@ -247,18 +245,16 @@ export const AgentsScreen: React.FC = () => {
           <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">AI Agents</h1>
-            <button
+            <Button
               onClick={handleCreateAgent}
               disabled={!canRun}
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                canRun
-                  ? 'bg-primary hover:bg-primary/90'
-                  : 'bg-muted cursor-not-allowed'
-              }`}
+              variant="default"
+              size="icon"
+              className="rounded-full"
               title="Create new agent"
             >
               <PlusIcon className="w-5 h-5" />
-            </button>
+            </Button>
           </div>
           </div>
         </motion.div>

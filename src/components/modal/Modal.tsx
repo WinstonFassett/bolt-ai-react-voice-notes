@@ -1,5 +1,6 @@
 import { Dialog, Transition } from "@headlessui/react";
 import { Fragment } from "react";
+import { Button } from "../ui/button";
 
 export interface Props {
     show: boolean;
@@ -59,30 +60,23 @@ export default function Modal({
 
                                 <div className='mt-4 flex flex-row-reverse'>
                                     {submitText && (
-                                        <button
+                                        <Button
                                             type='button'
                                             disabled={!submitEnabled}
-                                            className={`inline-flex ml-4 justify-center rounded-md border border-transparent ${
-                                                submitEnabled
-                                                    ? "bg-indigo-600"
-                                                    : "bg-grey-300"
-                                            } px-4 py-2 text-sm font-medium text-indigo-100 ${
-                                                submitEnabled
-                                                    ? "hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                                                    : ""
-                                            } transition-all duration-300`}
+                                            variant="default"
+                                            className="ml-4"
                                             onClick={onSubmit}
                                         >
                                             {submitText}
-                                        </button>
+                                        </Button>
                                     )}
-                                    <button
+                                    <Button
                                         type='button'
-                                        className='inline-flex justify-center rounded-md border border-transparent bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-900 hover:bg-indigo-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 transition-all duration-300'
+                                        variant="outline"
                                         onClick={onClose}
                                     >
                                         Close
-                                    </button>
+                                    </Button>
                                 </div>
                             </Dialog.Panel>
                         </Transition.Child>

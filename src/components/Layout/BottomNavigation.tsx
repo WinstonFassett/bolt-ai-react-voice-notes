@@ -1,6 +1,7 @@
 import { Mic, Library, Bot, Settings } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { Button } from '../ui/button'
 
 const tabs = [
   { id: '/', label: 'Record', icon: Mic },
@@ -24,12 +25,13 @@ export function BottomNavigation() {
       <nav className="max-w-4xl mx-auto bg-background/95 backdrop-blur-sm border-t border-border">
         <div className="flex items-center justify-around py-2">
           {tabs.map(({ id, label, icon: Icon }) => (
-            <button
+            <Button
               key={id}
               onClick={() => navigate(id)}
+              variant="ghost"
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors",
-                "min-w-[60px] text-xs font-medium",
+                "flex flex-col items-center gap-1 px-3 py-2 rounded-lg",
+                "min-w-[60px] text-xs font-medium h-auto",
                 activeTab === id
                   ? "text-primary bg-primary/10"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent"
@@ -37,7 +39,7 @@ export function BottomNavigation() {
             >
               <Icon className="h-5 w-5" />
               <span>{label}</span>
-            </button>
+            </Button>
           ))}
         </div>
       </nav>

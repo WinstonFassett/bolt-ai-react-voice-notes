@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { AnimatePresence, motion } from 'framer-motion';
+import Button from '@/components/ui/button';
 
 export const SettingsManagement: React.FC = () => {
   // Use primitive selectors to avoid unnecessary re-renders
@@ -106,14 +107,15 @@ export const SettingsManagement: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <h3 className="text-sm font-medium mb-2">Settings Management</h3>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <button
+            <Button
               onClick={handleExportSettings}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              variant="default"
+              className="flex items-center justify-center gap-2"
               disabled={exportSettingsStatus === 'loading'}
             >
               <ArrowDownTrayIcon className="w-5 h-5" />
               Export
-            </button>
+            </Button>
             
             <div className="relative">
               <input
@@ -123,23 +125,29 @@ export const SettingsManagement: React.FC = () => {
                 onChange={handleImportSettings}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
-              <label
-                htmlFor="import-settings"
-                className="px-4 py-2 bg-accent hover:bg-accent/90 text-accent-foreground rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+              <Button
+                asChild
+                variant="secondary"
               >
-                <ArrowUpTrayIcon className="w-5 h-5" />
-                Import
-              </label>
+                <label
+                  htmlFor="import-settings"
+                  className="flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ArrowUpTrayIcon className="w-5 h-5" />
+                  Import
+                </label>
+              </Button>
             </div>
             
-            <button
+            <Button
               onClick={() => setShowResetSettingsConfirm(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              variant="destructive"
+              className="flex items-center justify-center gap-2"
               disabled={resetSettingsStatus === 'loading'}
             >
               <ArrowPathIcon className="w-5 h-5" />
               Reset
-            </button>
+            </Button>
           </div>
         </div>
         
@@ -176,18 +184,20 @@ export const SettingsManagement: React.FC = () => {
                 Are you sure you want to reset all settings to default values? This will reset your AI providers, agents, and app preferences.
               </p>
               <div className="flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => setShowResetSettingsConfirm(false)}
-                  className="px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                  variant="default"
+                  className="px-4 py-2 rounded-lg transition-colors"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleResetSettings}
-                  className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-lg transition-colors"
+                  variant="destructive"
+                  className="px-4 py-2 rounded-lg transition-colors"
                 >
                   Reset Settings
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>

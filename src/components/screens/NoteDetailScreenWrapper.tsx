@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useNotesStore } from '../../stores/notesStore';
 import { NoteDetailScreen } from './NoteDetailScreen';
+import { Button } from '../../components/ui/button';
 
 export function NoteDetailScreenWrapper() {
   const { id } = useParams<{ id: string }>();
@@ -16,12 +17,12 @@ export function NoteDetailScreenWrapper() {
     return (
       <div className="flex flex-col items-center justify-center h-full p-4">
         <h2 className="text-xl font-bold mb-4">Note not found</h2>
-        <button 
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+        <Button 
+          variant="default"
           onClick={() => navigate('/library')}
         >
           Back to Library
-        </button>
+        </Button>
       </div>
     );
   }
