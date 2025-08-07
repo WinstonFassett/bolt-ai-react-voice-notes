@@ -18,7 +18,6 @@ import {
   AudioManagement, 
   SettingsManagement, 
   DangerZone,
-  DebugInfo
 } from '../settings';
 import {
   Select,
@@ -52,7 +51,6 @@ export const SettingsScreen: React.FC = () => {
   // Using stable references to prevent infinite loops
   const modelSelectorComponent = useMemo(() => <ModelSelector className="w-full" />, []);
   const llmProviderSettingsComponent = useMemo(() => <LLMProviderSettings />, []);
-  const debugInfoComponent = useMemo(() => <DebugInfo />, []);
 
   const memoizedAudioManagement = useMemo(() => <AudioManagement />, []);
   const memoizedNotesManagement = useMemo(() => <NotesManagement />, []);
