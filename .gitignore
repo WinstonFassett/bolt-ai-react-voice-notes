@@ -28,3 +28,6 @@ dist-ssr
 .env
 
 *.ignore
+
+# TypeScript build info files
+*.tsbuildinfo
