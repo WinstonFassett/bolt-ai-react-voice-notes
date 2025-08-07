@@ -28,7 +28,7 @@ export function PersistentRecordingWidget() {
   }
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-40 shadow-2xl border-primary/30 bg-background/95 backdrop-blur-md">
+    <Card className="fixed bottom-20 left-4 right-4 z-40 shadow-2xl border-primary/30 bg-background/95 backdrop-blur-md max-w-sm m-auto">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
