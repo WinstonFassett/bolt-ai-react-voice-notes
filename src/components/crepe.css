@@ -36,7 +36,13 @@
 #root .milkdown {
   --crepe-color-background: hsl(var(--background));
   --crepe-color-on-background: hsl(var(--foreground));
-  --crepe-color-selected: hsl(var(--accent));
+  
+  --crepe-color-selected: hsl(var(--primary) / 0.2);
+}
+
+.dark #root .milkdown {
+  --crepe-color-selected: hsl(var(--accent) / 0.5);
+  /* --crepe-color-selected: hsl(var(--primary) / 0.5); */
 }
 
 /* #endregion dark theme support */
