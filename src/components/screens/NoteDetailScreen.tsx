@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import 'share-api-polyfill';
 import { formatDistanceToNow } from 'date-fns';
 import { useAgentsStore } from '../../stores/agentsStore';
+import { MarkdownPreview } from '../MarkdownPreview';
 import { useAudioStore } from '../../stores/audioStore';
 import { resolveStorageUrl } from '../../utils/audioStorage';
 import { Note, useNotesStore } from '../../stores/notesStore';
@@ -170,10 +171,14 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium pr-8 line-clamp-2">{note.title || 'Untitled Note'}</h4>
                 
-                {/* Content preview */}
-                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                  {getContentPreview(note.content)}
-                </p>
+                {/* Content preview with Crepe editor in read-only mode */}
+                <div className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                  <CrepeEditorWrapper
+                    content={note.content}
+                    readOnly={true}
+                    className="p-0 m-0 [&_.editor]:p-0 [&_.editor]:m-0 [&_.editor]:shadow-none [&_.editor]:bg-transparent"
+                  />
+                </div>
                 
                 {/* Info row */}
                 <div className="flex items-center text-xs text-muted-foreground mb-2">
@@ -443,12 +448,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
   
-  // Helper function to get a plain text preview of content for cards
-  const getContentPreview = (content: string) => {
-    if (!content) return '';
-    // Get first 150 characters of content, preserving the raw text
-    return content.substring(0, 150).trim() + (content.length > 150 ? '...' : '');
-  };
 
   const handleDeleteNote = () => {
     deleteNote(note.id);
