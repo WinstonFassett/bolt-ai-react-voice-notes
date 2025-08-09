@@ -16,6 +16,7 @@ import { Plus, Search, Play, Pause, Trash2, Bot, FileText } from 'lucide-react';
 import { AppHeader } from '../Layout/AppHeader';
 import { AddButton } from '../AddButton';
 import { cn } from '../../lib/utils';
+import { MarkdownPreview } from '../MarkdownPreview';
 
 interface LibraryScreenProps {
   onUploadFile: () => void;
@@ -199,9 +200,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                 
                 {/* Content preview */}
                 {note.content && (
-                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {getContentPreview(note.content)}
-                  </p>
+                  <MarkdownPreview content={note.content} className="text-sm text-muted-foreground mb-2 line-clamp-2 prose-compact" />
                 )}
                 
                 {/* Info row - date, duration, child count */}

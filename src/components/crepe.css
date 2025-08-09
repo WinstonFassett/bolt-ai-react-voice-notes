@@ -34,7 +34,8 @@
 } 
 
 #root .milkdown {
-  --crepe-color-background: hsl(var(--background));
+  /* --crepe-color-background: hsl(var(--background)); */
+  --crepe-color-background: transparent;
   --crepe-color-on-background: hsl(var(--foreground));
   
   --crepe-color-selected: hsl(var(--primary) / 0.2);

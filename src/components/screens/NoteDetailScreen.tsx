@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import 'share-api-polyfill';
 import { formatDistanceToNow } from 'date-fns';
 import { useAgentsStore } from '../../stores/agentsStore';
-import { MarkdownPreview } from '../MarkdownPreview';
+
 import { useAudioStore } from '../../stores/audioStore';
 import { resolveStorageUrl } from '../../utils/audioStorage';
 import { Note, useNotesStore } from '../../stores/notesStore';
@@ -27,6 +27,7 @@ import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { cn } from '../../lib/utils';
 import { toast } from '../../hooks/use-toast';
+import { MarkdownPreview } from '../MarkdownPreview';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -171,14 +172,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium pr-8 line-clamp-2">{note.title || 'Untitled Note'}</h4>
                 
-                {/* Content preview with Crepe editor in read-only mode */}
-                <div className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                  <CrepeEditorWrapper
-                    content={note.content}
-                    readOnly={true}
-                    className="p-0 m-0 [&_.editor]:p-0 [&_.editor]:m-0 [&_.editor]:shadow-none [&_.editor]:bg-transparent"
-                  />
-                </div>
+                <MarkdownPreview content={note.content} className='text-sm text-muted-foreground mb-2 line-clamp-2 prose-compact'/>
                 
                 {/* Info row */}
                 <div className="flex items-center text-xs text-muted-foreground mb-2">
