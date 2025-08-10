@@ -37,7 +37,6 @@ export interface AppState {
   
   // UI state
   searchQuery: string
-  filteredNotes: Note[]
   streamingNotes: Set<string>
   theme: 'light' | 'dark' | 'system'
   showDeleteConfirmationNoteId?: string
@@ -121,7 +120,6 @@ export const useAppStore = create<AppState>()(
     llmProviders: defaultLLMProviders,
     
     searchQuery: '',
-    filteredNotes: [],
     streamingNotes: new Set(),
     theme: 'system',
     showDeleteConfirmationNoteId: undefined,
@@ -530,20 +528,10 @@ export const useAppStore = create<AppState>()(
     addNote: (noteData: Omit<Note, 'id' | 'created' | 'updated'>) => {
       const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
       const now = new Date().toISOString()
-      
-      const note: Note = {
-        ...noteData,
-        id,
-        created: now,
-        updated: now,
-        childNotes: []
-      }
-      
+      const note: Note = { ...noteData, id, created: now, updated: now, childNotes: [] }
       set((state) => {
         state.notes.unshift(note)
-        state.filteredNotes = state.notes
       })
-      
       return id
     },
     
@@ -553,20 +541,12 @@ export const useAppStore = create<AppState>()(
         if (note) {
           Object.assign(note, updates, { updated: new Date().toISOString() })
         }
-        state.filteredNotes = state.notes.filter(note =>
-          note.title.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-          note.content.toLowerCase().includes(state.searchQuery.toLowerCase())
-        )
       })
     },
     
     deleteNote: (id: string) => {
       set((state) => {
         state.notes = state.notes.filter(n => n.id !== id)
-        state.filteredNotes = state.notes.filter(note =>
-          note.title.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-          note.content.toLowerCase().includes(state.searchQuery.toLowerCase())
-        )
         state.showDeleteConfirmationNoteId = undefined
       })
     },
@@ -655,10 +635,6 @@ export const useAppStore = create<AppState>()(
     searchNotes: (query: string) => {
       set((state) => {
         state.searchQuery = query
-        state.filteredNotes = state.notes.filter(note =>
-          note.title.toLowerCase().includes(query.toLowerCase()) ||
-          note.content.toLowerCase().includes(query.toLowerCase())
-        )
       })
     },
     
@@ -725,7 +701,6 @@ export const useAppStore = create<AppState>()(
       
       set((state) => {
         state.notes = sampleNotes
-        state.filteredNotes = sampleNotes
       })
       
       // Add some child notes to create a deep hierarchy
