@@ -31,23 +31,31 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   const navigate = useNavigate();
 
   // Initialize search query from URL parameters if present
-  const [searchQuery, setSearchQuery] = useState(() => {
+  const [searchInput, setSearchInput] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('q') || '';
   });
+  const [debouncedQuery, setDebouncedQuery] = useState(searchInput);
+
+  // Debounce text input
+  useEffect(() => {
+    const h = setTimeout(() => setDebouncedQuery(searchInput), 300);
+    return () => clearTimeout(h);
+  }, [searchInput]);
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
   
-  // Update URL when search query changes
+  // Update URL when debounced query changes
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (searchQuery) {
-      url.searchParams.set('q', searchQuery);
+    if (debouncedQuery) {
+      url.searchParams.set('q', debouncedQuery);
     } else {
       url.searchParams.delete('q');
     }
     window.history.pushState({}, '', url);
-  }, [searchQuery]);
+  }, [debouncedQuery]);
 
   // Filter notes to only show top-level notes (no parent)
   const topLevelNotes = useMemo(() => {
@@ -57,9 +65,9 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   // Apply search filter
   const filteredNotes = useMemo(() => {
     // When empty, show top-level only
-    if (!searchQuery) return topLevelNotes;
+    if (!debouncedQuery) return topLevelNotes;
 
-    const terms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    const terms = debouncedQuery.toLowerCase().split(/\s+/).filter(Boolean);
     const matches = (note: Note) => {
       const haystack = [
         note.title || '',
@@ -81,7 +89,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
 
     // Show only top-level notes whose subtree matches
     return topLevelNotes.filter(n => hasMatchInSubtree(n));
-  }, [notes, topLevelNotes, searchQuery]);
+  }, [notes, topLevelNotes, debouncedQuery]);
 
   // Group notes by date
   const groupedNotes = useMemo(() => {
@@ -242,10 +250,8 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                         key={tag}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSearchQuery(tag);
-                          const url = new URL(window.location.href);
-                          url.searchParams.set('q', tag);
-                          window.history.pushState({}, '', url);
+                          setSearchInput(tag);
+                          // URL will be updated by debounced effect
                         }}
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
                                  bg-primary/20 text-primary border border-primary/30 
@@ -293,8 +299,8 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -315,7 +321,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
             ) : (
               <div className="text-center py-12">
                 <div className="text-muted-foreground mb-4">
-                  {searchQuery ? 'No notes match your search' : 'No notes yet'}
+                  {debouncedQuery ? 'No notes match your search' : 'No notes yet'}
                 </div>
                 <Button onClick={() => startRecordingFlow()}>
                   <Plus className="h-4 w-4 mr-2" />
