@@ -1,10 +1,11 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
+import { Route } from '../../routes/note.$id';
 import { useNotesStore } from '../../stores/notesStore';
 import { NoteDetailScreen } from './NoteDetailScreen';
 import { Button } from '../../components/ui/button';
 
 export function NoteDetailScreenWrapper() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = Route.useParams();
   const navigate = useNavigate();
   const { notes } = useNotesStore();
   
@@ -19,7 +20,7 @@ export function NoteDetailScreenWrapper() {
         <h2 className="text-xl font-bold mb-4">Note not found</h2>
         <Button 
           variant="default"
-          onClick={() => navigate('/library')}
+          onClick={() => navigate({ to: '/library' })}
         >
           Back to Library
         </Button>
@@ -29,7 +30,7 @@ export function NoteDetailScreenWrapper() {
   
   // Handle back navigation
   const handleBack = () => {
-    navigate('/library');
+    navigate({ to: '/library' });
   };
   
   // Handle tab change (not actually used in the redesign)

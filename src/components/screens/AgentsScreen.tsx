@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
 import { 
   PlusIcon,
   ExclamationTriangleIcon,
@@ -74,7 +74,7 @@ export const AgentsScreen: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    navigate('/settings');
+    navigate({ to: '/settings' });
   };
   const handleCreateAgent = () => {
     setEditingAgent(null);

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
+import { Route } from '../../routes/library';
 import { formatDistanceToNow } from 'date-fns';
 
 // Import existing stores
@@ -28,34 +29,16 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   const { notes, deleteNote, createNote } = useNotesStore();
   const { startRecordingFlow } = useRecordingStore();
   const { playAudio, togglePlayPause, currentPlayingAudioUrl, globalIsPlaying } = useAudioStore();
-  const navigate = useNavigate();
-
-  // Initialize search query from URL parameters if present
-  const [searchInput, setSearchInput] = useState(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('q') || '';
-  });
-  const [debouncedQuery, setDebouncedQuery] = useState(searchInput);
-
-  // Debounce text input
-  useEffect(() => {
-    const h = setTimeout(() => setDebouncedQuery(searchInput), 300);
-    return () => clearTimeout(h);
-  }, [searchInput]);
+  const navigate = useNavigate({ from: Route.id });
+  const { q: searchInput = '' } = Route.useSearch();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
-  
-  // Update URL when debounced query changes
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    if (debouncedQuery) {
-      url.searchParams.set('q', debouncedQuery);
-    } else {
-      url.searchParams.delete('q');
-    }
-    window.history.pushState({}, '', url);
-  }, [debouncedQuery]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearch = e.target.value;
+    navigate({ search: (prev) => ({ ...prev, q: newSearch || undefined }), replace: true });
+  };
 
   // Filter notes to only show top-level notes (no parent)
   const topLevelNotes = useMemo(() => {
@@ -63,10 +46,10 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   }, [notes]);
 
   // Build matching helpers for search
-  const terms = useMemo(() => debouncedQuery.toLowerCase().split(/\s+/).filter(Boolean), [debouncedQuery]);
+  const terms = useMemo(() => searchInput.toLowerCase().split(/\s+/).filter(Boolean), [searchInput]);
 
   const matches = useCallback((note: Note) => {
-    if (!debouncedQuery) return false;
+    if (!searchInput) return false;
     const haystack = [
       note.title || '',
       note.content || '',
@@ -74,37 +57,37 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
       note.agentId || ''
     ].join(' ').toLowerCase();
     return terms.every(t => haystack.includes(t));
-  }, [debouncedQuery, terms]);
+  }, [searchInput, terms]);
 
   const hasMatchInSubtree = useCallback(function hasMatchInSubtreeLocal(note: Note): boolean {
-    if (!debouncedQuery) return true;
+    if (!searchInput) return true;
     if (matches(note)) return true;
     const children = getChildNotes(note.id);
     for (const child of children) {
       if (hasMatchInSubtreeLocal(child)) return true;
     }
     return false;
-  }, [debouncedQuery, matches, notes]);
-  
+  }, [searchInput, matches, notes]);
+
   // Apply search filter
   const filteredNotes = useMemo(() => {
     // When empty, show top-level only
-    if (!debouncedQuery) return topLevelNotes;
+    if (!searchInput) return topLevelNotes;
 
     // Show only top-level notes whose subtree matches
     return topLevelNotes.filter(n => hasMatchInSubtree(n));
-  }, [topLevelNotes, debouncedQuery, hasMatchInSubtree]);
+  }, [topLevelNotes, searchInput, hasMatchInSubtree]);
 
   // Group notes by date
   const groupedNotes = useMemo(() => {
     const groups: { [key: string]: Note[] } = {};
     const now = new Date();
-    
+
     filteredNotes.forEach(note => {
       if (!note) return;
       const noteDate = new Date(note.lastEdited);
       const diffInDays = Math.floor((now.getTime() - noteDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       let groupKey: string;
       if (diffInDays === 0) {
         groupKey = 'Today';
@@ -117,20 +100,20 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
       } else {
         groupKey = 'Older';
       }
-      
+
       if (!groups[groupKey]) {
         groups[groupKey] = [];
       }
       groups[groupKey].push(note);
     });
-    
+
     return groups;
   }, [filteredNotes]);
 
   // Helper function to get a plain text preview of content for cards
   const getContentPreview = (content: string, maxLength: number = 120) => {
     if (!content) return '';
-    
+
     // Get first paragraph and truncate if needed
     const firstParagraph = content.split('\n')[0];
     return firstParagraph.length > maxLength ? firstParagraph.slice(0, maxLength) + '...' : firstParagraph;
@@ -139,7 +122,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   // Get child notes for a given parent note
   function getChildNotes(parentId: string): Note[] {
     if (!parentId) return [];
-    return notes.filter(note => 
+    return notes.filter(note =>
       note && note.sourceNoteIds && note.sourceNoteIds.includes(parentId)
     ).sort((a, b) => b.lastEdited - a.lastEdited);
   }
@@ -147,31 +130,35 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   // Recursive function to render a note with its children
   const renderNoteWithChildren = (note: Note, level: number = 0) => {
     if (!note) return null;
-    const isSearching = !!debouncedQuery;
+    const isSearching = !!searchInput;
     const isMatch = matches(note);
     const formattedDate = formatDistanceToNow(new Date(note.lastEdited), { addSuffix: true });
     const childNotes = getChildNotes(note.id);
     const visibleChildren = isSearching ? childNotes.filter(c => hasMatchInSubtree(c)) : childNotes;
     const isAgentNote = note.type === 'agent';
     const hasAudio = note.audioUrl !== null && note.audioUrl !== undefined;
-    const formattedDuration = note.duration ? 
-      `${Math.floor(note.duration / 60)}:${(note.duration % 60).toString().padStart(2, '0')}` : 
+    const formattedDuration = note.duration ?
+      `${Math.floor(note.duration / 60)}:${(note.duration % 60).toString().padStart(2, '0')}` :
       null;
+
+    const handleNoteClick = (note: Note) => {
+      navigate({ to: `/note/${note.id}` });
+    };
 
     return (
       <div key={note.id} className={level === 0 ? 'mb-2' : 'mt-2'}>
-        <Card 
+        <Card
           className={cn(
             'transition-all duration-200',
             isAgentNote && 'border-l-4 border-l-primary',
             isSearching && !isMatch ? 'opacity-80 bg-accent/30 hover:bg-accent/40 cursor-default' : 'cursor-pointer hover:bg-accent/50'
           )}
           onClick={() => {
-            if (!isSearching || isMatch) navigate(`/note/${note.id}`);
+            if (!isSearching || isMatch) navigate({ to: '/note/$id', params: { id: note.id } });
           }}
           style={{ marginLeft: `${level * 16}px` }}
         >
-          <CardContent className={cn('p-4', isSearching && !isMatch && 'py-2') }>
+          <CardContent className={cn('p-4', isSearching && !isMatch && 'py-2')}>
             <div className="flex items-start gap-3">
               {/* Left column for play button or icon */}
               <div className="flex-shrink-0">
@@ -207,7 +194,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                   </div>
                 )}
               </div>
-              
+
               {/* Main content */}
               <div className="flex-1 min-w-0">
                 {/* Title row with delete button */}
@@ -231,12 +218,14 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                
+
                 {/* Content preview */}
                 {(!isSearching || isMatch) && note.content && (
-                  <MarkdownPreview content={note.content} className="text-sm text-muted-foreground mb-2 line-clamp-2 prose-compact" />
+                  <Button variant="link" onClick={() => navigate({ to: '/note/$id', params: { id: note.id } })} className="p-0 h-auto text-base font-semibold">
+                    <MarkdownPreview content={note.content} className="text-sm text-muted-foreground mb-2 line-clamp-2 prose-compact" />
+                  </Button>
                 )}
-                
+
                 {/* Info row - date, duration, child count */}
                 {(!isSearching || isMatch) && (
                   <div className="flex items-center text-xs text-muted-foreground mb-2">
@@ -255,7 +244,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                     )}
                   </div>
                 )}
-                
+
                 {/* Tags row - always at the bottom */}
                 {(!isSearching || isMatch) && note.tags && note.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -264,8 +253,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                         key={tag}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSearchInput(tag);
-                          // URL will be updated by debounced effect
+                          navigate({ search: { q: tag } });
                         }}
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
                                  bg-primary/20 text-primary border border-primary/30 
@@ -280,7 +268,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Render child notes - only matching children while searching */}
         {visibleChildren.length > 0 && visibleChildren.map(childNote => renderNoteWithChildren(childNote, level + 1))}
       </div>
@@ -290,8 +278,8 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   return (
     <div className="h-full flex flex-col max-w-4xl mx-auto">
       {/* Header with AppHeader component */}
-      <AppHeader 
-        title="Library" 
+      <AppHeader
+        title="Library"
         actions={
           <AddButton
             onStartRecording={startRecordingFlow}
@@ -299,12 +287,12 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
             onFromUrl={onFromUrl}
             onCreateNote={() => {
               const newNoteId = createNote();
-              navigate(`/note/${newNoteId}`);
+              navigate({ to: '/note/$id', params: { id: newNoteId } });
             }}
           />
         }
       />
-      
+
       {/* Main content */}
       <div className="flex-1 overflow-auto">
         <div className="p-4 space-y-4">
@@ -312,10 +300,11 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              type="search"
               placeholder="Search notes..."
+              className="w-full pl-10"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-10"
+              onChange={handleSearchChange}
             />
           </div>
 
@@ -335,9 +324,9 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
             ) : (
               <div className="text-center py-12">
                 <div className="text-muted-foreground mb-4">
-                  {debouncedQuery ? 'No notes match your search' : 'No notes yet'}
+                  {searchInput ? 'No notes match your search' : 'No notes yet'}
                 </div>
-                {!debouncedQuery && (
+                {!searchInput && (
                   <Button onClick={() => startRecordingFlow()}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create your first note

@@ -1,5 +1,5 @@
-import { ArrowLeft, Menu } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import { useRouter, useCanGoBack } from '@tanstack/react-router'
 import { Button } from '../ui/button'
 
 interface AppHeaderProps {
@@ -9,8 +9,8 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, showBack, actions }: AppHeaderProps) {
-  const navigate = useNavigate()
-
+  const router = useRouter()
+  const canGoBack = useCanGoBack()
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
       <div className="flex items-center justify-between h-14 px-4">
@@ -19,7 +19,7 @@ export function AppHeader({ title, showBack, actions }: AppHeaderProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(-1)}
+              onClick={() => router.history.back()}
               className="h-8 w-8 p-0"
             >
               <ArrowLeft className="h-4 w-4" />

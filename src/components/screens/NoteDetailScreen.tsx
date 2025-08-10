@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
 import 'share-api-polyfill';
 import { formatDistanceToNow } from 'date-fns';
 import { useAgentsStore } from '../../stores/agentsStore';
@@ -128,7 +128,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             "cursor-pointer hover:bg-accent/50 transition-all duration-200",
             isAgentNote && "border-l-4 border-l-primary"
           )}
-          onClick={() => navigate(`/note/${note.id}`)}
+          onClick={() => navigate({ to: '/note/$id', params: { id: note.id } })}
           style={{ marginLeft: `${level * 16}px` }}
         >
           <CardContent className="p-4">
@@ -199,7 +199,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                         key={tag}
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/library?q=${encodeURIComponent(tag)}`);
+                          navigate({ to: '/library', search: { q: tag } });
                         }}
                         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
                                 bg-primary/20 text-primary border border-primary/30 
@@ -533,6 +533,8 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     return null;
   }
 
+  
+
   return (
     <div className="flex flex-col h-full bg-background relative">
       {/* Import status feedback removed - handled elsewhere */}
@@ -547,7 +549,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             {/* Breadcrumb Navigation */}
             <div className="flex items-center text-sm overflow-x-auto pb-2 scrollbar-hide">
               <Button
-                onClick={() => navigate('/library')}
+                onClick={() => navigate({ to: '/library' })}
                 variant="link"
                 className="text-muted-foreground hover:text-foreground p-0 h-auto"
               >
@@ -559,7 +561,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 <>
                   <span className="mx-2 text-muted-foreground">/</span>
                   <Button
-                    onClick={() => navigate(`/note/${sourceNote.id}`)}
+                    onClick={() => navigate({ to: '/note/$id', params: { id: sourceNote.id } })}
                     variant="link"
                     className="text-muted-foreground hover:text-foreground p-0 h-auto truncate max-w-[150px]"
                     title={sourceNote.title || 'Untitled Note'}
@@ -590,7 +592,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             {/* Show source note link for agent notes */}
             {isAgentNote && sourceNote && (
               <Button
-                onClick={() => navigate(`/note/${sourceNote.id}`)}
+                onClick={() => navigate({ to: '/note/$id', params: { id: sourceNote.id } })}
                 variant="secondary"
                 className="flex items-center gap-2 px-3 py-1 h-auto"
               >
@@ -754,18 +756,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                   className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
                            bg-card text-card-foreground border border-border 
                            cursor-pointer hover:bg-accent/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/library?q=${encodeURIComponent(tag)}`);
-                  }}
+                  onClick={() => navigate({ to: '/library', search: { q: tag } })}
                 >
                   {tag}
                   {!isAgentNote && (
                   <Button
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent tag click navigation
-                      handleRemoveTag(tag);
-                    }}
+                    onClick={() => handleRemoveTag(tag)}
                     variant="secondary"
                     className="ml-1"
                   >
