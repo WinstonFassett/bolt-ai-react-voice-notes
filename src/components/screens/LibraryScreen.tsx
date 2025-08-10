@@ -56,13 +56,11 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   
   // Apply search filter
   const filteredNotes = useMemo(() => {
+    // When empty, show top-level only
     if (!searchQuery) return topLevelNotes;
-    
-    // Search across ALL notes so tagged child/agent notes are included
-    const base = notes;
+
     const terms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
-    return base.filter(note => {
-      if (!note) return false;
+    const matches = (note: Note) => {
       const haystack = [
         note.title || '',
         note.content || '',
@@ -70,7 +68,19 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
         note.agentId || ''
       ].join(' ').toLowerCase();
       return terms.every(t => haystack.includes(t));
-    });
+    };
+
+    const hasMatchInSubtree = (note: Note): boolean => {
+      if (matches(note)) return true;
+      const children = getChildNotes(note.id);
+      for (const child of children) {
+        if (hasMatchInSubtree(child)) return true;
+      }
+      return false;
+    };
+
+    // Show only top-level notes whose subtree matches
+    return topLevelNotes.filter(n => hasMatchInSubtree(n));
   }, [notes, topLevelNotes, searchQuery]);
 
   // Group notes by date
@@ -115,12 +125,12 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   };
 
   // Get child notes for a given parent note
-  const getChildNotes = (parentId: string): Note[] => {
+  function getChildNotes(parentId: string): Note[] {
     if (!parentId) return [];
     return notes.filter(note => 
       note && note.sourceNoteIds && note.sourceNoteIds.includes(parentId)
     ).sort((a, b) => b.lastEdited - a.lastEdited);
-  };
+  }
 
   // Recursive function to render a note with its children
   const renderNoteWithChildren = (note: Note, level: number = 0) => {
