@@ -58,16 +58,20 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   const filteredNotes = useMemo(() => {
     if (!searchQuery) return topLevelNotes;
     
-    const searchLower = searchQuery.toLowerCase();
-    return topLevelNotes.filter(note => {
+    // Search across ALL notes so tagged child/agent notes are included
+    const base = notes;
+    const terms = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    return base.filter(note => {
       if (!note) return false;
-      return (
-        (note.title && note.title.toLowerCase().includes(searchLower)) ||
-        (note.content && note.content.toLowerCase().includes(searchLower)) ||
-        (note.tags && note.tags.some(tag => tag.toLowerCase().includes(searchLower)))
-      );
+      const haystack = [
+        note.title || '',
+        note.content || '',
+        ...(note.tags || []),
+        note.agentId || ''
+      ].join(' ').toLowerCase();
+      return terms.every(t => haystack.includes(t));
     });
-  }, [topLevelNotes, searchQuery]);
+  }, [notes, topLevelNotes, searchQuery]);
 
   // Group notes by date
   const groupedNotes = useMemo(() => {
