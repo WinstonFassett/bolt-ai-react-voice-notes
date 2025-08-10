@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -61,35 +61,39 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   const topLevelNotes = useMemo(() => {
     return notes.filter(note => !note.sourceNoteIds || note.sourceNoteIds.length === 0);
   }, [notes]);
+
+  // Build matching helpers for search
+  const terms = useMemo(() => debouncedQuery.toLowerCase().split(/\s+/).filter(Boolean), [debouncedQuery]);
+
+  const matches = useCallback((note: Note) => {
+    if (!debouncedQuery) return false;
+    const haystack = [
+      note.title || '',
+      note.content || '',
+      ...(note.tags || []),
+      note.agentId || ''
+    ].join(' ').toLowerCase();
+    return terms.every(t => haystack.includes(t));
+  }, [debouncedQuery, terms]);
+
+  const hasMatchInSubtree = useCallback(function hasMatchInSubtreeLocal(note: Note): boolean {
+    if (!debouncedQuery) return true;
+    if (matches(note)) return true;
+    const children = getChildNotes(note.id);
+    for (const child of children) {
+      if (hasMatchInSubtreeLocal(child)) return true;
+    }
+    return false;
+  }, [debouncedQuery, matches, notes]);
   
   // Apply search filter
   const filteredNotes = useMemo(() => {
     // When empty, show top-level only
     if (!debouncedQuery) return topLevelNotes;
 
-    const terms = debouncedQuery.toLowerCase().split(/\s+/).filter(Boolean);
-    const matches = (note: Note) => {
-      const haystack = [
-        note.title || '',
-        note.content || '',
-        ...(note.tags || []),
-        note.agentId || ''
-      ].join(' ').toLowerCase();
-      return terms.every(t => haystack.includes(t));
-    };
-
-    const hasMatchInSubtree = (note: Note): boolean => {
-      if (matches(note)) return true;
-      const children = getChildNotes(note.id);
-      for (const child of children) {
-        if (hasMatchInSubtree(child)) return true;
-      }
-      return false;
-    };
-
     // Show only top-level notes whose subtree matches
     return topLevelNotes.filter(n => hasMatchInSubtree(n));
-  }, [notes, topLevelNotes, debouncedQuery]);
+  }, [topLevelNotes, debouncedQuery, hasMatchInSubtree]);
 
   // Group notes by date
   const groupedNotes = useMemo(() => {
@@ -143,30 +147,35 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   // Recursive function to render a note with its children
   const renderNoteWithChildren = (note: Note, level: number = 0) => {
     if (!note) return null;
-    const isCurrentlyPlaying = currentPlayingAudioUrl === note.audioUrl && globalIsPlaying;
+    const isSearching = !!debouncedQuery;
+    const isMatch = matches(note);
     const formattedDate = formatDistanceToNow(new Date(note.lastEdited), { addSuffix: true });
     const childNotes = getChildNotes(note.id);
+    const visibleChildren = isSearching ? childNotes.filter(c => hasMatchInSubtree(c)) : childNotes;
     const isAgentNote = note.type === 'agent';
     const hasAudio = note.audioUrl !== null && note.audioUrl !== undefined;
     const formattedDuration = note.duration ? 
       `${Math.floor(note.duration / 60)}:${(note.duration % 60).toString().padStart(2, '0')}` : 
       null;
-    
+
     return (
       <div key={note.id} className={level === 0 ? 'mb-2' : 'mt-2'}>
         <Card 
           className={cn(
-            "cursor-pointer hover:bg-accent/50 transition-all duration-200",
-            isAgentNote && "border-l-4 border-l-primary"
+            'transition-all duration-200',
+            isAgentNote && 'border-l-4 border-l-primary',
+            isSearching && !isMatch ? 'opacity-80 bg-accent/30 hover:bg-accent/40 cursor-default' : 'cursor-pointer hover:bg-accent/50'
           )}
-          onClick={() => navigate(`/note/${note.id}`)}
+          onClick={() => {
+            if (!isSearching || isMatch) navigate(`/note/${note.id}`);
+          }}
           style={{ marginLeft: `${level * 16}px` }}
         >
-          <CardContent className="p-4">
+          <CardContent className={cn('p-4', isSearching && !isMatch && 'py-2') }>
             <div className="flex items-start gap-3">
               {/* Left column for play button or icon */}
               <div className="flex-shrink-0">
-                {hasAudio ? (
+                {hasAudio && (!isSearching || isMatch) ? (
                   <Button
                     variant="secondary"
                     size="icon"
@@ -182,7 +191,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                     }}
                     className="h-12 w-12 rounded-full"
                   >
-                    {isCurrentlyPlaying ? (
+                    {currentPlayingAudioUrl === note.audioUrl && globalIsPlaying ? (
                       <Pause className="h-5 w-5" />
                     ) : (
                       <Play className="h-5 w-5" />
@@ -205,6 +214,9 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                 <div className="flex items-start justify-between mb-1 relative">
                   <h3 className="font-medium pr-8 line-clamp-2">
                     {note.title || 'Untitled Note'}
+                    {isSearching && !isMatch && (
+                      <span className="ml-2 text-xs text-muted-foreground">(contains matches)</span>
+                    )}
                   </h3>
                   <Button
                     variant="ghost"
@@ -221,29 +233,31 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                 </div>
                 
                 {/* Content preview */}
-                {note.content && (
+                {(!isSearching || isMatch) && note.content && (
                   <MarkdownPreview content={note.content} className="text-sm text-muted-foreground mb-2 line-clamp-2 prose-compact" />
                 )}
                 
                 {/* Info row - date, duration, child count */}
-                <div className="flex items-center text-xs text-muted-foreground mb-2">
-                  <span>{formattedDate}</span>
-                  {formattedDuration && (
-                    <>
-                      <span className="mx-1">•</span>
-                      <span>{formattedDuration}</span>
-                    </>
-                  )}
-                  {childNotes.length > 0 && (
-                    <>
-                      <span className="mx-1">•</span>
-                      <span>{childNotes.length} child note{childNotes.length !== 1 ? 's' : ''}</span>
-                    </>
-                  )}
-                </div>
+                {(!isSearching || isMatch) && (
+                  <div className="flex items-center text-xs text-muted-foreground mb-2">
+                    <span>{formattedDate}</span>
+                    {formattedDuration && (
+                      <>
+                        <span className="mx-1">•</span>
+                        <span>{formattedDuration}</span>
+                      </>
+                    )}
+                    {visibleChildren.length > 0 && (
+                      <>
+                        <span className="mx-1">•</span>
+                        <span>{visibleChildren.length} child note{visibleChildren.length !== 1 ? 's' : ''}</span>
+                      </>
+                    )}
+                  </div>
+                )}
                 
                 {/* Tags row - always at the bottom */}
-                {note.tags && note.tags.length > 0 && (
+                {(!isSearching || isMatch) && note.tags && note.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {note.tags.map(tag => (
                       <span
@@ -267,8 +281,8 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
           </CardContent>
         </Card>
         
-        {/* Render child notes */}
-        {childNotes.length > 0 && childNotes.map(childNote => renderNoteWithChildren(childNote, level + 1))}
+        {/* Render child notes - only matching children while searching */}
+        {visibleChildren.length > 0 && visibleChildren.map(childNote => renderNoteWithChildren(childNote, level + 1))}
       </div>
     );
   };
@@ -323,10 +337,12 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                 <div className="text-muted-foreground mb-4">
                   {debouncedQuery ? 'No notes match your search' : 'No notes yet'}
                 </div>
-                <Button onClick={() => startRecordingFlow()}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create your first note
-                </Button>
+                {!debouncedQuery && (
+                  <Button onClick={() => startRecordingFlow()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create your first note
+                  </Button>
+                )}
               </div>
             )}
           </div>
