@@ -221,9 +221,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
 
                 {/* Content preview */}
                 {(!isSearching || isMatch) && note.content && (
-                  <Button variant="link" onClick={() => navigate({ to: '/note/$id', params: { id: note.id } })} className="p-0 h-auto text-base font-semibold">
-                    <MarkdownPreview content={note.content} className="text-sm text-muted-foreground mb-2 line-clamp-2 prose-compact" />
-                  </Button>
+                  <MarkdownPreview content={(note.content)} className="text-sm text-muted-foreground mb-2 line-clamp-2" />
                 )}
 
                 {/* Info row - date, duration, child count */}
