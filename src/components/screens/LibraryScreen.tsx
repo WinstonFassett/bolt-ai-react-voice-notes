@@ -234,7 +234,7 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
                 
                 {/* Content preview */}
                 {(!isSearching || isMatch) && note.content && (
-                  <MarkdownPreview content={note.content} className="text-sm text-muted-foreground mb-2 line-clamp-2 prose-compact" />
+                  <MarkdownPreview content={(note.content)} className="text-sm text-muted-foreground mb-2 line-clamp-2" />
                 )}
                 
                 {/* Info row - date, duration, child count */}
