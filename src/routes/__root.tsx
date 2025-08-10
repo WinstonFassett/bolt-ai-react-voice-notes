@@ -35,7 +35,6 @@ function RootComponent() {
       <PersistentRecordingWidget />
       <PersistentAudioPlayer />
       <BottomNavigation />
-      <ScrollRestoration />
       <Toaster />
     </div>
   )

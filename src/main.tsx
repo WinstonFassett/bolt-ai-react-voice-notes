@@ -10,6 +10,8 @@ initializeDebugTools();
 const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
+  scrollToTopSelectors: ['main'],
+  scrollRestoration: true,
 })
 
 declare module '@tanstack/react-router' {
