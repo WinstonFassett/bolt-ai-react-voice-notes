@@ -1,0 +1,45 @@
+import { Mic, Library, Bot, Settings } from 'lucide-react'
+import { Link, useRouterState } from '@tanstack/react-router'
+import { cn } from '@/lib/utils'
+import { Button } from '../ui/button'
+
+const tabs = [
+  { id: '/', label: 'Record', icon: Mic },
+  { id: '/library', label: 'Library', icon: Library },
+  { id: '/agents', label: 'Agents', icon: Bot },
+  { id: '/settings', label: 'Settings', icon: Settings },
+]
+
+export function BottomNavigation() {
+  const { location } = useRouterState()
+  const currentPath = location.pathname
+  
+  // Check if we're on a note detail page to keep library tab highlighted
+  const isNoteDetailPage = currentPath.startsWith('/note/');
+  const activeTab = isNoteDetailPage ? '/library' : currentPath;
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50">
+      <nav className="max-w-4xl mx-auto bg-background/95 backdrop-blur-sm border-t border-border">
+        <div className="flex items-center justify-around py-2">
+          {tabs.map(({ id, label, icon: Icon }) => (
+            <Link
+              key={id}
+              to={id}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg",
+                "min-w-[60px] text-xs font-medium h-auto transition-colors",
+                activeTab === id
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </div>
+      </nav>
+    </div>
+  )
+}

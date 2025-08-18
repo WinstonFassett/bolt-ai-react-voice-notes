@@ -1,12 +1,11 @@
 import { initializeDevTools } from '../stores/rootDebugStore';
 
 /**
- * Initialize debug tools for development environment
- * This is a no-op in production
+ * Initialize debug tools
  */
 export const initializeDebugTools = () => {
+  initializeDevTools();  
   if (process.env.NODE_ENV === 'development') {
-    console.log('Initializing Zustand DevTools');
-    initializeDevTools();
+    console.log('Initialized Zustand DevTools');
   }
 };

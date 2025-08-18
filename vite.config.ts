@@ -1,15 +1,16 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import basicSsl from '@vitejs/plugin-basic-ssl';
+import path from 'path';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import { TanStackRouterVite } from '@tanstack/router-vite-plugin';
 
-
-
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    basicSsl({
-      domains: ['localhost', '127.0.0.1', '0.0.0.0', 'macbook-pro.local'],
-    }),
-    react()
-  ],
-})
+  plugins: [react(), TanStackRouterVite()],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  optimizeDeps: {
+        exclude: ['lucide-react', '@tanstack/router-devtools'],
+  },
+});

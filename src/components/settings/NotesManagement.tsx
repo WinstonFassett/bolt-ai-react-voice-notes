@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useNotesStore } from '../../stores/notesStore';
+import { Button } from '../ui/button';
 
 export const NotesManagement: React.FC = () => {
-  const { exportNotes, importNotes, clearAllNotes } = useNotesStore();
+  // Use primitive selectors to avoid unnecessary re-renders
+  const exportNotes = useNotesStore(state => state.exportNotes);
+  const importNotes = useNotesStore(state => state.importNotes);
+  const clearAllNotes = useNotesStore(state => state.clearAllNotes);
   
   // UI state
   const [exportStatus, setExportStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -13,8 +17,8 @@ export const NotesManagement: React.FC = () => {
   const [importMessage, setImportMessage] = useState('');
   const [clearMessage, setClearMessage] = useState('');
 
-  // Handlers
-  const handleExportNotes = () => {
+  // Handlers - memoized to prevent unnecessary re-renders
+  const handleExportNotes = useCallback(() => {
     setExportStatus('loading');
     try {
       exportNotes();
@@ -25,9 +29,9 @@ export const NotesManagement: React.FC = () => {
       setExportStatus('error');
       setTimeout(() => setExportStatus('idle'), 4000);
     }
-  };
+  }, [exportNotes]);
 
-  const handleImportNotes = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportNotes = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setImportStatus('loading');
     setImportMessage('Importing notes...');
     
@@ -64,9 +68,9 @@ export const NotesManagement: React.FC = () => {
       }, 4000);
     };
     reader.readAsText(file);
-  };
+  }, [importNotes]);
 
-  const handleClearNotes = () => {
+  const handleClearNotes = useCallback(() => {
     setClearStatus('loading');
     setClearMessage('Clearing notes...');
     
@@ -83,21 +87,22 @@ export const NotesManagement: React.FC = () => {
       setClearStatus('idle'); 
       setClearMessage(''); 
     }, 4000);
-  };
+  }, [clearAllNotes]);
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 space-y-4">
-      <div className="flex flex-row items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-300">Notes Management</h3>
-        <div className="flex flex-row gap-2">
-          <button
+    <div className="bg-card  rounded-lg space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-sm font-medium mb-2">Notes Management</h3>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+          <Button
             onClick={handleExportNotes}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+            variant="default"
+            className="flex items-center justify-center gap-2"
             disabled={exportStatus === 'loading'}
           >
             <ArrowDownTrayIcon className="w-5 h-5" />
             Export
-          </button>
+          </Button>
           
           <div className="relative">
             <input
@@ -107,23 +112,30 @@ export const NotesManagement: React.FC = () => {
               onChange={handleImportNotes}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <label
-              htmlFor="import-notes"
-              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            <Button
+              asChild
+              variant="secondary"
+              className="flex items-center justify-center gap-2"
             >
-              <ArrowUpTrayIcon className="w-5 h-5" />
-              Import
-            </label>
+              <label
+                htmlFor="import-notes"
+                className="cursor-pointer"
+              >
+                <ArrowUpTrayIcon className="w-5 h-5" />
+                Import
+              </label>
+            </Button>
           </div>
           
-          <button
+          <Button
             onClick={handleClearNotes}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+            variant="destructive"
+            className="flex items-center justify-center gap-2"
             disabled={clearStatus === 'loading'}
           >
             <TrashIcon className="w-5 h-5" />
             Clear
-          </button>
+          </Button>
         </div>
       </div>
       

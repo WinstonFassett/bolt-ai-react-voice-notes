@@ -9,19 +9,25 @@ import {
   ShareIcon
 } from '@heroicons/react/24/outline';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import 'share-api-polyfill';
+import { formatDistanceToNow } from 'date-fns';
 import { useAgentsStore } from '../../stores/agentsStore';
+
 import { useAudioStore } from '../../stores/audioStore';
-import { isStorageUrl, resolveStorageUrl } from '../../utils/audioStorage';
+import { resolveStorageUrl } from '../../utils/audioStorage';
 import { Note, useNotesStore } from '../../stores/notesStore';
-import { useRoutingStore } from '../../stores/routingStore';
 import { useTranscriptionStore } from '../../stores/transcriptionStore';
-import { BottomNavigation } from '../ui/BottomNavigation';
-import { CrepeEditorWrapper } from '../ui/CrepeEditor';
-import { RunAgentsDialog } from '../ui/RunAgentsDialog';
-import { TakeawayCard } from '../ui/TakeawayCard';
-import { ModelLoadingProgress } from '../ui/ModelLoadingProgress';
+import { BottomNavigation } from '../BottomNavigation';
+import { CrepeEditorWrapper } from '../CrepeEditor';
+import { RunAgentsDialog } from '../RunAgentsDialog';
+import { ModelLoadingProgress } from '../ModelLoadingProgress';
+import { Button } from '../ui/button';
+import { Card, CardContent } from '../ui/card';
+import { cn } from '../../lib/utils';
+import { toast } from '../../hooks/use-toast';
+import { MarkdownPreview } from '../MarkdownPreview';
 
 interface NoteDetailScreenProps {
   note: Note;
@@ -33,7 +39,6 @@ interface NoteDetailScreenProps {
 export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   note,
   onBack,
-  activeTab,
   onTabChange,
 }) => {
   // console.log('NoteDetailScreen', note);
@@ -44,13 +49,12 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     globalIsPlaying, 
     globalAudioDuration, 
     globalAudioCurrentTime,
-    setIsUserInteracting 
+    setIsUserInteracting,
+    togglePlayPause
   } = useAudioStore();
   
   const { 
     canRunAnyAgents, 
-    getAutoRunAgents, 
-    processNoteWithAllAutoAgents,
     isProcessing: agentsProcessing,
     processingStatus: agentsStatus
   } = useAgentsStore();
@@ -59,8 +63,6 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     notes, 
     updateNote, 
     deleteNote, 
-    saveVersion, 
-    restoreVersion, 
     updateTags 
   } = useNotesStore();
   
@@ -70,7 +72,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     getNoteProcessingStatus,
     getNoteProgressItems
   } = useTranscriptionStore();
-  const { navigateToNote } = useRoutingStore();
+  const navigate = useNavigate();
   
   // Simplified state management - no separate editing state
   const [title, setTitle] = useState(note?.title || '');
@@ -79,11 +81,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showRetranscribeConfirm, setShowRetranscribeConfirm] = useState(false);
   const [showRunAgentsDialog, setShowRunAgentsDialog] = useState(false);
-  const editorRef = useRef<any>(null);
 
-  // Import status state
-  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
-  const [importMessage, setImportMessage] = useState<string>('');
+  // Note: sourceNote is already defined below
+
+  // Import functionality removed as it's handled elsewhere
 
   // Check if this is an agent-generated note
   const isAgentNote = note?.type === 'agent';
@@ -92,8 +93,133 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     : null;
   
   // Get transcription status for this specific note
-  const isTranscribing = isNoteProcessing(note.id);
-  const transcriptionStatus = getNoteProcessingStatus(note.id);
+  const isTranscribing = note ? isNoteProcessing(note.id) : false;
+  const transcriptionStatus = note ? getNoteProcessingStatus(note.id) : '';
+  
+  // Get child notes for this note
+  const childNotes = notes.filter(n => 
+    n.sourceNoteIds && n.sourceNoteIds.includes(note.id)
+  );
+  
+  // Get child notes for a given parent note
+  const getChildNotes = (parentId: string): Note[] => {
+    if (!parentId) return [];
+    return notes.filter(note => 
+      note && note.sourceNoteIds && note.sourceNoteIds.includes(parentId)
+    ).sort((a, b) => b.lastEdited - a.lastEdited);
+  };
+
+  // Recursive function to render a note with its children
+  const renderNoteWithChildren = (note: Note, level: number = 0) => {
+    if (!note) return null;
+    const isCurrentlyPlaying = currentPlayingAudioUrl === note.audioUrl && globalIsPlaying;
+    const formattedDate = formatDistanceToNow(new Date(note.lastEdited), { addSuffix: true });
+    const childNotes = getChildNotes(note.id);
+    const isAgentNote = note.type === 'agent';
+    const hasAudio = note.audioUrl !== null && note.audioUrl !== undefined;
+    const formattedDuration = note.duration ? 
+      `${Math.floor(note.duration / 60)}:${(note.duration % 60).toString().padStart(2, '0')}` : 
+      null;
+    
+    return (
+      <div key={note.id} className={level === 0 ? 'mb-2' : 'mt-2'}>
+        <Card 
+          className={cn(
+            "cursor-pointer hover:bg-accent/50 transition-all duration-200",
+            isAgentNote && "border-l-4 border-l-primary"
+          )}
+          onClick={() => navigate({ to: '/note/$id', params: { id: note.id } })}
+          style={{ marginLeft: `${level * 16}px` }}
+        >
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              {/* Left column for play button or icon */}
+              <div className="flex-shrink-0">
+                {hasAudio ? (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (note.audioUrl) {
+                        if (currentPlayingAudioUrl === note.audioUrl && globalIsPlaying) {
+                          togglePlayPause();
+                        } else {
+                          playAudio(note.audioUrl);
+                        }
+                      }
+                    }}
+                    className="h-12 w-12 rounded-full"
+                  >
+                    {isCurrentlyPlaying ? (
+                      <PauseIcon className="h-5 w-5" />
+                    ) : (
+                      <PlayIcon className="h-5 w-5" />
+                    )}
+                  </Button>
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
+                    {isAgentNote ? (
+                      <SparklesIcon className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <DocumentDuplicateIcon className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium pr-8 line-clamp-2">{note.title || 'Untitled Note'}</h4>
+                
+                <MarkdownPreview content={note.content} className='text-sm text-muted-foreground mb-2 line-clamp-2 prose-compact'/>
+                
+                {/* Info row */}
+                <div className="flex items-center text-xs text-muted-foreground mb-2">
+                  <span>{formattedDate}</span>
+                  {formattedDuration && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <span>{formattedDuration}</span>
+                    </>
+                  )}
+                  {childNotes.length > 0 && (
+                    <>
+                      <span className="mx-1">•</span>
+                      <span>{childNotes.length} child note{childNotes.length !== 1 ? 's' : ''}</span>
+                    </>
+                  )}
+                </div>
+                
+                {/* Tags */}
+                {note.tags && note.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {note.tags.map(tag => (
+                      <span
+                        key={tag}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate({ to: '/library', search: { q: tag } });
+                        }}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
+                                bg-primary/20 text-primary border border-primary/30 
+                                cursor-pointer hover:bg-primary/30"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Render child notes */}
+        {childNotes.length > 0 && childNotes.map(childNote => renderNoteWithChildren(childNote, level + 1))}
+      </div>
+    );
+  };
 
   // Update local state when note prop changes (for reactive updates)
   useEffect(() => {
@@ -160,13 +286,21 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
   const handleShareAudio = async () => {
     if (!note.audioUrl) {
-      alert('No audio available to share');
+      toast({
+        title: 'Share Failed',
+        description: 'No audio available to share',
+        variant: 'destructive'
+      });
       return;
     }
 
     // Check if Web Share API is supported at all
     if (!('share' in navigator)) {
-      alert('Sharing is not supported on this browser');
+      toast({
+        title: 'Share Failed',
+        description: 'Sharing is not supported on this browser',
+        variant: 'destructive'
+      });
       return;
     }
 
@@ -183,7 +317,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           // Resolve the storage URL to get the actual blob URL
           const resolvedAudio = await resolveStorageUrl(note.audioUrl);
           if (!resolvedAudio) {
-            alert('Could not access the audio file');
+            toast({
+              title: 'Share Failed',
+              description: 'Could not access the audio file',
+              variant: 'destructive'
+            });
             return;
           }
 
@@ -233,7 +371,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       }
     } catch (error) {
       console.error('Error sharing audio:', error);
-      alert('Could not share the audio file');
+      toast({
+        title: 'Share Failed',
+        description: 'Could not share the audio file',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -264,7 +406,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     if (!note.audioUrl) {
       // Show user-friendly error instead of silent failure
       console.error('❌ NoteDetailScreen: No audio URL available');
-      alert('❌ No audio recording available for this note');
+      toast({
+        title: 'Playback Error',
+        description: 'No audio recording available for this note',
+        variant: 'destructive'
+      });
       return;
     }
     playAudio(note.audioUrl);
@@ -279,10 +425,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
   // Only use globalAudioDuration for progress calculation if we don't have a stored duration
   const progressDuration = effectiveDuration > 0 ? effectiveDuration : globalAudioDuration;
   
-  // Get agent-generated takeaways for this note
-  const takeawayNotes = note.takeaways 
-    ? notes.filter(n => note.takeaways?.includes(n.id))
-    : [];
+  // All child notes are now considered takeaways - no separate sections
   const getWordCount = (text: string) => {
     const strippedText = text.replace(/<[^>]*>/g, '');
     return strippedText.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -298,6 +441,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+  
 
   const handleDeleteNote = () => {
     deleteNote(note.id);
@@ -310,7 +454,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
   const handleDownloadAudio = async () => {
     if (!note.audioUrl) {
-      alert('No audio available to download');
+      toast({
+        title: 'Download Failed',
+        description: 'No audio available to download',
+        variant: 'destructive'
+      });
       return;
     }
 
@@ -318,7 +466,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       // Resolve the storage URL to get the actual blob URL
       const resolvedAudio = await resolveStorageUrl(note.audioUrl);
       if (!resolvedAudio) {
-        alert('Could not access the audio file');
+        toast({
+          title: 'Download Failed',
+          description: 'Could not access the audio file',
+          variant: 'destructive'
+        });
         return;
       }
 
@@ -339,7 +491,11 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
       console.log('Audio download initiated');
     } catch (error) {
       console.error('Error downloading audio:', error);
-      alert('Could not download the audio file');
+      toast({
+        title: 'Download Failed',
+        description: 'Could not download the audio file',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -370,75 +526,93 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Import notes handler
-  const handleImportNotes = async (importFn: () => Promise<any>) => {
-    setImportStatus('loading');
-    setImportMessage('Importing notes...');
-    try {
-      await importFn();
-      setImportStatus('success');
-      setImportMessage('Notes imported successfully!');
-    } catch (err: any) {
-      setImportStatus('error');
-      setImportMessage('Failed to import notes: ' + (err?.message || 'Unknown error'));
-    }
-    setTimeout(() => {
-      setImportStatus('idle');
-      setImportMessage('');
-    }, 4000);
-  };
+  // Import status is used elsewhere in the component
+  // The import function is handled in a different component
 
   if (!note) {
     return null;
   }
 
+  
+
   return (
-    <div className="flex flex-col h-full bg-gray-900 relative">
-      {/* Import status feedback */}
-      {importStatus !== 'idle' && (
-        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2 rounded-lg shadow-lg text-white font-semibold transition-all
-          ${importStatus === 'success' ? 'bg-green-600' : importStatus === 'error' ? 'bg-red-600' : 'bg-indigo-600'}`}
-        >
-          {importMessage}
-        </div>
-      )}
-      {/* Header */}
+    <div className="flex flex-col h-full bg-background relative">
+      {/* Import status feedback removed - handled elsewhere */}
+      {/* Header with Breadcrumb Navigation */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="safe-area-top py-4 px-4 border-b border-gray-800"
+        className="safe-area-top py-4 px-4 border-b border-border"
       >
         <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <ArrowLeftIcon className="w-6 h-6 text-white" />
-          </button>
-          
-          {/* Show source note link for agent notes */}
-          {isAgentNote && sourceNote && (
-            <button
-              onClick={() => navigateToNote(sourceNote.id)}
-              className="flex items-center gap-2 px-3 py-1 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
+          <div className="flex flex-col gap-2">
+            {/* Breadcrumb Navigation */}
+            <div className="flex items-center text-sm overflow-x-auto pb-2 scrollbar-hide">
+              <Button
+                onClick={() => navigate({ to: '/library' })}
+                variant="link"
+                className="text-muted-foreground hover:text-foreground p-0 h-auto"
+              >
+                Library
+              </Button>
+              
+              {/* Show source note breadcrumb for agent notes */}
+              {isAgentNote && sourceNote && (
+                <>
+                  <span className="mx-2 text-muted-foreground">/</span>
+                  <Button
+                    onClick={() => navigate({ to: '/note/$id', params: { id: sourceNote.id } })}
+                    variant="link"
+                    className="text-muted-foreground hover:text-foreground p-0 h-auto truncate max-w-[150px]"
+                    title={sourceNote.title || 'Untitled Note'}
+                  >
+                    {sourceNote.title || 'Untitled Note'}
+                  </Button>
+                </>
+              )}
+              
+              {/* Current note */}
+              <span className="mx-2 text-muted-foreground">/</span>
+              <span className="text-foreground truncate max-w-[200px]" title={note.title || 'Untitled Note'}>
+                {note.title || 'Untitled Note'}
+              </span>
+            </div>
+          </div>
+          {/* Actions row */}
+          <div className="flex items-center justify-between">
+            <Button
+              onClick={onBack}
+              variant="ghost"
+              size="icon"
+              className="rounded-lg"
             >
-              <span className="text-sm text-gray-300">Source:</span>
-              <span className="text-sm text-white truncate max-w-32">{sourceNote.title}</span>
-            </button>
-          )}
+              <ArrowLeftIcon className="w-6 h-6" />
+            </Button>
+            
+            {/* Show source note link for agent notes */}
+            {isAgentNote && sourceNote && (
+              <Button
+                onClick={() => navigate({ to: '/note/$id', params: { id: sourceNote.id } })}
+                variant="secondary"
+                className="flex items-center gap-2 px-3 py-1 h-auto"
+              >
+                <span className="text-sm text-muted-foreground">Source:</span>
+                <span className="text-sm truncate max-w-32">{sourceNote.title}</span>
+              </Button>
+            )}
           
-          {/* No edit toggle needed - always in edit mode */}
-          
-          {/* Simple delete button */}
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="p-2 rounded-lg hover:bg-red-600/20 transition-colors"
-            title="Delete note"
-          >
-            <TrashIcon className="w-5 h-5 text-red-400" />
-          </button>
-        </div>
+            {/* No edit toggle needed - always in edit mode */}
+            
+            {/* Simple delete button */}
+            <Button
+              onClick={() => setShowDeleteConfirm(true)}
+              variant="destructive"
+              className="p-2 rounded-lg"
+              title="Delete note"
+            >
+              <TrashIcon className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </motion.header>
 
@@ -452,13 +626,13 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               type="text"
               value={title}
               onChange={handleTitleChange}
-              className="w-full text-2xl font-bold bg-transparent text-white placeholder-gray-400 
+              className="w-full text-2xl font-bold bg-transparent placeholder-muted-foreground
                        border-none outline-none focus:ring-0"
               placeholder="Note Title"
               disabled={false}
             />
             
-            <div className="flex items-center justify-between text-sm text-gray-400">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div className="flex items-center gap-4">
                 <span>Words: {getWordCount(content)}</span>
                 <span>Characters: {getCharacterCount(content)}</span>
@@ -474,19 +648,20 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
           {note.audioUrl && (
             <div className="card">
               <div className="flex items-center gap-4">
-                <button
+                <Button
                   onClick={handlePlayAudio}
-                  className="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center transition-colors"
+                  variant="secondary"
+                  className="w-12 h-12 rounded-full"
                 >
                   {isCurrentlyPlaying ? (
-                    <PauseIcon className="w-5 h-5 text-white" />
+                    <PauseIcon className="w-5 h-5" />
                   ) : (
-                    <PlayIcon className="w-5 h-5 text-white ml-0.5" />
+                    <PlayIcon className="w-5 h-5" />
                   )}
-                </button>
+                </Button>
                 <div>
-                  <div className="text-sm text-gray-300">Audio Recording</div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-sm">Audio Recording</div>
+                  <div className="text-xs text-muted-foreground">
                     {isCurrentlyPlaying ? (
                       `${formatTime(globalAudioCurrentTime)} / ${formatTime(progressDuration)}`
                     ) : (
@@ -500,43 +675,47 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                 <div className="flex items-center gap-1">
                   {/* Retranscribe button */}
                   {!isTranscribing && (
-                    <button
+                    <Button
                       onClick={() => setShowRetranscribeConfirm(true)}
-                      className="p-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 transition-colors"
+                      variant="secondary"
+                      className="p-2 rounded-lg"
                       title="Re-transcribe audio"
                     >
-                      <SparklesIcon className="w-4 h-4 text-indigo-400" />
-                    </button>
+                      <SparklesIcon className="w-4 h-4" />
+                    </Button>
                   )}
-                  <button 
+                  <Button 
                     onClick={handleDownloadAudio}
-                    className="p-2 text-gray-400 hover:text-indigo-500 transition-colors ml-auto"
+                    variant="secondary"
+                    className="p-2"
                     aria-label="Download audio"
                     title="Download audio"
                   >
                     <ArrowDownTrayIcon className="h-5 w-5" />
-                  </button>
+                  </Button>
                   
                   {/* Only show share button if Web Share API is supported */}
                   {typeof navigator !== 'undefined' && 'share' in navigator && (
-                    <button 
+                    <Button 
                       onClick={handleShareAudio}
-                      className="p-2 text-gray-400 hover:text-indigo-500 transition-colors"
+                      variant="secondary"
+                      className="p-2"
                       aria-label="Share audio"
                       title="Share audio"
                     >
                       <ShareIcon className="h-5 w-5" />
-                    </button>
+                    </Button>
                   )}
                   
-                  <button
+                  <Button
                     onClick={handleDeleteAudio}
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                    variant="destructive"
+                    className="p-2"
                     aria-label="Delete audio"
                     title="Delete audio recording"
                   >
                     <TrashIcon className="h-5 w-5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -557,9 +736,9 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"
+                      className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full"
                     />
-                    <span className="text-sm text-indigo-300 font-medium">
+                    <span className="text-sm text-primary/80 font-medium">
                       {transcriptionStatus || 'Processing...'}
                     </span>
                   </div>
@@ -574,17 +753,20 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               {note.tags.map(tag => (
                 <span 
                   key={tag} 
-                  className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-600/20 text-indigo-300 
-                           rounded-full text-sm border border-indigo-600/30"
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
+                           bg-card text-card-foreground border border-border 
+                           cursor-pointer hover:bg-accent/20"
+                  onClick={() => navigate({ to: '/library', search: { q: tag } })}
                 >
                   {tag}
                   {!isAgentNote && (
-                  <button
+                  <Button
                     onClick={() => handleRemoveTag(tag)}
-                    className="ml-1 text-indigo-400 hover:text-indigo-200"
+                    variant="secondary"
+                    className="ml-1"
                   >
                     ×
-                  </button>
+                  </Button>
                   )}
                 </span>
               ))}
@@ -596,77 +778,79 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               onChange={(e) => setTagInput(e.target.value)}
               onKeyPress={handleAddTag}
               placeholder="Add tags (press Enter)"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg 
-                       text-white placeholder-gray-400 focus:outline-none focus:ring-2 
-                       focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-input border border-input rounded-lg 
+                       placeholder-muted-foreground focus:outline-none focus:ring-2 
+                       focus:ring-ring focus:border-transparent"
             />
             )}
           </div>
 
-          {/* Editor */}
-          <div className="border border-gray-700 rounded-lg bg-gray-800 p-4">
+          {/* Editor with floating copy button */}
+          <div className="border border-border rounded-lg p-4 relative">
+            {/* Floating copy button */}
+            <Button
+              onClick={handleCopyToClipboard}
+              variant="secondary"
+              className="absolute top-2 right-2 z-10 flex items-center gap-1 px-2 py-1 bg-gray-700/80 hover:bg-gray-600/80 
+                        text-white text-sm rounded-lg transition-colors shadow-md"
+              title="Copy content"
+            >
+              <DocumentDuplicateIcon className="w-4 h-4" />
+              Copy
+            </Button>
+            
             <CrepeEditorWrapper
               content={content}
               onChange={handleEditorChange}
               placeholder="Start writing your note..."
             />
           </div>
-          <div>
-            {isAgentNote ? 'Agent Note' : 'User Note'}
-          </div>
-         
-          {/* AI Takeaways */}
-          {!isAgentNote && takeawayNotes.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-white flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                <SparklesIcon className="w-5 h-5 text-indigo-400" />
-                  Recent AI Takeaways
-                </div>
-                <span className="text-sm text-gray-400 font-normal">
-                  {takeawayNotes.length} generated
-                </span>
-              </h3>
-              <div className="space-y-3">
-                {takeawayNotes
-                  .sort((a, b) => (b.createdAt || b.created || 0) - (a.createdAt || a.created || 0))
-                  .map((takeaway) => (
-                    <TakeawayCard
-                      key={takeaway.id}
-                      takeaway={takeaway}
-                      onSelect={(id) => navigateToNote(id)}
-                      onDelete={(id) => deleteNote(id)}
-                    />
-                ))}
-              </div>
+          {/* Agent note indicator with icon instead of text */}
+          {isAgentNote && (
+            <div className="flex items-center gap-2 text-sm text-indigo-400">
+              <SparklesIcon className="w-4 h-4" />
+              <span>AI Generated Content</span>
             </div>
           )}
-          
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <div className="flex-1"></div>
+         
+          {/* Takeaways Section with AI Agents Button */}
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <DocumentDuplicateIcon className="w-5 h-5 text-muted-foreground" />
+                Descendants
+                {childNotes.length > 0 && (
+                  <span className="text-sm text-muted-foreground font-normal ml-2">
+                    ({childNotes.length})
+                  </span>
+                )}
+              </h3>
+              {canRunAnyAgents() && content.trim() && (
+                <Button
+                  onClick={() => setShowRunAgentsDialog(true)}
+                  disabled={agentsProcessing}
+                  variant="default"
+                  className="flex items-center gap-2 px-4 py-2"
+                >
+                  <SparklesIcon className="w-5 h-5" />
+                  Run AI Agents
+                </Button>
+              )}
+            </div>
             
-            {/* AI Agents Button */}
-            {canRunAnyAgents() && content.trim() && (
-              <button
-                onClick={() => setShowRunAgentsDialog(true)}
-                disabled={agentsProcessing}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 
-                         disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-              >
-                <SparklesIcon className="w-5 h-5" />
-                Run AI Agents
-              </button>
+            {childNotes.length > 0 && (
+              <div className="space-y-2">
+                {/* Use the same recursive rendering pattern as LibraryScreen */}
+                {childNotes
+                  .filter(note => !note.sourceNoteIds || note.sourceNoteIds.length === 0 || !note.sourceNoteIds.some(id => childNotes.some(n => n.id === id)))
+                  .sort((a, b) => b.lastEdited - a.lastEdited)
+                  .map((childNote) => renderNoteWithChildren(childNote, 0))}
+              </div>
             )}
             
-            <button
-              onClick={handleCopyToClipboard}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 
-                       text-white rounded-lg transition-colors"
-            >
-              <DocumentDuplicateIcon className="w-5 h-5" />
-              Copy
-            </button>
+            {childNotes.length === 0 && !agentsProcessing && (
+              <p className="text-sm text-gray-400 italic">No takeaways yet. Run AI agents to generate insights.</p>
+            )}
           </div>
 
           {/* Agent Processing Status */}
@@ -692,7 +876,10 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
 
       {/* Bottom Navigation */}
       {onTabChange && (
-        <BottomNavigation activeTab={activeTab} onTabChange={onTabChange} />
+        <BottomNavigation
+          activeTab="library"
+          onTabChange={onTabChange}
+        />
       )}
 
       {/* Delete Confirmation Modal */}
@@ -708,25 +895,25 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-background rounded-xl p-6 max-w-md w-full border border-border shadow-lg"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Delete Note</h3>
-              <p className="text-gray-300 mb-6">
+              <h3 className="text-lg font-semibold text-destructive mb-4">Delete Note</h3>
+              <p className="text-muted-foreground mb-6">
                 Are you sure you want to delete this note? This action cannot be undone.
               </p>
               <div className="flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleDeleteNote}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  variant="destructive"
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>
@@ -746,25 +933,25 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-background rounded-xl p-6 max-w-md w-full border border-border shadow-lg"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Re-transcribe Audio</h3>
-              <p className="text-gray-300 mb-6">
+              <h3 className="text-lg font-semibold mb-4">Re-transcribe Audio</h3>
+              <p className="text-muted-foreground mb-6">
                 This will replace the current content with a new transcription. This action cannot be undone.
               </p>
               <div className="flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => setShowRetranscribeConfirm(false)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleRetranscribe}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                  variant="default"
                 >
                   Re-transcribe
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>
@@ -799,25 +986,25 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-background rounded-xl p-6 max-w-md w-full border border-border shadow-lg"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Delete Audio Recording</h3>
-              <p className="text-gray-300 mb-6">
+              <h3 className="text-lg font-semibold text-destructive mb-4">Delete Audio Recording</h3>
+              <p className="text-muted-foreground mb-6">
                 Are you sure you want to delete the audio recording? The text content will be preserved.
               </p>
               <div className="flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => setShowDeleteAudioConfirm(false)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  variant="outline"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleConfirmDeleteAudio}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  variant="destructive"
                 >
                   Delete Audio
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from '@tanstack/react-router';
 import { 
   PlusIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  CogIcon,
   BoltIcon,
   PencilIcon
 } from '@heroicons/react/24/outline';
@@ -12,9 +12,8 @@ import {
 // Zustand stores
 import { useAgentsStore } from '../../stores/agentsStore';
 import { useLLMProvidersStore } from '../../stores/llmProvidersStore';
-import { AgentEditor } from '../ui/AgentEditor';
-import { useAppStore } from '../../stores/appStore';
-import { useRoutingStore } from '../../stores/routingStore';
+import { AgentEditor } from '../AgentEditor';
+import { Button } from '../ui/button';
 
 export const AgentsScreen: React.FC = () => {
   const {
@@ -37,7 +36,7 @@ export const AgentsScreen: React.FC = () => {
     validateAllProviders
   } = useLLMProvidersStore();
 
-  const { setTab } = useRoutingStore();
+  const navigate = useNavigate();
 
   const [dependencyCheck, setDependencyCheck] = useState<{ valid: boolean; issues: string[] }>({ valid: true, issues: [] });
   const [showAgentEditor, setShowAgentEditor] = useState(false);
@@ -75,8 +74,7 @@ export const AgentsScreen: React.FC = () => {
   };
 
   const handleOpenSettings = () => {
-    const { setTab } = useRoutingStore();
-    setTab('settings');
+    navigate({ to: '/settings' });
   };
   const handleCreateAgent = () => {
     setEditingAgent(null);
@@ -95,13 +93,13 @@ export const AgentsScreen: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card bg-green-900/20 border-green-700/30"
+          className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10"
         >
           <div className="flex items-center gap-3">
-            <CheckCircleIcon className="w-6 h-6 text-green-400" />
+            <CheckCircleIcon className="w-6 h-6 text-emerald-500" />
             <div>
-              <h3 className="font-medium text-green-300">Agents Ready</h3>
-              <p className="text-sm text-green-400">
+              <h3 className="font-medium">Agents Ready</h3>
+              <p className="text-sm text-muted-foreground">
                 {availableAgents.length} agents available • {autoRunAgents.length} auto-run enabled
               </p>
             </div>
@@ -114,42 +112,44 @@ export const AgentsScreen: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card bg-yellow-900/20 border-yellow-700/30"
+        className="p-4 rounded-lg border border-amber-500/30 bg-amber-500/10"
       >
         <div className="flex items-start gap-3">
-          <ExclamationTriangleIcon className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" />
+          <ExclamationTriangleIcon className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h3 className="font-medium text-yellow-300 mb-2">Setup Required</h3>
+            <h3 className="font-medium mb-2">Setup Required</h3>
             <div className="space-y-2">
               {!hasValidProvider() && (
-                <div className="text-sm text-yellow-200">
+                <div className="text-sm text-muted-foreground">
                   • No valid LLM providers configured
                 </div>
               )}
               {!defaultModel && (
-                <div className="text-sm text-yellow-200">
+                <div className="text-sm text-muted-foreground">
                   • No default model selected
                 </div>
               )}
               {dependencyCheck.issues.map((issue, index) => (
-                <div key={index} className="text-sm text-yellow-200">
+                <div key={index} className="text-sm text-muted-foreground">
                   • {issue}
                 </div>
               ))}
             </div>
             <div className="flex gap-2 mt-4">
-              <button
+              <Button
                 onClick={handleValidateProviders}
-                className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm transition-colors"
+                variant="default"
+                className="text-sm"
               >
                 Retry Connection
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleOpenSettings}
-                className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm transition-colors"
+                variant="outline"
+                className="text-sm"
               >
                 Open Settings
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -163,26 +163,36 @@ export const AgentsScreen: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`card hover:bg-gray-800/50 transition-all duration-200 ${
+      className={`p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-all duration-200 ${
         !canRun ? 'opacity-50' : ''
       }`}
+      onClick={() => handleEditAgent(agent)}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3 flex-1">
           <div className="text-2xl">{agent.avatar || '🤖'}</div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-semibold text-white">{agent.name}</h3>
+              <h3 
+                className="font-semibold cursor-pointer hover:text-primary transition-colors" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditAgent(agent);
+                }}
+                title="Click to edit agent"
+              >
+                {agent.name}
+              </h3>
               {agent.isBuiltIn && (
-                <span className="px-2 py-0.5 bg-indigo-600/20 text-indigo-300 text-xs rounded-full border border-indigo-600/30">
+                <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full border border-primary/30">
                   Built-in
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-400 mb-3 line-clamp-2">
+            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
               {agent.prompt.split('\n')[0].replace(/[*#]/g, '').trim()}
             </p>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Tags: {agent.tags.join(', ')}</span>
               {agent.modelId && (
                 <span>• Model: {agent.modelId.split('-').pop()}</span>
@@ -193,30 +203,31 @@ export const AgentsScreen: React.FC = () => {
         
         <div className="flex items-center gap-2">
           {agent.autoRun && (
-            <BoltIcon className="w-4 h-4 text-yellow-400" title="Auto-run enabled" />
+            <BoltIcon className="w-4 h-4 text-amber-500" title="Auto-run enabled" />
           )}
-          <button
-            onClick={() => handleEditAgent(agent)}
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditAgent(agent);
+            }}
             disabled={!canRun}
-            className={`p-2 rounded-lg transition-colors ${
-              canRun
-                ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-300'
-                : 'text-gray-600 cursor-not-allowed'
-            }`}
+            variant="ghost"
+            size="icon"
+            className={canRun ? "" : "cursor-not-allowed"}
             title="Edit agent"
           >
             <PencilIcon className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => toggleAgentAutoRun(agent.id)}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              agent.autoRun
-                ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                : 'bg-gray-600 hover:bg-gray-700 text-white'
-            }`}
+          </Button>
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleAgentAutoRun(agent.id);
+            }}
+            variant={agent.autoRun ? "default" : "secondary"}
+            className="text-sm px-3 py-1 h-auto"
           >
             {agent.autoRun ? 'Auto-Run: ON' : 'Auto-Run: OFF'}
-          </button>
+          </Button>
         </div>
       </div>
     </motion.div>
@@ -225,7 +236,7 @@ export const AgentsScreen: React.FC = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -233,26 +244,24 @@ export const AgentsScreen: React.FC = () => {
         >
           <div className="max-w-4xl mx-auto">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white">AI Agents</h1>
-            <button
+            <h1 className="text-2xl font-bold">AI Agents</h1>
+            <Button
               onClick={handleCreateAgent}
               disabled={!canRun}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                canRun
-                  ? 'bg-indigo-600 hover:bg-indigo-700'
-                  : 'bg-gray-600 cursor-not-allowed'
-              }`}
+              variant="default"
+              size="icon"
+              className="rounded-full"
               title="Create new agent"
             >
-              <PlusIcon className="w-6 h-6 text-white" />
-            </button>
+              <PlusIcon className="w-5 h-5" />
+            </Button>
           </div>
           </div>
         </motion.div>
       </header>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-20">
+      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-20 bg-background">
         <div className="max-w-4xl mx-auto">
         <div className="space-y-6 py-4">
           {/* Dependency Status */}
@@ -265,17 +274,17 @@ export const AgentsScreen: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="card bg-indigo-900/20 border-indigo-700/30"
+                className="p-4 rounded-lg border border-primary/30 bg-primary/10"
               >
                 <div className="flex items-center gap-3">
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"
+                    className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full"
                   />
                   <div>
-                    <h3 className="font-medium text-indigo-300">Processing</h3>
-                    <p className="text-sm text-indigo-400">{processingStatus}</p>
+                    <h3 className="font-medium">Processing</h3>
+                    <p className="text-sm text-muted-foreground">{processingStatus}</p>
                   </div>
                 </div>
               </motion.div>
@@ -289,13 +298,13 @@ export const AgentsScreen: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="card bg-red-900/20 border-red-700/30"
+                className="p-4 rounded-lg border border-destructive/30 bg-destructive/10"
               >
                 <div className="flex items-start gap-3">
-                  <ExclamationTriangleIcon className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <ExclamationTriangleIcon className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-medium text-red-300">Processing Error</h3>
-                    <p className="text-sm text-red-400">{lastProcessingError}</p>
+                    <h3 className="font-medium">Processing Error</h3>
+                    <p className="text-sm text-muted-foreground">{lastProcessingError}</p>
                   </div>
                 </div>
               </motion.div>
@@ -307,7 +316,7 @@ export const AgentsScreen: React.FC = () => {
           {/* Custom Agents */}
           {agents.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">👤 Custom Agents</h2>
+              <h2 className="text-lg font-semibold mb-4">👤 Custom Agents</h2>
               <div className="space-y-3">
                 {agents.map((agent, index) => renderAgent(agent, index))}
               </div>
@@ -317,7 +326,7 @@ export const AgentsScreen: React.FC = () => {
           {/* Built-in Agents */}
           {builtInAgents.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-4">🤖 Built-in Agents</h2>
+              <h2 className="text-lg font-semibold mb-4">🤖 Built-in Agents</h2>
               <div className="space-y-3">
                 {builtInAgents.map((agent, index) => renderAgent(agent, agents.length + index))}
               </div>
@@ -331,11 +340,11 @@ export const AgentsScreen: React.FC = () => {
               animate={{ opacity: 1 }}
               className="text-center py-12"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                 <span className="text-2xl">🤖</span>
               </div>
-              <h3 className="text-lg font-medium text-white mb-2">No Agents Available</h3>
-              <p className="text-gray-400 mb-6">
+              <h3 className="text-lg font-medium mb-2">No Agents Available</h3>
+              <p className="text-muted-foreground mb-6">
                 Configure LLM providers in Settings to enable AI agents
               </p>
             </motion.div>

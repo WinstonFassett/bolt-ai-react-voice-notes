@@ -31,6 +31,7 @@ interface TranscriptionState {
   
   // Actions
   initializeWorker: () => void;
+  initializeWorkerAsync: () => Promise<void>;
   startTranscription: (audioData: AudioBuffer, noteId: string) => void;
   startTranscriptionLocal: (audioData: AudioBuffer, noteId: string) => void;
   startTranscriptionFromUrl: (audioUrl: string, noteId: string) => Promise<void>;
@@ -109,15 +110,62 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
 
     console.log('🎯 TranscriptionStore: Initializing worker');
     
-    const worker = new Worker(new URL("../worker.js", import.meta.url), {
-      type: "module",
-    });
+    try {
+      const worker = new Worker(new URL("../worker.js", import.meta.url), {
+        type: "module",
+      });
 
-    worker.addEventListener("message", get().handleWorkerMessage);
-    
-    set({ 
-      worker, 
-      isInitialized: true 
+      worker.addEventListener("message", get().handleWorkerMessage);
+      
+      set({ 
+        worker, 
+        isInitialized: true 
+      });
+      
+      console.log('🎯 TranscriptionStore: Worker initialized successfully');
+    } catch (error) {
+      console.error('❌ TranscriptionStore: Failed to initialize worker:', error);
+      set({ isInitialized: false });
+    }
+  },
+  
+  // Async version of initializeWorker that returns a promise
+  initializeWorkerAsync: async () => {
+    return new Promise<void>((resolve, reject) => {
+      const state = get();
+      if (state.worker && state.isInitialized) {
+        resolve();
+        return;
+      }
+
+      console.log('🎯 TranscriptionStore: Initializing worker asynchronously');
+      
+      try {
+        const worker = new Worker(new URL("../worker.js", import.meta.url), {
+          type: "module",
+        });
+
+        // Set up message handler
+        worker.addEventListener("message", get().handleWorkerMessage);
+        
+        // Set up error handler
+        worker.addEventListener("error", (event) => {
+          console.error('❌ TranscriptionStore: Worker error:', event);
+          reject(new Error(`Worker error: ${event.message}`));
+        });
+        
+        set({ 
+          worker, 
+          isInitialized: true 
+        });
+        
+        console.log('🎯 TranscriptionStore: Worker initialized successfully');
+        resolve();
+      } catch (error) {
+        console.error('❌ TranscriptionStore: Failed to initialize worker:', error);
+        set({ isInitialized: false });
+        reject(error);
+      }
     });
   },
   
@@ -290,22 +338,38 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
     get().startTranscriptionLocal(audioData, noteId);
   },
   
-  startTranscriptionLocal: (audioData: AudioBuffer, noteId: string) => {
-    const state = get();
+  startTranscriptionLocal: async (audioData: AudioBuffer, noteId: string) => {
+    let state = get();
     
-    if (!state.worker) {
-      get().initializeWorker();
+    // Ensure worker is initialized
+    if (!state.worker || !state.isInitialized) {
+      try {
+        await get().initializeWorkerAsync();
+        // Get fresh state after initialization
+        state = get();
+      } catch (error) {
+        console.error('❌ TranscriptionStore: Failed to initialize worker:', error);
+        const notes = new Map(state.processingNotes);
+        notes.set(noteId, { 
+          isProcessing: false, 
+          status: 'Failed to initialize transcription worker', 
+          progressItems: [] 
+        });
+        set({ processingNotes: notes });
+        return;
+      }
     }
     
+    // Double-check that worker is available after initialization
     if (!state.worker) {
-      console.error('❌ TranscriptionStore: Worker not initialized');
-      const state = get();
-      const noteId = state.currentNoteId;
-      if (noteId) {
-        const notes = new Map(state.processingNotes);
-        notes.set(noteId, { isProcessing: false, status: 'Failed to initialize transcription worker', progressItems: [] });
-        set({ processingNotes: notes });
-      }
+      console.error('❌ TranscriptionStore: Worker still not initialized after initialization attempt');
+      const notes = new Map(state.processingNotes);
+      notes.set(noteId, { 
+        isProcessing: false, 
+        status: 'Failed to initialize transcription worker', 
+        progressItems: [] 
+      });
+      set({ processingNotes: notes });
       return;
     }
 

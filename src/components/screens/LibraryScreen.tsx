@@ -1,15 +1,23 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TranscriptCard } from '../ui/TranscriptCard';
-import { AddButton } from '../ui/AddButton';
-import { useNotesStore } from '../../stores/notesStore';
+import { useNavigate } from '@tanstack/react-router';
+import { Route } from '../../routes/library';
+import { formatDistanceToNow } from 'date-fns';
+
+// Import existing stores
+import { useNotesStore, Note } from '../../stores/notesStore';
 import { useRecordingStore } from '../../stores/recordingStore';
 import { useAudioStore } from '../../stores/audioStore';
-import { useRoutingStore } from '../../stores/routingStore';
-import { 
-  MagnifyingGlassIcon,
-} from '@heroicons/react/24/outline';
-import { Note } from '../../stores/notesStore';
+
+// Import redesigned UI components
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Card, CardContent } from '../ui/card';
+import { Plus, Search, Play, Pause, Trash2, Bot, FileText } from 'lucide-react';
+import { AppHeader } from '../Layout/AppHeader';
+import { AddButton } from '../AddButton';
+import { cn } from '../../lib/utils';
+import { MarkdownPreview } from '../MarkdownPreview';
 
 interface LibraryScreenProps {
   onUploadFile: () => void;
@@ -20,32 +28,66 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
   // Get everything from stores
   const { notes, deleteNote, createNote } = useNotesStore();
   const { startRecordingFlow } = useRecordingStore();
-  const { playAudio, currentPlayingAudioUrl, globalIsPlaying, setShowUrlModal } = useAudioStore();
-  const { navigateToNote } = useRoutingStore();
+  const { playAudio, togglePlayPause, currentPlayingAudioUrl, globalIsPlaying } = useAudioStore();
+  const navigate = useNavigate({ from: Route.id });
+  const { q: searchInput = '' } = Route.useSearch();
 
-  const [searchQuery, setSearchQuery] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [noteToDelete, setNoteToDelete] = useState<any>(null);
+  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearch = e.target.value;
+    navigate({ search: (prev) => ({ ...prev, q: newSearch || undefined }), replace: true });
+  };
+
+  // Filter notes to only show top-level notes (no parent)
+  const topLevelNotes = useMemo(() => {
+    return notes.filter(note => !note.sourceNoteIds || note.sourceNoteIds.length === 0);
+  }, [notes]);
+
+  // Build matching helpers for search
+  const terms = useMemo(() => searchInput.toLowerCase().split(/\s+/).filter(Boolean), [searchInput]);
+
+  const matches = useCallback((note: Note) => {
+    if (!searchInput) return false;
+    const haystack = [
+      note.title || '',
+      note.content || '',
+      ...(note.tags || []),
+      note.agentId || ''
+    ].join(' ').toLowerCase();
+    return terms.every(t => haystack.includes(t));
+  }, [searchInput, terms]);
+
+  const hasMatchInSubtree = useCallback(function hasMatchInSubtreeLocal(note: Note): boolean {
+    if (!searchInput) return true;
+    if (matches(note)) return true;
+    const children = getChildNotes(note.id);
+    for (const child of children) {
+      if (hasMatchInSubtreeLocal(child)) return true;
+    }
+    return false;
+  }, [searchInput, matches, notes]);
+
+  // Apply search filter
   const filteredNotes = useMemo(() => {
-    const searchLower = searchQuery.toLowerCase();
-    return notes.filter(note => {
-      return (
-        note.title.toLowerCase().includes(searchLower) ||
-        note.content.toLowerCase().includes(searchLower) ||
-        note.tags.some(tag => tag.toLowerCase().includes(searchLower))
-      );
-    }).sort((a, b) => b.lastEdited - a.lastEdited);
-  }, [notes, searchQuery]);
+    // When empty, show top-level only
+    if (!searchInput) return topLevelNotes;
 
+    // Show only top-level notes whose subtree matches
+    return topLevelNotes.filter(n => hasMatchInSubtree(n));
+  }, [topLevelNotes, searchInput, hasMatchInSubtree]);
+
+  // Group notes by date
   const groupedNotes = useMemo(() => {
     const groups: { [key: string]: Note[] } = {};
     const now = new Date();
-    
+
     filteredNotes.forEach(note => {
+      if (!note) return;
       const noteDate = new Date(note.lastEdited);
       const diffInDays = Math.floor((now.getTime() - noteDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       let groupKey: string;
       if (diffInDays === 0) {
         groupKey = 'Today';
@@ -58,130 +100,242 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
       } else {
         groupKey = 'Older';
       }
-      
+
       if (!groups[groupKey]) {
         groups[groupKey] = [];
       }
       groups[groupKey].push(note);
     });
-    
+
     return groups;
   }, [filteredNotes]);
 
-  const handleDeleteClick = (note: Note) => {
-    setNoteToDelete(note);
-    setShowDeleteConfirm(true);
+  // Helper function to get a plain text preview of content for cards
+  const getContentPreview = (content: string, maxLength: number = 120) => {
+    if (!content) return '';
+
+    // Get first paragraph and truncate if needed
+    const firstParagraph = content.split('\n')[0];
+    return firstParagraph.length > maxLength ? firstParagraph.slice(0, maxLength) + '...' : firstParagraph;
   };
 
-  const handleConfirmDelete = () => {
-    if (noteToDelete) {
-      deleteNote(noteToDelete.id);
-      setNoteToDelete(null);
-      setShowDeleteConfirm(false);
-    }
+  // Get child notes for a given parent note
+  function getChildNotes(parentId: string): Note[] {
+    if (!parentId) return [];
+    return notes.filter(note =>
+      note && note.sourceNoteIds && note.sourceNoteIds.includes(parentId)
+    ).sort((a, b) => b.lastEdited - a.lastEdited);
+  }
+
+  // Recursive function to render a note with its children
+  const renderNoteWithChildren = (note: Note, level: number = 0) => {
+    if (!note) return null;
+    const isSearching = !!searchInput;
+    const isMatch = matches(note);
+    const formattedDate = formatDistanceToNow(new Date(note.lastEdited), { addSuffix: true });
+    const childNotes = getChildNotes(note.id);
+    const visibleChildren = isSearching ? childNotes.filter(c => hasMatchInSubtree(c)) : childNotes;
+    const isAgentNote = note.type === 'agent';
+    const hasAudio = note.audioUrl !== null && note.audioUrl !== undefined;
+    const formattedDuration = note.duration ?
+      `${Math.floor(note.duration / 60)}:${(note.duration % 60).toString().padStart(2, '0')}` :
+      null;
+
+    const handleNoteClick = (note: Note) => {
+      navigate({ to: `/note/${note.id}` });
+    };
+
+    return (
+      <div key={note.id} className={level === 0 ? 'mb-2' : 'mt-2'}>
+        <Card
+          className={cn(
+            'transition-all duration-200',
+            isAgentNote && 'border-l-4 border-l-primary',
+            isSearching && !isMatch ? 'opacity-80 bg-accent/30 hover:bg-accent/40 cursor-default' : 'cursor-pointer hover:bg-accent/50'
+          )}
+          onClick={() => {
+            if (!isSearching || isMatch) navigate({ to: '/note/$id', params: { id: note.id } });
+          }}
+          style={{ marginLeft: `${level * 16}px` }}
+        >
+          <CardContent className={cn('p-4', isSearching && !isMatch && 'py-2')}>
+            <div className="flex items-start gap-3">
+              {/* Left column for play button or icon */}
+              <div className="flex-shrink-0">
+                {hasAudio && (!isSearching || isMatch) ? (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (note.audioUrl) {
+                        if (currentPlayingAudioUrl === note.audioUrl && globalIsPlaying) {
+                          togglePlayPause();
+                        } else {
+                          playAudio(note.audioUrl);
+                        }
+                      }
+                    }}
+                    className="h-12 w-12 rounded-full"
+                  >
+                    {currentPlayingAudioUrl === note.audioUrl && globalIsPlaying ? (
+                      <Pause className="h-5 w-5" />
+                    ) : (
+                      <Play className="h-5 w-5" />
+                    )}
+                  </Button>
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
+                    {isAgentNote ? (
+                      <Bot className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                {/* Title row with delete button */}
+                <div className="flex items-start justify-between mb-1 relative">
+                  <h3 className="font-medium pr-8 line-clamp-2">
+                    {note.title || 'Untitled Note'}
+                    {isSearching && !isMatch && (
+                      <span className="ml-2 text-xs text-muted-foreground">(contains matches)</span>
+                    )}
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNoteToDelete(note);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="h-6 w-6 p-0 absolute top-0 right-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Content preview */}
+                {(!isSearching || isMatch) && note.content && (
+                  <MarkdownPreview content={(note.content)} className="text-sm text-muted-foreground mb-2 line-clamp-2" />
+                )}
+
+                {/* Info row - date, duration, child count */}
+                {(!isSearching || isMatch) && (
+                  <div className="flex items-center text-xs text-muted-foreground mb-2">
+                    <span>{formattedDate}</span>
+                    {formattedDuration && (
+                      <>
+                        <span className="mx-1">•</span>
+                        <span>{formattedDuration}</span>
+                      </>
+                    )}
+                    {visibleChildren.length > 0 && (
+                      <>
+                        <span className="mx-1">•</span>
+                        <span>{visibleChildren.length} child note{visibleChildren.length !== 1 ? 's' : ''}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Tags row - always at the bottom */}
+                {(!isSearching || isMatch) && note.tags && note.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {note.tags.map(tag => (
+                      <span
+                        key={tag}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate({ search: { q: tag } });
+                        }}
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs 
+                                 bg-primary/20 text-primary border border-primary/30 
+                                 cursor-pointer hover:bg-primary/30"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Render child notes - only matching children while searching */}
+        {visibleChildren.length > 0 && visibleChildren.map(childNote => renderNoteWithChildren(childNote, level + 1))}
+      </div>
+    );
   };
 
-  const handleCancelDelete = () => {
-    setNoteToDelete(null);
-    setShowDeleteConfirm(false);
-  };
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-lg border-b border-gray-800">
-        <motion.div
-        initial={{ opacity: 0, y: 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="safe-area-top py-4 px-4"
-      >
-        <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-white">Library</h1>
-          <div>
-            <AddButton
-              onStartRecording={startRecordingFlow}
-              onUploadFile={onUploadFile}
-              onFromUrl={onFromUrl}
-              onCreateNote={createNote}
+    <div className="h-full flex flex-col max-w-4xl mx-auto">
+      {/* Header with AppHeader component */}
+      <AppHeader
+        title="Library"
+        actions={
+          <AddButton
+            onStartRecording={startRecordingFlow}
+            onUploadFile={onUploadFile}
+            onFromUrl={onFromUrl}
+            onCreateNote={() => {
+              const newNoteId = createNote();
+              navigate({ to: '/note/$id', params: { id: newNoteId } });
+            }}
+          />
+        }
+      />
+
+      {/* Main content */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search notes..."
+              className="w-full pl-10"
+              value={searchInput}
+              onChange={handleSearchChange}
             />
           </div>
-        </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search transcripts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl 
-                     text-white placeholder-gray-400 focus:outline-none focus:ring-2 
-                     focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
-        </div>
-        </motion.div>
-      </header>
-
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 pb-24 pt-32 max-w-full">
-        <div className="max-w-4xl mx-auto">
-        {filteredNotes.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-800 flex items-center justify-center">
-              <span className="text-2xl">🎙️</span>
-            </div>
-            <h3 className="text-lg font-medium text-white mb-2">
-              {searchQuery ? 'No matches found' : 'No transcripts yet'}
-            </h3>
-            <p className="text-gray-400 mb-6">
-              {searchQuery 
-                ? `No transcripts match "${searchQuery}"`
-                : 'Start recording to create your first transcript'
-              }
-            </p>
-          </motion.div>
-        ) : (
-          <div className="space-y-6 max-w-full">
-            {Object.entries(groupedNotes).map(([groupName, groupNotes]) => (
-              <div
-                key={groupName}
-                className="space-y-3 max-w-full"
-              >
-                <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide">
-                  {groupName}
-                </h2>
-                <div className="space-y-3 max-w-full">
-                  {groupNotes.map((note) => (
-                    <TranscriptCard
-                      key={note.id}
-                      id={note.id}
-                      title={note.title}
-                      content={note.content}
-                      tags={note.tags}
-                      createdAt={note.lastEdited}
-                      audioUrl={note.audioUrl}
-                      duration={note.duration}
-                      takeaways={note.takeaways}
-                     onClick={() => navigateToNote(note.id)}
-                      onDeleteClick={() => handleDeleteClick(note)}
-                    onPlayAudio={playAudio}
-                    currentPlayingAudioUrl={currentPlayingAudioUrl}
-                    globalIsPlaying={globalIsPlaying}
-                    />
-                  ))}
+          {/* Notes List */}
+          <div className="space-y-6">
+            {Object.keys(groupedNotes).length > 0 ? (
+              Object.entries(groupedNotes).map(([groupName, groupNotes]) => (
+                <div key={groupName} className="space-y-3">
+                  <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                    {groupName}
+                  </h2>
+                  <div className="space-y-3">
+                    {groupNotes.map(note => renderNoteWithChildren(note))}
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-muted-foreground mb-4">
+                  {searchInput ? 'No notes match your search' : 'No notes yet'}
+                </div>
+                {!searchInput && (
+                  <Button onClick={() => startRecordingFlow()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create your first note
+                  </Button>
+                )}
               </div>
-            ))}
+            )}
           </div>
-        )}
         </div>
-      </main>
+      </div>
+      
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {showDeleteConfirm && noteToDelete && (
@@ -195,34 +349,40 @@ export const LibraryScreen: React.FC<LibraryScreenProps> = ({ onUploadFile, onFr
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-gray-800 rounded-xl p-6 max-w-md w-full border border-gray-700"
+              className="bg-background rounded-xl p-6 max-w-md w-full border border-border"
             >
-              <h3 className="text-lg font-semibold text-white mb-4">Delete Note</h3>
-              <p className="text-gray-300 mb-2">
+              <h3 className="text-lg font-semibold mb-4">Delete Note</h3>
+              <p className="mb-2">
                 Are you sure you want to delete "{noteToDelete.title}"?
               </p>
-              <p className="text-gray-400 text-sm mb-6">
+              <p className="text-muted-foreground text-sm mb-6">
                 This action cannot be undone.
               </p>
               <div className="flex justify-end gap-2">
-                <button
-                  onClick={handleCancelDelete}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setNoteToDelete(null);
+                    setShowDeleteConfirm(false);
+                  }}
                 >
                   Cancel
-                </button>
-                <button
-                  onClick={handleConfirmDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    deleteNote(noteToDelete.id);
+                    setNoteToDelete(null);
+                    setShowDeleteConfirm(false);
+                  }}
                 >
                   Delete Note
-                </button>
+                </Button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
-      
   );
 };
