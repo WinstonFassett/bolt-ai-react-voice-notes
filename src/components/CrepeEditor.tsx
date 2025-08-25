@@ -1,7 +1,7 @@
 import { Crepe } from "@milkdown/crepe";
 import "@milkdown/crepe/theme/common/style.css";
-import "@milkdown/crepe/theme/frame-dark.css";
 import "@milkdown/crepe/theme/frame.css";
+import "@milkdown/crepe/theme/frame-dark.css";
 import "./crepe.css";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import { replaceAll } from '@milkdown/utils';
@@ -29,7 +29,7 @@ const CrepeEditor: React.FC<CrepeEditorProps> = ({
       defaultValue: content,
       features: {
         placeholder: true,
-        "list-item": false
+        "list-item": true
       },
       featureConfigs: {
         placeholder: {

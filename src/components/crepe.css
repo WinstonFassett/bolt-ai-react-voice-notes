@@ -4,49 +4,11 @@
   padding: 0;
 }
 
-/* #region dark theme support */
-
-/* this is not great, was a wild guess. disabled now. */
-#root .milkdown .dark-orig {
-  /* Use root theme variables for consistency */
-  /* --crepe-color-background: var(--bg-primary); */
-  --crepe-color-background: transparent;
-  --crepe-color-surface: var(--bg-secondary);
-  --crepe-color-surface-low: var(--bg-tertiary);
-
-  --crepe-color-on-background: var(--text-primary);
-  --crepe-color-on-surface: var(--text-primary);
-  --crepe-color-on-surface-variant: var(--text-secondary);
-
-  --crepe-color-primary: var(--accent-primary);
-  --crepe-color-secondary: var(--accent-secondary);
-  --crepe-color-on-secondary: var(--text-primary);
-
-  --crepe-color-outline: var(--text-secondary);
-  --crepe-color-inverse: var(--bg-elevated);
-  --crepe-color-on-inverse: var(--text-primary);
-  --crepe-color-inline-code: var(--accent-error);
-  --crepe-color-error: var(--accent-error);
-
-  --crepe-color-hover: var(--bg-tertiary);
-  --crepe-color-selected: var(--accent-secondary);
-  --crepe-color-inline-area: var(--bg-secondary);
-} 
 
 #root .milkdown {
-  /* --crepe-color-background: hsl(var(--background)); */
-  --crepe-color-background: transparent;
-  --crepe-color-on-background: hsl(var(--foreground));
-  
-  --crepe-color-selected: hsl(var(--primary) / 0.2);
+  --crepe-color-selected: hsl(var(--accent) / 0.4);
+  --crepe-color-background: hsl(var(--background));
 }
-
-.dark #root .milkdown {
-  --crepe-color-selected: hsl(var(--accent) / 0.5);
-  /* --crepe-color-selected: hsl(var(--primary) / 0.5); */
-}
-
-/* #endregion dark theme support */
 
 
 /* #region compact theme support */
