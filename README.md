@@ -1,8 +1,8 @@
-# AI Voice Recorder
+# AI Voice Notes
 
-AI Voice Recorder is a modern voice transcription app that transforms your voice into text using advanced machine learning, right in your browser. Built with React and powered by Whisper, T5 and Transformers.js, it offers a seamless experience for recording, transcribing, and managing your voice recordings with intelligent AI agents for post-processing.
+AI Voice Notes is a modern voice transcription app that transforms your voice into text using advanced machine learning, right in your browser. Built with React and powered by Whisper, T5 and Transformers.js, it offers a seamless experience for recording, transcribing, and managing your voice recordings with intelligent AI agents for post-processing.
 
-![AI Voice Recorder Screenshot](https://ai-voice-notes.winstonfassett.com/screenshot-01@1x.jpg)
+![AI Voice Notes Screenshot](https://ai-voice-notes.winstonfassett.com/screenshot-01@1x.jpg)
 
 ## ✨ Features
 
