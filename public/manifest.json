@@ -32,47 +32,17 @@
   "description": "AI-powered voice recorder with local transcription and intelligent agents. Record, transcribe, and process your voice recordings with AI agents for summaries, action items, and insights.",
   "screenshots": [
     {
-      "src": "/screenshot-01@1x.jpg",
-      "type": "image/jpg",
-      "sizes": "1200x628",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-02@1x.jpg",
-      "type": "image/jpg",
-      "sizes": "1200x628",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-03@1x.jpg",
-      "type": "image/jpg",
-      "sizes": "1200x628",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-04@1x.jpg",
-      "type": "image/jpg",
-      "sizes": "1200x628",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-mobile@1x.jpg",
+      "src": "/screenshot-01@1x.png",
       "type": "image/png",
-      "sizes": "1170x2532",
-      "form_factor": "narrow"
+      "sizes": "1200x628",
+      "form_factor": "wide"
     },
     {
-      "src": "/screenshot-mobile-2@1x.jpg",
+      "src": "/screenshot-mobile@1x.png",
       "type": "image/png",
-      "sizes": "1170x2532",
+      "sizes": "78xx1704",
       "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshot-mobile-3@1x.jpg",
-      "type": "image/png",
-      "sizes": "1170x2532",
-      "form_factor": "narrow"
-    }
+    }    
   ]
 }
 
