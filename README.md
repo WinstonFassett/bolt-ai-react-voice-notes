@@ -45,8 +45,8 @@ AI Voice Recorder is a modern voice transcription app that transforms your voice
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/WinstonFassett/bolt-ai-react-voice-notes.git
-cd bolt-ai-react-voice-notes
+git clone https://github.com/WinstonFassett/ai-voice-notes.git
+cd ai-voice-notes
 ```
 
 2. Install dependencies:
