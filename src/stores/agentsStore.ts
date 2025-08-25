@@ -508,7 +508,10 @@ export const useAgentsStore = create<AgentsState>()(
         });
         
         // Process agents sequentially to avoid race conditions
-        const results = [];
+        const results: Array<
+          | { status: 'fulfilled'; value: AgentProcessingResult }
+          | { status: 'rejected'; reason: unknown }
+        > = [];
         for (const agent of autoAgents) {
           try {
             if (import.meta.env.DEV) {
