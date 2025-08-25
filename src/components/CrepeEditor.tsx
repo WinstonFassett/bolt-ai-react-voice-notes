@@ -29,7 +29,7 @@ const CrepeEditor: React.FC<CrepeEditorProps> = ({
       defaultValue: content,
       features: {
         placeholder: true,
-        "list-item": false
+        "list-item": true
       },
       featureConfigs: {
         placeholder: {
