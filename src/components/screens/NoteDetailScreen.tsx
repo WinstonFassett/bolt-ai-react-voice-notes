@@ -800,6 +800,7 @@ export const NoteDetailScreen: React.FC<NoteDetailScreenProps> = ({
             </Button>
             
             <CrepeEditorWrapper
+              key={note.id}
               content={content}
               onChange={handleEditorChange}
               placeholder="Start writing your note..."

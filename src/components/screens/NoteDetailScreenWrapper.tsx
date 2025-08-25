@@ -40,6 +40,7 @@ export function NoteDetailScreenWrapper() {
   
   return (
     <NoteDetailScreen 
+      key={note.id}
       note={note}
       onBack={handleBack}
       activeTab="library"
@@ -47,3 +48,4 @@ export function NoteDetailScreenWrapper() {
     />
   );
 }
+
