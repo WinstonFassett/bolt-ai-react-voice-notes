@@ -4,6 +4,7 @@ import {
   Mp4OutputFormat, 
   WebMOutputFormat,
   WavOutputFormat,
+  MediaStreamAudioTrackSource,
   type AudioEncodingConfig,
   type AudioCodec
 } from 'mediabunny';
@@ -127,13 +128,16 @@ export class MediaBunnyAudioRecorder {
         target: new BufferTarget()
       });
 
-      // Create audio source from stream
-      // Note: This would need Media Bunny's stream source implementation
-      // For now, we'll use a placeholder that needs to be implemented
-      this.audioSource = await this.createAudioSourceFromStream(
-        this.audioStream, 
-        this.recordingConfig!
-      );
+      // Create audio source from stream using Media Bunny's MediaStreamAudioTrackSource
+      const audioTrack = this.audioStream.getAudioTracks()[0];
+      if (!audioTrack) {
+        throw new Error('No audio track available from stream');
+      }
+
+      this.audioSource = new MediaStreamAudioTrackSource(audioTrack, {
+        codec: this.recordingConfig!.codec,
+        bitrate: this.recordingConfig!.bitrate,
+      });
 
       this.output.addAudioTrack(this.audioSource);
       await this.output.start();
@@ -309,17 +313,6 @@ export class MediaBunnyAudioRecorder {
     }
   }
 
-  private async createAudioSourceFromStream(
-    stream: MediaStream, 
-    config: AudioEncodingConfig
-  ): Promise<any> {
-    // Media Bunny doesn't have direct MediaStream support yet
-    // This is a limitation we need to work around by using MediaRecorder
-    // to capture the stream data and then process it with Media Bunny
-    
-    // For now, we'll throw an error to indicate fallback to legacy should be used
-    throw new Error('Stream-based audio source not yet implemented for Media Bunny - falling back to legacy');
-  }
 
   private async cleanup(): Promise<void> {
     this.isRecording = false;
@@ -334,18 +327,12 @@ export class MediaBunnyAudioRecorder {
       this.output = null;
     }
 
-    if (this.audioSource) {
-      try {
-        this.audioSource.close?.();
-      } catch (error) {
-        console.warn('MediaBunnyAudioRecorder: Error closing audio source:', error);
-      }
-      this.audioSource = null;
-    }
-
+    // Stop the audio track as recommended by Media Bunny docs
     if (this.audioStream) {
       this.audioStream.getTracks().forEach(track => track.stop());
       this.audioStream = null;
     }
+
+    this.audioSource = null;
   }
 }

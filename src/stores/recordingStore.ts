@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { audioStorage } from '../utils/audioStorage';
-import { HybridAudioRecorder } from '../services/hybridAudioRecorder';
-import type { HybridRecordingResult } from '../services/hybridAudioRecorder';
+import { MediaBunnyAudioRecorder } from '../services/audioRecorder';
+import type { RecordingEvent } from '../services/audioRecorder';
 
 interface RecordingState {
   // Recording state
@@ -29,8 +29,8 @@ interface RecordingState {
   recordedChunksInternal: Blob[];
   timerInterval: number | null;
   
-  // Hybrid recorder instance
-  hybridRecorder: HybridAudioRecorder | null;
+  // Media Bunny recorder instance
+  mediaBunnyRecorder: MediaBunnyAudioRecorder | null;
   
   // Actions
   setIsRecording: (recording: boolean) => void;
@@ -62,7 +62,7 @@ interface RecordingState {
   stopRecordingFlow: () => void;
   cancelRecordingFlow: () => void;
   cleanup: () => void;
-  handleHybridRecordingResult: (result: HybridRecordingResult) => Promise<void>;
+  handleMediaBunnyRecordingResult: (result: { audioBlob: Blob; duration: number; format: string; metadata?: any }) => Promise<void>;
   handleRecordingStop: () => Promise<void>;
   createNoteFromRecording: () => Promise<void>;
   startTranscription: (audioBlob: Blob, noteId: string) => Promise<void>;
@@ -90,7 +90,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   audioStreamInstance: null,
   recordedChunksInternal: [],
   timerInterval: null,
-  hybridRecorder: null,
+  mediaBunnyRecorder: null,
   
   // Simple setters
   setIsRecording: (recording) => set({ isRecording: recording }),
@@ -221,28 +221,27 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   // High-level flows that handle everything
   startRecordingFlow: async () => {
     try {
-      console.log('🎙️ RecordingStore: Starting recording flow with hybrid recorder');
+      console.log('🎙️ RecordingStore: Starting recording flow with Media Bunny');
       
-      // Create and initialize hybrid recorder
-      const hybridRecorder = new HybridAudioRecorder({
+      // Create and initialize Media Bunny recorder
+      const mediaBunnyRecorder = new MediaBunnyAudioRecorder({
+        preset: 'voice',
+        format: 'auto',
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: 1,
-        sampleRate: 22050,
-        audioBitsPerSecond: 16000
+        autoGainControl: true
       });
       
       // Set up event listeners
-      hybridRecorder.addEventListener((event) => {
-        console.log('🎙️ HybridRecorder event:', event.type, event.data);
+      mediaBunnyRecorder.addEventListener((event: RecordingEvent) => {
+        console.log('🎙️ MediaBunnyRecorder event:', event.type, event.data);
       });
       
-      await hybridRecorder.initialize();
-      set({ hybridRecorder });
+      await mediaBunnyRecorder.initialize();
+      set({ mediaBunnyRecorder });
       
       // Start recording
-      await hybridRecorder.startRecording();
+      await mediaBunnyRecorder.startRecording();
       
       // Start timer
       const interval = window.setInterval(() => {
@@ -263,7 +262,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         recordedChunksInternal: []
       });
       
-      console.log('🎙️ RecordingStore: Hybrid recording started successfully');
+      console.log('🎙️ RecordingStore: Media Bunny recording started successfully');
       
     } catch (error) {
       console.error('❌ RecordingStore: Failed to start recording:', error);
@@ -280,9 +279,9 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       return;
     }
     
-    if (state.hybridRecorder) {
+    if (state.mediaBunnyRecorder) {
       try {
-        state.hybridRecorder.pauseRecording();
+        state.mediaBunnyRecorder.pauseRecording();
         
         const now = Date.now();
         set({
@@ -296,12 +295,12 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
           set({ timerInterval: null });
         }
         
-        console.log('🎙️ RecordingStore: Hybrid recording paused');
+        console.log('🎙️ RecordingStore: Media Bunny recording paused');
       } catch (error) {
         console.error('❌ RecordingStore: Error pausing recording:', error);
       }
     } else {
-      console.error('❌ RecordingStore: Cannot pause - no hybrid recorder instance');
+      console.error('❌ RecordingStore: Cannot pause - no Media Bunny recorder instance');
     }
   },
   
@@ -314,9 +313,9 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       return;
     }
     
-    if (state.hybridRecorder) {
+    if (state.mediaBunnyRecorder) {
       try {
-        state.hybridRecorder.resumeRecording();
+        state.mediaBunnyRecorder.resumeRecording();
         
         const now = Date.now();
         const additionalPausedTime = state.pauseStartTime > 0 ? now - state.pauseStartTime : 0;
@@ -333,18 +332,18 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
           timerInterval: interval
         });
         
-        console.log('🎙️ RecordingStore: Hybrid recording resumed');
+        console.log('🎙️ RecordingStore: Media Bunny recording resumed');
       } catch (error) {
         console.error('❌ RecordingStore: Error resuming recording:', error);
       }
     } else {
-      console.error('❌ RecordingStore: Cannot resume - no hybrid recorder instance');
+      console.error('❌ RecordingStore: Cannot resume - no Media Bunny recorder instance');
     }
   },
   
   stopRecordingFlow: () => {
     const state = get();
-    console.log('🎙️ RecordingStore: Stopping hybrid recording flow');
+    console.log('🎙️ RecordingStore: Stopping Media Bunny recording flow');
     
     // First set processing state to show user something is happening
     set({ 
@@ -352,30 +351,47 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       processingStatus: 'Finalizing recording...'
     });
     
-    if (state.hybridRecorder) {
+    if (state.mediaBunnyRecorder) {
       try {
-        // Stop the hybrid recorder and handle the result
-        state.hybridRecorder.stopRecording().then((result: HybridRecordingResult) => {
-          console.log('🎙️ RecordingStore: Hybrid recording stopped', result);
+        // Stop the Media Bunny recorder and handle the result
+        state.mediaBunnyRecorder.stopRecording().then((audioBlob: Blob) => {
+          const duration = state.mediaBunnyRecorder?.getRecordingDuration() || 0;
+          const recordingState = state.mediaBunnyRecorder?.getState();
+          const format = recordingState?.config?.format || 'unknown';
+          
+          console.log('🎙️ RecordingStore: Media Bunny recording stopped', {
+            blobSize: audioBlob.size,
+            duration,
+            format
+          });
+          
           // Process the result and create note
-          get().handleHybridRecordingResult(result);
+          get().handleMediaBunnyRecordingResult({
+            audioBlob,
+            duration,
+            format,
+            metadata: recordingState?.config
+          });
         }).catch((error) => {
-          console.error('❌ RecordingStore: Error stopping hybrid recorder:', error);
+          console.error('❌ RecordingStore: Error stopping Media Bunny recorder:', error);
           set({
             isProcessing: false,
             processingStatus: 'Error stopping recording'
           });
         });
       } catch (error) {
-        console.error('❌ RecordingStore: Error stopping hybrid recorder:', error);
+        console.error('❌ RecordingStore: Error stopping Media Bunny recorder:', error);
         set({
           isProcessing: false,
           processingStatus: 'Error stopping recording'
         });
       }
     } else {
-      console.warn('🎙️ RecordingStore: No hybrid recorder instance, falling back to legacy stop handler');
-      get().handleRecordingStop();
+      console.warn('🎙️ RecordingStore: No Media Bunny recorder instance');
+      set({
+        isProcessing: false,
+        processingStatus: 'No recorder available'
+      });
     }
     
     // Stop timer
@@ -432,8 +448,8 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
     });
   },
   
-  handleHybridRecordingResult: async (result: HybridRecordingResult) => {
-    console.log('🎙️ RecordingStore: Processing hybrid recording result', result);
+  handleMediaBunnyRecordingResult: async (result: { audioBlob: Blob; duration: number; format: string; metadata?: any }) => {
+    console.log('🎙️ RecordingStore: Processing Media Bunny recording result', result);
     
     try {
       const now = Date.now();
@@ -449,7 +465,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         fileExtension = 'aac';
       }
       
-      console.log(`🎙️ RecordingStore: Saving ${result.usingMediaBunny ? 'Media Bunny' : 'legacy'} audio with format ${result.format}`);
+      console.log(`🎙️ RecordingStore: Saving Media Bunny audio with format ${result.format}`);
       
       // Save audio
       const audioFileName = `recording_${noteId}.${fileExtension}`;
@@ -459,7 +475,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       // Create note
       const newNote = {
         id: noteId,
-        title: `Voice Recording${result.usingMediaBunny ? ' (Media Bunny)' : ''}`,
+        title: 'Voice Recording (Media Bunny)',
         content: '',
         audioUrl,
         duration: result.duration,
@@ -480,7 +496,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       set({
         isProcessing: false,
         processingStatus: '',
-        hybridRecorder: null
+        mediaBunnyRecorder: null
       });
       
       // Navigate to note detail
@@ -497,11 +513,11 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       await get().startTranscription(result.audioBlob, noteId);
       
     } catch (error) {
-      console.error('❌ RecordingStore: Error processing hybrid recording result:', error);
+      console.error('❌ RecordingStore: Error processing Media Bunny recording result:', error);
       set({
         isProcessing: false,
         processingStatus: 'Error creating note',
-        hybridRecorder: null
+        mediaBunnyRecorder: null
       });
     }
   },
