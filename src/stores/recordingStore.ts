@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { audioStorage } from '../utils/audioStorage';
+import { HybridAudioRecorder } from '../services/hybridAudioRecorder';
+import type { HybridRecordingResult } from '../services/hybridAudioRecorder';
 
 interface RecordingState {
   // Recording state
@@ -26,6 +28,9 @@ interface RecordingState {
   audioStreamInstance: MediaStream | null;
   recordedChunksInternal: Blob[];
   timerInterval: number | null;
+  
+  // Hybrid recorder instance
+  hybridRecorder: HybridAudioRecorder | null;
   
   // Actions
   setIsRecording: (recording: boolean) => void;
@@ -57,6 +62,7 @@ interface RecordingState {
   stopRecordingFlow: () => void;
   cancelRecordingFlow: () => void;
   cleanup: () => void;
+  handleHybridRecordingResult: (result: HybridRecordingResult) => Promise<void>;
   handleRecordingStop: () => Promise<void>;
   createNoteFromRecording: () => Promise<void>;
   startTranscription: (audioBlob: Blob, noteId: string) => Promise<void>;
@@ -84,6 +90,7 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   audioStreamInstance: null,
   recordedChunksInternal: [],
   timerInterval: null,
+  hybridRecorder: null,
   
   // Simple setters
   setIsRecording: (recording) => set({ isRecording: recording }),
@@ -214,81 +221,28 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   // High-level flows that handle everything
   startRecordingFlow: async () => {
     try {
-      console.log('🎙️ RecordingStore: Starting recording flow');
+      console.log('🎙️ RecordingStore: Starting recording flow with hybrid recorder');
       
-      // Clear previous data
-      set({ recordedChunksInternal: [] });
-      
-      // Get audio stream with lower quality settings for voice notes
-      // These settings optimize for voice recording while reducing file size
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-      
-      // Check if mediaDevices is available
-      if (!navigator.mediaDevices) {
-        console.error('❌ RecordingStore: MediaDevices API not available');
-        throw new Error('Media recording is not supported in this browser or context');
-      }
-      
-      // Audio constraints optimized for voice recording and smaller file size
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          // Mono audio is sufficient for voice notes and reduces file size by half
-          channelCount: 1,
-          // Lower sample rate still good for voice but smaller files
-          sampleRate: 22050
-        } 
-      });
-      
-      // Set up MediaRecorder with compatible format and compression
-      let options: MediaRecorderOptions = {
-        // Low bitrate for voice is sufficient (8-16kbps is typical for voice)
+      // Create and initialize hybrid recorder
+      const hybridRecorder = new HybridAudioRecorder({
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,
+        sampleRate: 22050,
         audioBitsPerSecond: 16000
-      };
-      
-      if (isIOS || isSafari) {
-        // iOS/Safari optimizations
-        if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          options.mimeType = 'audio/mp4';
-        } else if (MediaRecorder.isTypeSupported('audio/aac')) {
-          options.mimeType = 'audio/aac';
-        } else if (MediaRecorder.isTypeSupported('audio/wav')) {
-          options.mimeType = 'audio/wav';
-        }
-      } else {
-        // Opus codec provides excellent compression for voice
-        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-          options.mimeType = 'audio/webm;codecs=opus';
-        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-          options.mimeType = 'audio/webm';
-        }
-      }
-      
-      const recorder = new MediaRecorder(stream, options);
-      
-      recorder.addEventListener('dataavailable', (event) => {
-        if (event.data.size > 0) {
-          console.log(`🎙️ RecordingStore: Received data chunk of size ${event.data.size} bytes`);
-          const currentState = get();
-          set({ 
-            recordedChunksInternal: [...currentState.recordedChunksInternal, event.data],
-            recordedChunks: [...currentState.recordedChunks, event.data]
-          });
-        } else {
-          console.warn('🎙️ RecordingStore: Received empty data chunk');
-        }
       });
       
-      recorder.addEventListener('stop', () => {
-        console.log('🎙️ RecordingStore: MediaRecorder stop event fired');
-        get().handleRecordingStop();
+      // Set up event listeners
+      hybridRecorder.addEventListener((event) => {
+        console.log('🎙️ HybridRecorder event:', event.type, event.data);
       });
       
-      // Use a smaller timeslice for more frequent chunks, which helps with reliability
-      recorder.start(500);
+      await hybridRecorder.initialize();
+      set({ hybridRecorder });
+      
+      // Start recording
+      await hybridRecorder.startRecording();
       
       // Start timer
       const interval = window.setInterval(() => {
@@ -297,8 +251,6 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       
       // Update state
       set({
-        mediaRecorderInstance: recorder,
-        audioStreamInstance: stream,
         timerInterval: interval,
         isRecording: true,
         isPaused: false,
@@ -308,11 +260,10 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         pausedDuration: 0,
         pauseStartTime: 0,
         recordedChunks: [],
-        audioStream: stream,
-        mediaRecorder: recorder
+        recordedChunksInternal: []
       });
       
-      // No need to navigate - React Router handles this now
+      console.log('🎙️ RecordingStore: Hybrid recording started successfully');
       
     } catch (error) {
       console.error('❌ RecordingStore: Failed to start recording:', error);
@@ -329,20 +280,9 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       return;
     }
     
-    if (state.mediaRecorderInstance) {
+    if (state.hybridRecorder) {
       try {
-        // Request data before pausing to ensure we have the latest chunks
-        state.mediaRecorderInstance.requestData();
-        
-        // Check if pause is supported in this browser
-        if (typeof state.mediaRecorderInstance.pause === 'function') {
-          state.mediaRecorderInstance.pause();
-          console.log('🎙️ RecordingStore: MediaRecorder paused');
-        } else {
-          console.warn('🎙️ RecordingStore: MediaRecorder pause not supported, stopping instead');
-          // If pause isn't supported, we'll need to stop and restart later
-          // For now, just mark as paused in the UI
-        }
+        state.hybridRecorder.pauseRecording();
         
         const now = Date.now();
         set({
@@ -355,11 +295,13 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
           clearInterval(state.timerInterval);
           set({ timerInterval: null });
         }
+        
+        console.log('🎙️ RecordingStore: Hybrid recording paused');
       } catch (error) {
         console.error('❌ RecordingStore: Error pausing recording:', error);
       }
     } else {
-      console.error('❌ RecordingStore: Cannot pause - no MediaRecorder instance');
+      console.error('❌ RecordingStore: Cannot pause - no hybrid recorder instance');
     }
   },
   
@@ -372,17 +314,9 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       return;
     }
     
-    if (state.mediaRecorderInstance) {
+    if (state.hybridRecorder) {
       try {
-        // Check if resume is supported in this browser
-        if (typeof state.mediaRecorderInstance.resume === 'function') {
-          state.mediaRecorderInstance.resume();
-          console.log('🎙️ RecordingStore: MediaRecorder resumed');
-        } else {
-          console.warn('🎙️ RecordingStore: MediaRecorder resume not supported');
-          // If resume isn't supported, we'd need to restart recording
-          // For now, just update the UI state
-        }
+        state.hybridRecorder.resumeRecording();
         
         const now = Date.now();
         const additionalPausedTime = state.pauseStartTime > 0 ? now - state.pauseStartTime : 0;
@@ -398,17 +332,19 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
           pauseStartTime: 0,
           timerInterval: interval
         });
+        
+        console.log('🎙️ RecordingStore: Hybrid recording resumed');
       } catch (error) {
         console.error('❌ RecordingStore: Error resuming recording:', error);
       }
     } else {
-      console.error('❌ RecordingStore: Cannot resume - no MediaRecorder instance');
+      console.error('❌ RecordingStore: Cannot resume - no hybrid recorder instance');
     }
   },
   
   stopRecordingFlow: () => {
     const state = get();
-    console.log('🎙️ RecordingStore: Stopping recording flow');
+    console.log('🎙️ RecordingStore: Stopping hybrid recording flow');
     
     // First set processing state to show user something is happening
     set({ 
@@ -416,48 +352,42 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       processingStatus: 'Finalizing recording...'
     });
     
-    // Make sure we're not already stopped
-    if (state.mediaRecorderInstance && state.mediaRecorderInstance.state !== 'inactive') {
-      console.log('🎙️ RecordingStore: Stopping MediaRecorder');
+    if (state.hybridRecorder) {
       try {
-        // Request a final chunk before stopping
-        if (state.mediaRecorderInstance.state === 'recording' || state.mediaRecorderInstance.state === 'paused') {
-          console.log('🎙️ RecordingStore: Requesting final data chunk');
-          state.mediaRecorderInstance.requestData();
-          
-          // Add a small delay to ensure the dataavailable event has time to fire
-          setTimeout(() => {
-            try {
-              // Then stop the recorder - this will trigger the 'stop' event
-              if (state.mediaRecorderInstance) {
-                state.mediaRecorderInstance.stop();
-                console.log('🎙️ RecordingStore: MediaRecorder stopped after final data request');
-              }
-            } catch (innerError) {
-              console.error('❌ RecordingStore: Error in delayed stop:', innerError);
-              get().handleRecordingStop();
-            }
-          }, 300);
-        } else {
-          // If not recording or paused, just stop
-          state.mediaRecorderInstance.stop();
-          console.log('🎙️ RecordingStore: MediaRecorder stopped directly');
-        }
+        // Stop the hybrid recorder and handle the result
+        state.hybridRecorder.stopRecording().then((result: HybridRecordingResult) => {
+          console.log('🎙️ RecordingStore: Hybrid recording stopped', result);
+          // Process the result and create note
+          get().handleHybridRecordingResult(result);
+        }).catch((error) => {
+          console.error('❌ RecordingStore: Error stopping hybrid recorder:', error);
+          set({
+            isProcessing: false,
+            processingStatus: 'Error stopping recording'
+          });
+        });
       } catch (error) {
-        console.error('❌ RecordingStore: Error stopping MediaRecorder:', error);
-        // If there's an error, manually trigger the stop handler
-        get().handleRecordingStop();
+        console.error('❌ RecordingStore: Error stopping hybrid recorder:', error);
+        set({
+          isProcessing: false,
+          processingStatus: 'Error stopping recording'
+        });
       }
     } else {
-      console.log('🎙️ RecordingStore: MediaRecorder already inactive, handling stop directly');
-      // If recorder is already stopped, manually trigger the stop handler
+      console.warn('🎙️ RecordingStore: No hybrid recorder instance, falling back to legacy stop handler');
       get().handleRecordingStop();
+    }
+    
+    // Stop timer
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
     }
     
     // Update UI state immediately
     set({ 
       isRecording: false, 
-      isPaused: false 
+      isPaused: false,
+      timerInterval: null
     });
   },
   
@@ -502,6 +432,80 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
     });
   },
   
+  handleHybridRecordingResult: async (result: HybridRecordingResult) => {
+    console.log('🎙️ RecordingStore: Processing hybrid recording result', result);
+    
+    try {
+      const now = Date.now();
+      const noteId = now.toString();
+      
+      // Determine file extension based on format
+      let fileExtension = 'webm';
+      if (result.format.includes('mp4')) {
+        fileExtension = 'mp4';
+      } else if (result.format.includes('wav')) {
+        fileExtension = 'wav';
+      } else if (result.format.includes('aac')) {
+        fileExtension = 'aac';
+      }
+      
+      console.log(`🎙️ RecordingStore: Saving ${result.usingMediaBunny ? 'Media Bunny' : 'legacy'} audio with format ${result.format}`);
+      
+      // Save audio
+      const audioFileName = `recording_${noteId}.${fileExtension}`;
+      const audioUrl = await audioStorage.saveAudio(result.audioBlob, audioFileName, result.format);
+      console.log(`🎙️ RecordingStore: Saved audio to ${audioUrl}`);
+      
+      // Create note
+      const newNote = {
+        id: noteId,
+        title: `Voice Recording${result.usingMediaBunny ? ' (Media Bunny)' : ''}`,
+        content: '',
+        audioUrl,
+        duration: result.duration,
+        createdAt: now,
+        updatedAt: now,
+        created: now,
+        lastEdited: now,
+        versions: [],
+        tags: []
+      };
+      
+      // Add to notes store
+      const { useNotesStore } = await import('./notesStore');
+      useNotesStore.getState().addNote(newNote);
+      console.log(`🎙️ RecordingStore: Added note to store with ID ${noteId}`);
+      
+      // Reset processing state
+      set({
+        isProcessing: false,
+        processingStatus: '',
+        hybridRecorder: null
+      });
+      
+      // Navigate to note detail
+      try {
+        window.history.pushState({}, '', `/note/${noteId}`);
+        const navigationEvent = new PopStateEvent('popstate');
+        window.dispatchEvent(navigationEvent);
+        console.log(`🎙️ RecordingStore: Navigated to note ${noteId}`);
+      } catch (error) {
+        console.error('❌ RecordingStore: Error navigating:', error);
+      }
+      
+      // Start transcription
+      await get().startTranscription(result.audioBlob, noteId);
+      
+    } catch (error) {
+      console.error('❌ RecordingStore: Error processing hybrid recording result:', error);
+      set({
+        isProcessing: false,
+        processingStatus: 'Error creating note',
+        hybridRecorder: null
+      });
+    }
+  },
+
   handleRecordingStop: async () => {
     const state = get();
     

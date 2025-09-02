@@ -313,12 +313,12 @@ export class MediaBunnyAudioRecorder {
     stream: MediaStream, 
     config: AudioEncodingConfig
   ): Promise<any> {
-    // This is a placeholder for creating an audio source from MediaStream
-    // Media Bunny would need to provide a stream-based source or we'd need
-    // to implement a custom source that feeds from MediaStream
-    // 
-    // For now, this throws an error to indicate it needs implementation
-    throw new Error('Stream-based audio source not yet implemented for Media Bunny');
+    // Media Bunny doesn't have direct MediaStream support yet
+    // This is a limitation we need to work around by using MediaRecorder
+    // to capture the stream data and then process it with Media Bunny
+    
+    // For now, we'll throw an error to indicate fallback to legacy should be used
+    throw new Error('Stream-based audio source not yet implemented for Media Bunny - falling back to legacy');
   }
 
   private async cleanup(): Promise<void> {

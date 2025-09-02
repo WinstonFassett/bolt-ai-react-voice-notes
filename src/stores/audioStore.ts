@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { isStorageUrl, resolveStorageUrl } from '../utils/audioStorage';
 import { useDebugStore } from './debugStore';
+import { HybridAudioPlayer } from '../services/hybridAudioPlayer';
 
 interface AudioState {
   // Global audio player state
@@ -25,6 +26,9 @@ interface AudioState {
   // Internal audio element (no React ref needed)
   audioElement: HTMLAudioElement | null;
   playPromise: Promise<void> | null;
+  
+  // Hybrid audio player
+  hybridPlayer: HybridAudioPlayer | null;
   
   // Actions
   setCurrentPlayingAudioUrl: (url: string | null) => void;
@@ -70,6 +74,7 @@ export const useAudioStore = create<AudioState>()((set, get) => ({
   showErrorModal: false,
   audioElement: null,
   playPromise: null,
+  hybridPlayer: null,
   
   // Simple setters
   setCurrentPlayingAudioUrl: (url) => set({ currentPlayingAudioUrl: url }),

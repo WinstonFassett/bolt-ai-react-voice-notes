@@ -32,22 +32,22 @@ interface FeatureFlagsState extends MediaBunnyFeatureFlags {
   shouldUseMediaBunny: (feature: 'recording' | 'playback' | 'storage') => boolean;
 }
 
-// Default feature flag values
+// Default feature flag values - ENABLED for testing branch
 const DEFAULT_FLAGS: MediaBunnyFeatureFlags & {
   enableDebugLogging: boolean;
   enablePerformanceMonitoring: boolean;
   enableExperimentalFeatures: boolean;
   rolloutPercentage: number;
 } = {
-  useMediaBunnyRecording: false,
-  useMediaBunnyPlayback: false,
-  useMediaBunnyStorage: false,
-  enableAudioTesting: true, // Always enable testing for development
-  enableAdvancedFeatures: false,
+  useMediaBunnyRecording: true,  // ENABLED for testing
+  useMediaBunnyPlayback: true,   // ENABLED for testing
+  useMediaBunnyStorage: true,    // ENABLED for testing
+  enableAudioTesting: true,
+  enableAdvancedFeatures: true,  // ENABLED for testing
   enableDebugLogging: process.env.NODE_ENV === 'development',
   enablePerformanceMonitoring: process.env.NODE_ENV === 'development',
-  enableExperimentalFeatures: false,
-  rolloutPercentage: 0, // Start with 0% rollout
+  enableExperimentalFeatures: true, // ENABLED for testing
+  rolloutPercentage: 100, // 100% rollout for testing
 };
 
 // Simple hash function for consistent user bucketing
