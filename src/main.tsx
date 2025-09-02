@@ -5,9 +5,6 @@ import { initializeDebugTools } from './utils/debugInitializer'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
-// Initialize feature flags store (this will load persisted flags and make them available)
-import './stores/featureFlagsStore'
-
 initializeDebugTools();
 
 const router = createRouter({
