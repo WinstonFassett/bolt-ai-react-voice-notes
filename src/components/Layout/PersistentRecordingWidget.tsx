@@ -10,9 +10,9 @@ export function PersistentRecordingWidget() {
     isRecording, 
     isPaused, 
     recordingTime, 
-    pauseRecording, 
-    resumeRecording, 
-    stopRecording 
+    pauseRecordingFlow, 
+    resumeRecordingFlow, 
+    stopRecordingFlow 
   } = useRecordingStore()
 
   if (!isRecording) return null
@@ -21,9 +21,9 @@ export function PersistentRecordingWidget() {
 
   const handleToggle = () => {
     if (isPaused) {
-      resumeRecording()
+      resumeRecordingFlow()
     } else {
-      pauseRecording()
+      pauseRecordingFlow()
     }
   }
 
@@ -64,7 +64,7 @@ export function PersistentRecordingWidget() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={stopRecording}
+              onClick={stopRecordingFlow}
               className="h-8 w-8 p-0"
             >
               <Square className="h-4 w-4" />
