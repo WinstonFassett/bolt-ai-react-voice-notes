@@ -57,6 +57,7 @@ interface RecordingState {
   
   // High-level actions that handle everything
   startRecordingFlow: () => Promise<void>;
+  startLegacyRecording: () => Promise<void>;
   pauseRecordingFlow: () => void;
   resumeRecordingFlow: () => void;
   stopRecordingFlow: () => void;
@@ -221,27 +222,127 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
   // High-level flows that handle everything
   startRecordingFlow: async () => {
     try {
-      console.log('🎙️ RecordingStore: Starting recording flow with Media Bunny');
+      console.log('🎙️ RecordingStore: Starting recording flow');
       
-      // Create and initialize Media Bunny recorder
-      const mediaBunnyRecorder = new MediaBunnyAudioRecorder({
-        preset: 'voice',
-        format: 'auto',
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
+      // Try Media Bunny first
+      try {
+        console.log('🎙️ RecordingStore: Attempting Media Bunny recording');
+        
+        const mediaBunnyRecorder = new MediaBunnyAudioRecorder({
+          preset: 'voice',
+          format: 'auto',
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        });
+        
+        // Set up event listeners
+        mediaBunnyRecorder.addEventListener((event: RecordingEvent) => {
+          console.log('🎙️ MediaBunnyRecorder event:', event.type, event.data);
+        });
+        
+        await mediaBunnyRecorder.initialize();
+        set({ mediaBunnyRecorder });
+        
+        // Start recording
+        await mediaBunnyRecorder.startRecording();
+        
+        // Start timer
+        const interval = window.setInterval(() => {
+          get().updateRecordingTime();
+        }, 1000);
+        
+        // Update state
+        set({
+          timerInterval: interval,
+          isRecording: true,
+          isPaused: false,
+          isCancelled: false,
+          recordingTime: 0,
+          recordingStartTime: Date.now(),
+          pausedDuration: 0,
+          pauseStartTime: 0,
+          recordedChunks: [],
+          recordedChunksInternal: []
+        });
+        
+        console.log('✅ RecordingStore: Media Bunny recording started successfully');
+        return;
+        
+      } catch (mediaBunnyError) {
+        console.warn('⚠️ Media Bunny failed, falling back to MediaRecorder:', mediaBunnyError);
+        
+        // Fallback to traditional MediaRecorder (for iOS Safari)
+        await get().startLegacyRecording();
+      }
+      
+    } catch (error) {
+      console.error('❌ RecordingStore: Failed to start recording:', error);
+      throw error;
+    }
+  },
+
+  startLegacyRecording: async () => {
+    console.log('🎙️ RecordingStore: Starting legacy MediaRecorder recording');
+    
+    try {
+      // Get user media with iOS-optimized constraints
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        }
       });
       
-      // Set up event listeners
-      mediaBunnyRecorder.addEventListener((event: RecordingEvent) => {
-        console.log('🎙️ MediaBunnyRecorder event:', event.type, event.data);
+      // Determine best MIME type for iOS
+      let mimeType = 'audio/webm';
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+      
+      if (isIOS || isSafari) {
+        // Try iOS native formats first
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+          mimeType = 'audio/aac';
+        } else if (MediaRecorder.isTypeSupported('audio/wav')) {
+          mimeType = 'audio/wav';
+        }
+      }
+      
+      console.log(`🍎 iOS Legacy Recording: Using MIME type ${mimeType}`);
+      
+      // Create MediaRecorder with optimal settings
+      const mediaRecorder = new MediaRecorder(audioStream, {
+        mimeType,
+        audioBitsPerSecond: 32000 // Voice quality optimization
       });
       
-      await mediaBunnyRecorder.initialize();
-      set({ mediaBunnyRecorder });
+      // Set up event handlers
+      const chunks: Blob[] = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data);
+          set((state) => ({
+            recordedChunksInternal: [...state.recordedChunksInternal, event.data]
+          }));
+          console.log('📦 Legacy Recording: Data chunk received, size:', event.data.size);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        console.log('🛑 Legacy Recording: MediaRecorder stopped');
+        await get().handleRecordingStop();
+      };
+      
+      mediaRecorder.onerror = (event) => {
+        console.error('❌ Legacy Recording: MediaRecorder error:', event);
+      };
       
       // Start recording
-      await mediaBunnyRecorder.startRecording();
+      mediaRecorder.start(1000); // Collect data every 1 second
       
       // Start timer
       const interval = window.setInterval(() => {
@@ -250,6 +351,10 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       
       // Update state
       set({
+        audioStreamInstance: audioStream,
+        mediaRecorderInstance: mediaRecorder,
+        audioStream,
+        mediaRecorder,
         timerInterval: interval,
         isRecording: true,
         isPaused: false,
@@ -259,13 +364,14 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
         pausedDuration: 0,
         pauseStartTime: 0,
         recordedChunks: [],
-        recordedChunksInternal: []
+        recordedChunksInternal: [],
+        mediaBunnyRecorder: null // Clear Media Bunny instance
       });
       
-      console.log('🎙️ RecordingStore: Media Bunny recording started successfully');
+      console.log('✅ Legacy Recording: Started successfully with MediaRecorder');
       
     } catch (error) {
-      console.error('❌ RecordingStore: Failed to start recording:', error);
+      console.error('❌ Legacy Recording: Failed to start:', error);
       throw error;
     }
   },
@@ -299,8 +405,29 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       } catch (error) {
         console.error('❌ RecordingStore: Error pausing recording:', error);
       }
+    } else if (state.mediaRecorderInstance) {
+      // Legacy MediaRecorder pause
+      try {
+        state.mediaRecorderInstance.pause();
+        
+        const now = Date.now();
+        set({
+          isPaused: true,
+          pauseStartTime: now
+        });
+        
+        // Stop the timer
+        if (state.timerInterval) {
+          clearInterval(state.timerInterval);
+          set({ timerInterval: null });
+        }
+        
+        console.log('🎙️ RecordingStore: Legacy MediaRecorder recording paused');
+      } catch (error) {
+        console.error('❌ RecordingStore: Error pausing legacy recording:', error);
+      }
     } else {
-      console.error('❌ RecordingStore: Cannot pause - no Media Bunny recorder instance');
+      console.error('❌ RecordingStore: Cannot pause - no recorder instance available');
     }
   },
   
@@ -336,8 +463,32 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
       } catch (error) {
         console.error('❌ RecordingStore: Error resuming recording:', error);
       }
+    } else if (state.mediaRecorderInstance) {
+      // Legacy MediaRecorder resume
+      try {
+        state.mediaRecorderInstance.resume();
+        
+        const now = Date.now();
+        const additionalPausedTime = state.pauseStartTime > 0 ? now - state.pauseStartTime : 0;
+        
+        // Restart timer
+        const interval = window.setInterval(() => {
+          get().updateRecordingTime();
+        }, 1000);
+        
+        set({
+          isPaused: false,
+          pausedDuration: state.pausedDuration + additionalPausedTime,
+          pauseStartTime: 0,
+          timerInterval: interval
+        });
+        
+        console.log('🎙️ RecordingStore: Legacy MediaRecorder recording resumed');
+      } catch (error) {
+        console.error('❌ RecordingStore: Error resuming legacy recording:', error);
+      }
     } else {
-      console.error('❌ RecordingStore: Cannot resume - no Media Bunny recorder instance');
+      console.error('❌ RecordingStore: Cannot resume - no recorder instance available');
     }
   },
   
@@ -386,8 +537,22 @@ export const useRecordingStore = create<RecordingState>((set, get) => ({
           processingStatus: 'Error stopping recording'
         });
       }
+    } else if (state.mediaRecorderInstance) {
+      // Legacy MediaRecorder stop
+      try {
+        console.log('🎙️ RecordingStore: Stopping legacy MediaRecorder');
+        state.mediaRecorderInstance.stop();
+        // Note: handleRecordingStop will be called by the onstop event
+        
+      } catch (error) {
+        console.error('❌ RecordingStore: Error stopping legacy recorder:', error);
+        set({
+          isProcessing: false,
+          processingStatus: 'Error stopping recording'
+        });
+      }
     } else {
-      console.warn('🎙️ RecordingStore: No Media Bunny recorder instance');
+      console.warn('🎙️ RecordingStore: No recorder instance available');
       set({
         isProcessing: false,
         processingStatus: 'No recorder available'

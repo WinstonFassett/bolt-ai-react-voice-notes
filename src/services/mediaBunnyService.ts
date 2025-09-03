@@ -188,25 +188,39 @@ export class MediaBunnyService {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     
+    console.log('🍎 iOS Format Detection:', {
+      userAgent: navigator.userAgent,
+      isIOS,
+      isSafari,
+      webCodecsSupported: !!(window.AudioEncoder && window.AudioDecoder)
+    });
+    
     if (isIOS || isSafari) {
       // iOS/Safari prefer MP4
-      if (await canEncodeAudio('aac')) {
+      const aacSupported = await canEncodeAudio('aac');
+      console.log('🍎 iOS AAC Support:', aacSupported);
+      
+      if (aacSupported) {
+        console.log('✅ iOS will use MP4/AAC - optimal format!');
         return 'mp4';
       }
+      console.warn('⚠️ iOS falling back to WAV - AAC not supported');
       return 'wav'; // Fallback
     }
     
     // Modern browsers prefer WebM with Opus
     if (await canEncodeAudio('opus')) {
+      console.log('✅ Desktop using WebM/Opus');
       return 'webm';
     }
     
     // Fallback to MP4 with AAC
     if (await canEncodeAudio('aac')) {
+      console.log('✅ Desktop using MP4/AAC fallback');
       return 'mp4';
     }
     
-    // Last resort
+    console.warn('⚠️ Desktop falling back to WAV');
     return 'wav';
   }
 

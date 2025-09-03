@@ -75,7 +75,11 @@ export class MediaBunnyAudioRecorder {
         format
       };
 
-      console.log('MediaBunnyAudioRecorder: Initialized with config:', this.recordingConfig);
+      console.log('🎙️ MediaBunnyAudioRecorder: Initialized with config:', {
+        ...this.recordingConfig,
+        isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+        webCodecsAvailable: !!(window.AudioEncoder && window.AudioDecoder)
+      });
     } catch (error) {
       console.error('MediaBunnyAudioRecorder: Initialization failed:', error);
       throw error;
@@ -180,7 +184,14 @@ export class MediaBunnyAudioRecorder {
           timestamp: Date.now() 
         });
 
-        console.log('MediaBunnyAudioRecorder: Recording stopped, blob size:', blob.size);
+        console.log('🎙️ MediaBunnyAudioRecorder: Recording stopped', {
+          blobSize: blob.size,
+          format: this.recordingConfig!.format,
+          codec: this.recordingConfig!.codec,
+          duration: this.getRecordingDuration(),
+          mimeType: blob.type,
+          isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent)
+        });
         return blob;
       }
 
