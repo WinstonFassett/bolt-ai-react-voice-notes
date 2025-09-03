@@ -1,25 +1,80 @@
-// IndexedDB Audio Storage Utility
-const DB_NAME = 'MonologAudioDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'audioFiles';
-
-interface StoredAudio {
+// OPFS Audio Storage Utility - 3x faster than IndexedDB
+interface StoredAudioMetadata {
   id: string;
-  audioBlob: Blob;
   timestamp: number;
   mimeType: string;
+  size: number;
+  duration?: number;
 }
 
 class AudioStorage {
-  private db: IDBDatabase | null = null;
+  private opfsRoot: FileSystemDirectoryHandle | null = null;
+  private metadataCache = new Map<string, StoredAudioMetadata>();
+  private initialized = false;
 
   async init(): Promise<void> {
+    if (this.initialized) return;
+    
+    try {
+      // Get OPFS root directory
+      this.opfsRoot = await navigator.storage.getDirectory();
+      
+      // Create audio directory if it doesn't exist
+      await this.opfsRoot.getDirectoryHandle('audio', { create: true });
+      
+      // Load metadata cache from OPFS
+      await this.loadMetadataCache();
+      
+      this.initialized = true;
+      console.log('📁 OPFS AudioStorage initialized successfully');
+    } catch (error) {
+      console.error('❌ OPFS initialization failed, falling back to IndexedDB:', error);
+      await this.initIndexedDBFallback();
+    }
+  }
+
+  private async loadMetadataCache(): Promise<void> {
+    try {
+      const metadataHandle = await this.opfsRoot!.getFileHandle('metadata.json', { create: true });
+      const file = await metadataHandle.getFile();
+      
+      if (file.size > 0) {
+        const text = await file.text();
+        const metadata = JSON.parse(text);
+        this.metadataCache = new Map(Object.entries(metadata));
+        console.log(`📁 Loaded ${this.metadataCache.size} audio file metadata from OPFS`);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load metadata cache, starting fresh:', error);
+      this.metadataCache = new Map();
+    }
+  }
+
+  private async saveMetadataCache(): Promise<void> {
+    try {
+      const metadataHandle = await this.opfsRoot!.getFileHandle('metadata.json', { create: true });
+      const writable = await metadataHandle.createWritable();
+      
+      const metadata = Object.fromEntries(this.metadataCache.entries());
+      await writable.write(JSON.stringify(metadata, null, 2));
+      await writable.close();
+    } catch (error) {
+      console.error('❌ Failed to save metadata cache:', error);
+    }
+  }
+
+  private async initIndexedDBFallback(): Promise<void> {
+    // Keep IndexedDB as fallback for browsers without OPFS support
+    const DB_NAME = 'MonologAudioDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'audioFiles';
+    
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {
-        this.db = request.result;
+        console.log('📁 IndexedDB fallback initialized');
         resolve();
       };
       
@@ -34,168 +89,103 @@ class AudioStorage {
   }
 
   async saveAudio(audioBlob: Blob, fileName: string, mimeType: string = 'audio/webm'): Promise<string> {
-    if (!this.db) await this.init();
+    if (!this.initialized) await this.init();
     
-    console.log('💾 AudioStorage: Starting save process', {
+    console.log('💾 OPFS AudioStorage: Starting save process', {
       fileName,
       originalSize: audioBlob.size,
       originalMimeType: mimeType,
       userAgent: navigator.userAgent
     });
     
-    // Convert WebM to WAV for iOS compatibility
-    const processedBlob = await this.processAudioForCompatibility(audioBlob, mimeType);
-    const finalMimeType = this.getCompatibleMimeType();
+    // Skip iOS WAV conversion - let Media Bunny handle optimal formats natively
+    const finalBlob = audioBlob;
+    const finalMimeType = mimeType;
     
-    console.log('💾 AudioStorage: Audio processed', {
-      finalSize: processedBlob.size,
+    console.log('💾 OPFS AudioStorage: Saving to OPFS', {
+      finalSize: finalBlob.size,
       finalMimeType,
-      conversionApplied: processedBlob !== audioBlob
+      skipConversion: true
     });
     
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      
-      const audioData: StoredAudio = {
-        id: fileName,
-        audioBlob: processedBlob,
-        timestamp: Date.now(),
-        mimeType: finalMimeType
-      };
-      
-      const request = store.put(audioData);
-      
-      request.onsuccess = () => {
-        // Return a custom URL that we can use to identify this audio
-        const storageUrl = `audio-storage://${fileName}`;
-        console.log('💾 AudioStorage: Audio saved successfully', {
+    try {
+      if (this.opfsRoot) {
+        // Save to OPFS
+        const audioDir = await this.opfsRoot.getDirectoryHandle('audio', { create: true });
+        const fileHandle = await audioDir.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+        
+        // Stream the blob directly to OPFS - no memory buildup
+        await finalBlob.stream().pipeTo(writable);
+        
+        // Update metadata cache
+        const metadata: StoredAudioMetadata = {
+          id: fileName,
+          timestamp: Date.now(),
+          mimeType: finalMimeType,
+          size: finalBlob.size
+        };
+        
+        this.metadataCache.set(fileName, metadata);
+        await this.saveMetadataCache();
+        
+        const storageUrl = `opfs-storage://${fileName}`;
+        console.log('✅ OPFS AudioStorage: Audio saved successfully', {
           fileName,
           storageUrl,
-          blobSize: processedBlob.size,
+          blobSize: finalBlob.size,
           finalMimeType
         });
-        resolve(storageUrl);
+        
+        return storageUrl;
+      } else {
+        // Fallback to IndexedDB implementation
+        return await this.saveAudioIndexedDB(finalBlob, fileName, finalMimeType);
+      }
+    } catch (error) {
+      console.error('❌ OPFS save failed, trying IndexedDB fallback:', error);
+      return await this.saveAudioIndexedDB(finalBlob, fileName, finalMimeType);
+    }
+  }
+
+  private async saveAudioIndexedDB(audioBlob: Blob, fileName: string, mimeType: string): Promise<string> {
+    // IndexedDB fallback implementation
+    console.log('📦 Using IndexedDB fallback for audio storage');
+    
+    const DB_NAME = 'MonologAudioDB';
+    const STORE_NAME = 'audioFiles';
+    
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        
+        const audioData = {
+          id: fileName,
+          audioBlob: audioBlob,
+          timestamp: Date.now(),
+          mimeType: mimeType
+        };
+        
+        const putRequest = store.put(audioData);
+        
+        putRequest.onsuccess = () => {
+          const storageUrl = `audio-storage://${fileName}`;
+          console.log('✅ IndexedDB fallback: Audio saved successfully', { fileName, storageUrl });
+          resolve(storageUrl);
+        };
+        
+        putRequest.onerror = () => reject(putRequest.error);
       };
       
       request.onerror = () => reject(request.error);
     });
   }
 
-  private async processAudioForCompatibility(audioBlob: Blob, originalMimeType: string): Promise<Blob> {
-    // Check if we're on iOS/Safari and the audio is WebM
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const isWebM = originalMimeType.includes('webm') || originalMimeType.includes('ogg');
-    
-    console.log('🔄 AudioStorage: Checking compatibility', {
-      isIOS,
-      isSafari,
-      isWebM,
-      originalMimeType,
-      needsConversion: (isIOS || isSafari) && isWebM
-    });
-    
-    if ((isIOS || isSafari) && isWebM) {
-      console.log('🔄 Converting WebM to WAV for iOS/Safari compatibility');
-      try {
-        const convertedBlob = await this.convertToWAV(audioBlob);
-        console.log('✅ Audio conversion successful', {
-          originalSize: audioBlob.size,
-          convertedSize: convertedBlob.size
-        });
-        return convertedBlob;
-      } catch (error) {
-        console.error('❌ Failed to convert audio format:', error);
-        // Try to create a simple WAV wrapper as fallback
-        try {
-          const fallbackBlob = await this.createWAVFallback(audioBlob);
-          console.log('⚠️ Using fallback WAV wrapper');
-          return fallbackBlob;
-        } catch (fallbackError) {
-          console.error('❌ Fallback conversion also failed:', fallbackError);
-          // Return original blob as last resort
-          return audioBlob;
-        }
-      }
-    }
-    
-    return audioBlob;
-  }
-
-  private async convertToWAV(audioBlob: Blob): Promise<Blob> {
-    console.log('🔄 Starting WebM to WAV conversion');
-    
-    // Create audio context with iOS-compatible settings
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-      sampleRate: 44100 // Use standard sample rate for better compatibility
-    });
-    
-    try {
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      console.log('🔄 Audio blob converted to array buffer, size:', arrayBuffer.byteLength);
-      
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      console.log('🔄 Audio decoded successfully', {
-        duration: audioBuffer.duration,
-        sampleRate: audioBuffer.sampleRate,
-        numberOfChannels: audioBuffer.numberOfChannels,
-        length: audioBuffer.length
-      });
-      
-      const wavBlob = await this.audioBufferToWAV(audioBuffer);
-      console.log('✅ WAV conversion complete, size:', wavBlob.size);
-      
-      return wavBlob;
-    } finally {
-      // Always close the audio context to free resources
-      try {
-        await audioContext.close();
-      } catch (e) {
-        console.warn('Warning: Could not close audio context:', e);
-      }
-    }
-  }
-
-  private async createWAVFallback(audioBlob: Blob): Promise<Blob> {
-    console.log('🔄 Creating WAV fallback wrapper');
-    
-    // Create a minimal WAV header for the raw audio data
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const dataSize = arrayBuffer.byteLength;
-    
-    // Create WAV header (44 bytes)
-    const header = new ArrayBuffer(44);
-    const view = new DataView(header);
-    
-    // WAV header
-    const writeString = (offset: number, string: string) => {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    };
-    
-    writeString(0, 'RIFF');
-    view.setUint32(4, 36 + dataSize, true);
-    writeString(8, 'WAVE');
-    writeString(12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true); // PCM
-    view.setUint16(22, 1, true); // Mono
-    view.setUint32(24, 44100, true); // Sample rate
-    view.setUint32(28, 44100 * 2, true); // Byte rate
-    view.setUint16(32, 2, true); // Block align
-    view.setUint16(34, 16, true); // Bits per sample
-    writeString(36, 'data');
-    view.setUint32(40, dataSize, true);
-    
-    // Combine header with audio data
-    const wavBuffer = new Uint8Array(44 + dataSize);
-    wavBuffer.set(new Uint8Array(header), 0);
-    wavBuffer.set(new Uint8Array(arrayBuffer), 44);
-    
-    return new Blob([wavBuffer], { type: 'audio/wav' });
-  }
+  // REMOVED: iOS WAV conversion methods - letting Media Bunny handle native formats
 
   async audioBufferToWAV(audioBuffer: AudioBuffer): Promise<Blob> {
     const length = audioBuffer.length;
@@ -248,58 +238,85 @@ class AudioStorage {
     return wavBlob;
   }
 
-  private getCompatibleMimeType(): string {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    
-    if (isIOS || isSafari) {
-      return 'audio/wav';
-    }
-    
-    return 'audio/webm';
-  }
+  // REMOVED: getCompatibleMimeType - using Media Bunny's native format detection
 
   async getAudio(id: string): Promise<{ url: string; mimeType: string } | null> {
-    if (!this.db) await this.init();
+    if (!this.initialized) await this.init();
+    
+    try {
+      if (this.opfsRoot) {
+        // Try OPFS first
+        const audioDir = await this.opfsRoot.getDirectoryHandle('audio', { create: false });
+        const fileHandle = await audioDir.getFileHandle(id);
+        const file = await fileHandle.getFile();
+        
+        // Get metadata from cache
+        const metadata = this.metadataCache.get(id);
+        const mimeType = metadata?.mimeType || 'audio/webm';
+        
+        // Create blob URL
+        const blob = new Blob([file], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        
+        console.log('✅ OPFS AudioStorage: Retrieved audio for ID:', id, {
+          url: url.substring(0, 50) + '...',
+          mimeType,
+          size: file.size
+        });
+        
+        return { url, mimeType };
+      } else {
+        // Fallback to IndexedDB
+        return await this.getAudioIndexedDB(id);
+      }
+    } catch (error) {
+      console.warn('⚠️ OPFS retrieval failed, trying IndexedDB fallback:', error);
+      return await this.getAudioIndexedDB(id);
+    }
+  }
+
+  private async getAudioIndexedDB(id: string): Promise<{ url: string; mimeType: string } | null> {
+    const DB_NAME = 'MonologAudioDB';
+    const STORE_NAME = 'audioFiles';
     
     return new Promise((resolve) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(id);
+      const request = indexedDB.open(DB_NAME, 1);
       
       request.onsuccess = () => {
-        if (request.result) {
-          const audioData: StoredAudio = request.result;
-          
-          // Validate the blob
-          if (!audioData.audioBlob || audioData.audioBlob.size === 0) {
-            console.error('AudioStorage: Invalid or empty blob for ID:', id);
+        const db = request.result;
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const getRequest = store.get(id);
+        
+        getRequest.onsuccess = () => {
+          if (getRequest.result) {
+            const audioData = getRequest.result;
+            
+            if (!audioData.audioBlob || audioData.audioBlob.size === 0) {
+              console.error('❌ IndexedDB: Invalid or empty blob for ID:', id);
+              resolve(null);
+              return;
+            }
+            
+            const blob = new Blob([audioData.audioBlob], { type: audioData.mimeType });
+            const url = URL.createObjectURL(blob);
+            
+            console.log('✅ IndexedDB fallback: Retrieved audio for ID:', id);
+            resolve({ url, mimeType: audioData.mimeType });
+          } else {
+            console.log('❌ IndexedDB: No audio found for ID:', id);
             resolve(null);
-            return;
           }
-          
-          // Create blob URL with proper MIME type for better mobile compatibility  
-          console.log('💾 AudioStorage: Creating blob URL for audio', { 
-            id, 
-            size: audioData.audioBlob.size, 
-            mimeType: audioData.mimeType,
-            timestamp: new Date().toISOString()
-          });
-          
-          // Ensure we use the correct MIME type for the blob
-          const blob = new Blob([audioData.audioBlob], { type: audioData.mimeType });
-          const url = URL.createObjectURL(blob);
-          
-          console.log('✅ AudioStorage: Retrieved audio for ID:', id, 'URL:', url.substring(0, 50) + '...', 'MimeType:', audioData.mimeType, 'Blob size:', blob.size);
-          resolve({ url, mimeType: audioData.mimeType });
-        } else {
-          console.log('❌ AudioStorage: No audio found for ID:', id);
+        };
+        
+        getRequest.onerror = () => {
+          console.error('❌ IndexedDB: Error retrieving audio for ID:', id);
           resolve(null);
-        }
+        };
       };
       
       request.onerror = () => {
-        console.error('❌ AudioStorage: Error retrieving audio for ID:', id, 'Error:', request.error);
+        console.error('❌ IndexedDB: Failed to open database');
         resolve(null);
       };
     });
@@ -334,14 +351,14 @@ class AudioStorage {
 
 export const audioStorage = new AudioStorage();
 
-// Helper function to check if URL is from our storage
+// Helper function to check if URL is from our storage (OPFS or IndexedDB)
 export const isStorageUrl = (url: string): boolean => {
-  return url.startsWith('audio-storage://');
+  return url.startsWith('opfs-storage://') || url.startsWith('audio-storage://');
 };
 
 // Helper function to extract ID from storage URL
 export const getStorageId = (url: string): string => {
-  return url.replace('audio-storage://', '');
+  return url.replace('opfs-storage://', '').replace('audio-storage://', '');
 };
 
 // Helper function to resolve storage URL to blob URL
